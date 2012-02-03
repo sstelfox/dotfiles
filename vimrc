@@ -16,7 +16,10 @@ filetype indent plugin on
 set autoread
 
 " When vimrc is edited, reload it
-autocmd! bufwritepost vimrc source ~/.vim_runtime/vimrc
+autocmd! bufwritepost vimrc source ~/.vimrc
+
+" Check the first 10 lines of a file for vim settings
+set modelines=10
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " USER INTERFACE CONFIGURATION
@@ -71,6 +74,19 @@ set showcmd
 " Display line numbers
 set number
 
+" When opening files automatically background the active buffer rather than
+" closing it
+set hidden
+
+" Give a little bit of room on the command section for error messages and 
+" responses
+set cmdheight=2
+
+set nostartofline
+set confirm
+set pastetoggle=<F11>
+nnoremap <C-L> :nohl<CR><C-L>
+
 """""""""""""""""""""""""""""""""""""""""""""""""
 " COLORS AND FONTS
 """""""""""""""""""""""""""""""""""""""""""""""""
@@ -96,12 +112,15 @@ set expandtab
 set shiftwidth=2 tabstop=2
 set smarttab
 
-"set lbr
-"set tw=500
+" What can I say? I'm old school who needs lines longer than 80 characters?
+set textwidth=80
 
 set autoindent
 set smartindent
 set wrap
+
+" When wrapping break on spaces rather than in the middle of a word
+set lbr
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " Files, backups, and undo
@@ -122,16 +141,30 @@ catch
 endtry
 
 """""""""""""""""""""""""""""""""""""""""""""""""
+" Status line
+"""""""""""""""""""""""""""""""""""""""""""""""""
 
-set hidden
-
-set nomodeline
-
-set nostartofline
+" Always show the statusline
 set laststatus=2
-set confirm
 
-set cmdheight=2
-set pastetoggle=<F11>
+" Format the statusline
+"set statusline=\ %F%m%r%h\ %w\ %r%h\ \ \ Line:\ %l/%L:%c
 
-nnoremap <C-L> :nohl<CR><C-L>
+" Format the statusline
+set statusline=\ %{HasPaste()}%F%m%r%h\ %w\ \ CWD:\ %r%{CurDir()}%h\ \ \ Line:\ %l/%L:%c
+
+function! CurDir()
+    let curdir = substitute(getcwd(), '/home/sstelfox/', "~/", "g")
+    return curdir
+endfunction
+
+function! HasPaste()
+    if &paste
+        return 'PASTE MODE  '
+    else
+        return ''
+    endif
+endfunction
+
+"""""""""""""""""""""""""""""""""""""""""""""""""
+
