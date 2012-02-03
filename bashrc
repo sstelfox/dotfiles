@@ -23,16 +23,16 @@ function exitstatus {
         EXITSTATUS="$?"
 
         if [ "$EXITSTATUS" -eq "0" ]; then
-                echo "$SUCCESS"
+                echo "$CHECK"
         else
-                echo "$FAIL"
+                echo "$CROSS"
         fi
 }
 
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus)"
+  export PS1="\W \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
 else 
-  export PS1="[\u@\h \W] \$GITSTATUS \$(exitstatus)"
+  export PS1="[\u@\h \W] \$GITSTATUS \$(exitstatus) "
 fi
 
 #export PS1="[\u@\h \W]\$ "
