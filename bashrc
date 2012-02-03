@@ -27,9 +27,9 @@ function exitstatus {
 }
 
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
+  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
 else 
-  export PS1="[\u@\h \W] \$GITSTATUS \$(exitstatus) "
+  export PS1="[\u@\h \W] \$(exitstatus) "
 fi
 
 # Load RVM up
