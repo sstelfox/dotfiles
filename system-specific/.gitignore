@@ -1,0 +1,6 @@
+# This directory is for system specific functions that will be sourced
+# by bashrc on startup. Files that get moved into this directory should
+# not by added to the repository
+*
+# Except this file
+!.gitignore
