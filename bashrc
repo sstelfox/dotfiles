@@ -19,8 +19,6 @@ RST=$(tput sgr0)
 CHECK=$(echo -e '\xE2\x9C\x93')
 CROSS=$(echo x)
 
-GITSTATUS="$(__git_ps1)"
-
 function exitstatus {
         EXITSTATUS="$?"
 
@@ -32,7 +30,7 @@ function exitstatus {
 }
 
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W \$GITSTATUS \$(exitstatus)"
+  export PS1="\W \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus)"
 else 
   export PS1="[\u@\h \W] \$GITSTATUS \$(exitstatus)"
 fi
