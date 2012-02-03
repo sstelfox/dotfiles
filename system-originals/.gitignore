@@ -1,0 +1,6 @@
+# This directory is for the original copies of any dot files that were
+# on the system when the install script was run. Files that get moved
+# into this directory should not by added to the repository
+*
+# Except this file
+!.gitignore
