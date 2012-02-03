@@ -13,9 +13,9 @@ alias gl='git log --format="%h - %an: %s"'
 alias gs='git status'
 
 # Some color definitions
-RED='\e[0;31m'
-YELLOW='\e[1;32m'
-GREEN='\e[1;32m'
+RED='\[\e[0;31m\]'
+YELLOW='\[\e[1;32m\]'
+GREEN='\[\e[1;32m\]'
 
 RST='\e[m'
 
@@ -40,7 +40,7 @@ function exitstatus {
 
 function ps1smarts {
         STAT=$(exitstatus)
-        GIT=$(gitbranch)
+        #GIT=$(gitbranch)
 
         echo -e "$GIT $STAT "
 }
@@ -48,7 +48,7 @@ function ps1smarts {
 if [[ -n "$TMUX_PANE" ]]; then
   export PS1="\W\$(ps1smarts)"
 else 
-  export PS1="\[[\u@\h \W]\$(ps1smarts)"
+  export PS1="[\u@\h \W]\$(ps1smarts)"
 fi
 
 #export PS1="[\u@\h \W]\$ "
