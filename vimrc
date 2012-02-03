@@ -113,7 +113,8 @@ set shiftwidth=2 tabstop=2
 set smarttab
 
 " What can I say? I'm old school who needs lines longer than 80 characters?
-set textwidth=80
+" NEVER MIND - pain in my ass...
+" set textwidth=80
 
 set autoindent
 set smartindent
