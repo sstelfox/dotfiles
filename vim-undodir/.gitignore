@@ -1,0 +1,6 @@
+# This directory is used for persisting undo function between vim sessions.
+# This directory is excluded from the git repo as no one should ever really
+# need there undo history across multiple files
+*
+# Except this file
+!.gitignore
