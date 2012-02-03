@@ -1,10 +1,7 @@
-# .bashrc
-
 # Source global definitions
 if [ -f /etc/bashrc ]; then
   . /etc/bashrc
 fi
-
 
 alias ga='git add'
 alias gl='git log --format="%h - %an: %s"'
@@ -35,7 +32,5 @@ else
   export PS1="[\u@\h \W] \$GITSTATUS \$(exitstatus) "
 fi
 
-#export PS1="[\u@\h \W]\$ "
-
 # Load RVM up
-[[ -s "/home/sstelfox/.rvm/scripts/rvm" ]] && source "/home/sstelfox/.rvm/scripts/rvm"
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
