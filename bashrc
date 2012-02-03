@@ -12,19 +12,19 @@ alias gl='git log --format="%h - %an: %s"'
 alias gs='git status'
 
 # Some color definitions
-#RED='\033[0;31m\]'
-#YELLOW='\033[1;32m'
-#GREEN='\033[1;32m'
+RED=$(tput setaf 1)
+YELLOW=$(tput setaf 3)
+GREEN=$(tput setaf 3)
 
-RST='\033[m'
+RST=$(tput setaf 7)
 
-SUCCESS="$GREEN$(echo -e '\xE2\x9C\x93')\[$RST\]"
-FAIL="$RED$(echo x)\[$RST\]"
+SUCCESS="$GREEN$(echo -e '\xE2\x9C\x93')$RST"
+FAIL="$RED$(echo x)$RST"
 
 #GITPS1="\$(__git_ps1 \" $YELLOW%s$RST\")"
 
 function gitbranch {
-        echo -e "${YELLOW}$(__git_ps1)\[${RST}\]"
+        echo -e "${YELLOW}$(__git_ps1)${RST}"
 }
 
 function exitstatus {
@@ -38,7 +38,7 @@ function exitstatus {
 }
 
 function ps1smarts {
-        STAT=$(exitstatus)
+        #STAT=$(exitstatus)
         GIT=$(gitbranch)
 
         echo -e "$GIT $STAT "
