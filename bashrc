@@ -8,9 +8,12 @@ if [[ $- != *i* ]]; then
   return
 fi
 
-# If we're not in a tmux session already open one up that will automatically close when we exit or detach
-if [[ "$TERM" != "screen" ]]; then
-  tmux && exit 
+# Test to ensure we have tmux before automatically executing it..
+if which tmux 2>&1 >/dev/null; then
+  # If we're not in a tmux session already open one up that will automatically close when we exit or detach
+  if [[ "$TERM" != "screen" ]]; then
+    tmux && exit 
+  fi
 fi
 
 alias ga='git add'
