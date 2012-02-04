@@ -3,6 +3,16 @@ if [ -f /etc/bashrc ]; then
   . /etc/bashrc
 fi
 
+# If we're running interactively (such as through rsync, sftp etc) don't execute the following code
+if [[ $- != *i* ]]; then
+  return
+fi
+
+# If we're not in a tmux session already open one up that will automatically close when we exit or detach
+if [[ "$TERM" != "screen" ]]; then
+  tmux && exit 
+fi
+
 alias ga='git add'
 alias gl='git log --format="%h - %an: %s"'
 alias gs='git status'
@@ -34,3 +44,5 @@ fi
 
 # Load RVM up
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+
+
