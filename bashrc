@@ -48,4 +48,6 @@ fi
 # Load RVM up
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
+# RVM doesn't always seem to come up properly for me, this does the trick
+rvm reload > /dev/null
 
