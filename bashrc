@@ -26,16 +26,17 @@ YELLOW=$(tput setaf 3)
 GREEN=$(tput setaf 3)
 RST=$(tput sgr0)
 
-CHECK=$(echo -e '\xE2\x9C\x93')
-CROSS=$(echo x)
+#GOOD=$(echo -e '\xE2\x9C\x93')
+GOOD=$(echo +)
+BAD=$(echo -)
 
 function exitstatus {
         EXITSTATUS="$?"
 
         if [ "$EXITSTATUS" -eq "0" ]; then
-                echo "$CHECK"
+                echo "$GOOD"
         else
-                echo "$CROSS"
+                echo "$BAD"
         fi
 }
 
