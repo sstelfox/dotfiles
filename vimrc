@@ -118,7 +118,7 @@ set smarttab
 
 set autoindent
 set smartindent
-set wrap
+set nowrap
 
 " When wrapping break on spaces rather than in the middle of a word
 set lbr
