@@ -8,4 +8,4 @@
 [core]
 	autocrlf = input
 	safecrlf = false
-	editor = vim
+	editor = vi
