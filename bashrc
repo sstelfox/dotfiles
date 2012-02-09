@@ -19,6 +19,7 @@ fi
 alias ga='git add'
 alias gl='git log --format="%h - %an: %s"'
 alias gs='git status'
+alias codecount='find . -type f -exec cat {} \; | wc -l'
 
 # Some color definitions
 RED=$(tput setaf 1)
