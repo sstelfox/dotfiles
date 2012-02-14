@@ -8,7 +8,7 @@
 # if they existed for reference. This folder is not included in the
 # repository and as such will not migrate between machines
 
-FILES=( bashrc vimrc tmux.conf gitconfig )
+FILES=( bashrc vimrc tmux.conf gitconfig sqliterc )
 
 # This function takes a filename (without the preceding .) and backs
 # it up before installing a symbolic link to the repository version
