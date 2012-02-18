@@ -44,7 +44,7 @@ function setup_prompt {
   local __exit_status="\$(exit_status)"
 
   if [[ "$TERM" == "screen" ]]; then
-    export PS1=" $__path$__git $__exit_status "
+    export PS1="$__path$__git $__exit_status "
   else 
     export PS1="$__user_host $__path$__git $__exit_status "
   fi
