@@ -1,6 +1,6 @@
 # Source global definitions
 if [ -f /etc/bashrc ]; then
-  . /etc/bashrc
+  source /etc/bashrc
 fi
 
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
@@ -8,10 +8,13 @@ if [[ $- != *i* ]]; then
   return
 fi
 
+# Source the git-completion file
+source $HOME/.dotfiles/helpers/git-completion.sh
+
 # Source all executable files that live the system-specific folder
 for FILE in $HOME/.dotfiles/system-specific/*; do
   if [[ -x "$FILE" ]]; then
-    . $FILE
+    source $FILE
   fi
 done
 
