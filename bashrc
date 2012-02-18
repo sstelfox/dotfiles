@@ -25,9 +25,9 @@ RED=$(tput setaf 1)
 YELLOW=$(tput bold; tput setaf 3;)
 RST=$(tput sgr0)
 
-#GOOD=$(echo -e '\xE2\x9C\x93')
-GOOD=$(echo +)
-BAD=$(echo -)
+GOOD=$(echo -e '\xE2\x9C\x93')
+#GOOD=$(echo +)
+BAD=$(echo x)
 
 function exit_status {
   if [ "$?" -eq "0" ]; then
