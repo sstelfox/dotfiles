@@ -21,9 +21,8 @@ alias codecount='find . -type f -exec cat {} \; | wc -l'
 
 # Some color definitions
 #RED=$(tput setaf 1)
-#YELLOW=$(tput setaf 3)
-#GREEN=$(tput setaf 3)
-#RST=$(tput sgr0)
+YELLOW=$(tput bold; tput setaf 3;)
+RST=$(tput sgr0)
 
 #GOOD=$(echo -e '\xE2\x9C\x93')
 GOOD=$(echo +)
