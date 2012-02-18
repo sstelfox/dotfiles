@@ -6,3 +6,8 @@
 # work and home machines.
 export GIT_COMMITTER_EMAIL="didnt_change@thedefaults.here"
 export GIT_COMMITTER_NAME="Some Guy"
+
+# You probably don't need to change these unless they're different
+# for some reason than those above
+export GIT_AUTHOR_EMAIL=$GIT_COMMITTER_EMAIL
+export GIT_AUTHOR_NAME=$GIT_COMMITTER_NAME
