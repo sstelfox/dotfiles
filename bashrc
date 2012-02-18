@@ -28,20 +28,10 @@ RST=$(tput sgr0)
 GOOD=$(echo +)
 BAD=$(echo -)
 
-function exitstatus {
-        EXITSTATUS="$?"
-
-        if [ "$EXITSTATUS" -eq "0" ]; then
-                echo "$GOOD"
-        else
-                echo "$BAD"
-        fi
-}
-
 if [[ "$TERM" == "screen" ]]; then
-  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
+  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$? "
 else 
-  export PS1="[\u@\h \W] \$(exitstatus) "
+  export PS1="[\u@\h] \W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$? "
 fi
 
 # Load RVM up
