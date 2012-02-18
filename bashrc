@@ -20,7 +20,8 @@ alias gs='git status'
 alias codecount='find . -type f -exec cat {} \; | wc -l'
 
 # Some color definitions
-#RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+RED=$(tput setaf 1)
 YELLOW=$(tput bold; tput setaf 3;)
 RST=$(tput sgr0)
 
@@ -28,11 +29,19 @@ RST=$(tput sgr0)
 GOOD=$(echo +)
 BAD=$(echo -)
 
-if [[ "$TERM" == "screen" ]]; then
-  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$? "
-else 
-  export PS1="[\u@\h] \W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$? "
-fi
+function setup_prompt {
+  local __user_host="[\u@\h]"
+  local __path="\W"
+  local __git="\[$YELLOW\]$(__git_ps1)\[$RST\]"
+  local __exit_status="$?"
+
+  if [[ "$TERM" == "screen" ]]; then
+    export PS1="$__path $__git $__exit_status "
+  else 
+    export PS1="$__user_host $__path $__git$__exit_status "
+  fi
+}
+setup_prompt
 
 # Load RVM up
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
