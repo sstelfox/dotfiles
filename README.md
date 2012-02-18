@@ -4,6 +4,11 @@ them up run ~/.dotfiles/dot-install.sh. This script will preserve all of your
 original dotfiles in ~/.dotfiles/system-originals/ if you need them for any
 reason.
 
+You'll also want to set the appropriate name and email that you want to show up in
+git commit messages in ~/.dotfiles/system-specific/git-user-info.sh. This will
+automatically be sourced and you won't have to set it in the gitconfig file. This
+was done to allow different names and emails be used between work and home machines.
+
 I do not offer any support on these files as they are primarily for personal use
 and anyone that is using them should at least know how to read man pages and
 search for answers on there own.
