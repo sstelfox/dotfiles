@@ -29,14 +29,22 @@ RST=$(tput sgr0)
 GOOD=$(echo +)
 BAD=$(echo -)
 
+function exit_status {
+  if [ "$?" -eq "0" ]; then
+    echo $GOOD
+  else
+    echo $BAD
+  fi
+}
+
 function setup_prompt {
   local __user_host="[\u@\h]"
   local __path="\W"
   local __git="\[$YELLOW\]$(__git_ps1)\[$RST\]"
-  local __exit_status="$?"
+  local __exit_status="\$(exit_status)"
 
   if [[ "$TERM" == "screen" ]]; then
-    export PS1="$__path$__git $__exit_status "
+    export PS1=" $__path$__git $__exit_status "
   else 
     export PS1="$__user_host $__path$__git $__exit_status "
   fi
