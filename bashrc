@@ -16,7 +16,7 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
 done
 
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
-alias gstat='git status'
+alias gs='git status'
 alias codecount='find . -type f -exec cat {} \; | wc -l'
 
 # Some color definitions
