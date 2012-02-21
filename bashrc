@@ -1,6 +1,6 @@
 # Source global definitions
 if [ -f /etc/bashrc ]; then
-  . /etc/bashrc
+  source /etc/bashrc
 fi
 
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
@@ -8,10 +8,13 @@ if [[ $- != *i* ]]; then
   return
 fi
 
+# Source the git-completion file
+source $HOME/.dotfiles/helpers/git-completion.sh
+
 # Source all executable files that live the system-specific folder
 for FILE in $HOME/.dotfiles/system-specific/*; do
   if [[ -x "$FILE" ]]; then
-    . $FILE
+    source $FILE
   fi
 done
 
@@ -27,6 +30,13 @@ RST=$(tput sgr0)
 
 GOOD=$(echo -e '\xE2\x9C\x93')
 BAD=$(echo x)
+
+# Some security related settings that are set by default on my systems but not other ones
+# I use, the subshell will prevent the actual variable from being unset if it isn't readonly
+# if it is readonly then we just redirect the error message to /dev/null and move on
+(unset TMOUT 2> /dev/null) || export readonly TMOUT=900
+(unset HISTSIZE 2> /dev/null) || export readonly HISTSIZE=100
+(unset HISTFILE 2> /dev/null) || export readonly HISTFILE=$HOME/.bash_history
 
 function exit_status {
   if [ "$?" -eq "0" ]; then
