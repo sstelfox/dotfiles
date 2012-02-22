@@ -1,0 +1,21 @@
+
+bashrc:
+  * Get color working on exit status in prompt
+  * Configure ssh-agent to start on shell, populate with SOCK...
+  * Show git status in command line? Maybe show * around the branch name if there are unchanged commits
+
+vimrc
+  * Syntax highlighting for ruby
+
+tmux
+  * Get page up/page down working
+
+my.cnf
+  * Setup some of my normal options
+  * May need to be setup through system-specific, or at least have changes ignored after setup
+
+.ssh/config
+.ssh/environment
+  * Easy way to do files nested in a subdirectory with existing install script?
+
+

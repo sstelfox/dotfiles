@@ -1,6 +1,6 @@
 # Source global definitions
 if [ -f /etc/bashrc ]; then
-  . /etc/bashrc
+  source /etc/bashrc
 fi
 
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
@@ -16,35 +16,64 @@ fi
 #  fi
 #fi
 
-alias ga='git add'
-alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
-alias gs='git status'
-alias codecount='find . -type f -exec cat {} \; | wc -l'
+# Source all executable files that live the system-specific folder
+for FILE in $HOME/.dotfiles/system-specific/*; do
+  if [[ -x "$FILE" ]]; then
+    source $FILE
+  fi
+done
 
-# Some color definitions
-RED=$(tput setaf 1)
-YELLOW=$(tput setaf 3)
-GREEN=$(tput setaf 3)
-RST=$(tput sgr0)
-
-#GOOD=$(echo -e '\xE2\x9C\x93')
-GOOD=$(echo +)
-BAD=$(echo -)
-
-function exitstatus {
-        EXITSTATUS="$?"
-
-        if [ "$EXITSTATUS" -eq "0" ]; then
-                echo "$GOOD"
-        else
-                echo "$BAD"
-        fi
+# Function that allows some quick directory traversing
+function go {
+  if [[ "$1" -eq "rp" ]]; then
+    cd ~/ruby_projects
+  elif [[ "$1" -eq "dot" ]]; then
+    cd ~/.dotfiles
+  else
+    cd
+  fi
 }
 
+# Source the git-completion file
+source $HOME/.dotfiles/helpers/git-completion.sh
+
+# Some color definitions
+GREEN=$(tput setaf 2)
+RED=$(tput setaf 1)
+YELLOW=$(tput bold; tput setaf 3;)
+RST=$(tput sgr0)
+
+GOOD=$(echo -e '\xE2\x9C\x93')
+BAD=$(echo x)
+
+function exit_status {
+  if [ "$?" -eq "0" ]; then
+    echo $GOOD
+  else
+    echo $BAD
+  fi
+}
+
+function setup_prompt {
+  local __user_host="[\u@\h]"
+  local __path="\W"
+  local __git="\[$YELLOW\]$(__git_ps1)\[$RST\]"
+  local __exit_status="\$(exit_status)"
+
+  if [[ "$TERM" == "screen" ]]; then
+    export PS1="$__path$__git $__exit_status "
+  else 
+    export PS1="$__user_host $__path$__git $__exit_status "
+  fi
+}
+# Setup PS1 variable
+#setup_prompt
+
+# For when I inevitable break my PS1...
 if [[ -n "$TMUX_PANE" ]]; then
   export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
 else 
-  export PS1="[\u@\h \W] \$(exitstatus) "
+  export PS1="[\u@\h \W] [$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
 fi
 
 # Load RVM up
