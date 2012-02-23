@@ -23,12 +23,12 @@ alias gs='git status'
 
 # Function that allows some quick directory traversing
 function go {
-  if [[ "$1" -eq "rp" ]]; then
-    cd ~/ruby_projects
-  elif [[ "$1" -eq "dot" ]]; then
-    cd ~/.dotfiles
+  if [[ "$1" == "rp" ]]; then
+    cd $HOME/ruby_projects
+  elif [[ "$1" == "dot" ]]; then
+    cd $HOME/.dotfiles
   else
-    cd
+    cd $HOME
   fi
 }
 
