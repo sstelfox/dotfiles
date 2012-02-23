@@ -28,12 +28,14 @@ alias gs='git status'
 
 # Function that allows some quick directory traversing
 function go {
-  if [[ "$1" = "rp" ]]; then
-    cd ~/ruby_projects
+  if [[ "$1" = "b" ]]; then
+    popd > /dev/null
+  elif [[ "$1" = "rp" ]]; then
+    pushd $HOME/ruby_projects > /dev/null
   elif [[ "$1" = "dot" ]]; then
-    cd ~/.dotfiles
+    pushd $HOME/.dotfiles > /dev/null
   else
-    cd
+    pushd $HOME > /dev/null
   fi
 }
 
