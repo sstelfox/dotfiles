@@ -23,6 +23,9 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
+alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
+alias gs='git status'
+
 # Function that allows some quick directory traversing
 function go {
   if [[ "$1" -eq "rp" ]]; then
@@ -71,9 +74,9 @@ function setup_prompt {
 
 # For when I inevitable break my PS1...
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
+  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 else 
-  export PS1="[\u@\h \W] [$YELLOW\]\$(__git_ps1)\[$RST\] \$(exitstatus) "
+  export PS1="[\u@\h \W] \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 fi
 
 # Load RVM up
