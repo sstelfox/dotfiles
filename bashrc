@@ -28,9 +28,9 @@ alias gs='git status'
 
 # Function that allows some quick directory traversing
 function go {
-  if [[ "$1" -eq "rp" ]]; then
+  if [[ "$1" = "rp" ]]; then
     cd ~/ruby_projects
-  elif [[ "$1" -eq "dot" ]]; then
+  elif [[ "$1" = "dot" ]]; then
     cd ~/.dotfiles
   else
     cd
@@ -74,9 +74,9 @@ function setup_prompt {
 
 # For when I inevitable break my PS1...
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W\[$YELLOW\]\$(__git_ps1 "%s")\[$RST\] \$(exit_status) "
+  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 else 
-  export PS1="[\u@\h \W] \[$YELLOW\]\$(__git_ps1 "%s")\[$RST\] \$(exit_status) "
+  export PS1="[\u@\h \W]\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 fi
 
 # Load RVM up
