@@ -31,5 +31,11 @@ for DOTFILE in ${FILES[@]}; do
   backup_and_install $DOTFILE
 done
 
+# Mark the git file as untracked locally so we can make changes without
+# affecting what's in the repo
+pushd $HOME/.dotfiles/ > /dev/null
+git update-index --assume-unchanged system-specific/git-user-info.sh
+popd > /dev/null
+
 # Start using the new profile :)
 source $HOME/.bash_profile
