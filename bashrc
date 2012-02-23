@@ -31,13 +31,6 @@ RST=$(tput sgr0)
 GOOD=$(echo -e '\xE2\x9C\x93')
 BAD=$(echo x)
 
-# Some security related settings that are set by default on my systems but not other ones
-# I use, the subshell will prevent the actual variable from being unset if it isn't readonly
-# if it is readonly then we just redirect the error message to /dev/null and move on
-(unset TMOUT 2> /dev/null) || export readonly TMOUT=900
-(unset HISTSIZE 2> /dev/null) || export readonly HISTSIZE=100
-(unset HISTFILE 2> /dev/null) || export readonly HISTFILE=$HOME/.bash_history
-
 function exit_status {
   if [ "$?" -eq "0" ]; then
     echo $GOOD
