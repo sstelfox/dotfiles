@@ -76,9 +76,9 @@ function setup_prompt {
 
 # For when I inevitable break my PS1...
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+  export PS1="\$($HOME/.dotfiles/bin/shortdir)\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 else 
-  export PS1="[\u@\h \W]\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 fi
 
 # Load RVM up
