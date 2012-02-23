@@ -8,8 +8,13 @@ if [[ $- != *i* ]]; then
   return
 fi
 
-# Source the git-completion file
-source $HOME/.dotfiles/helpers/git-completion.sh
+# Test to ensure we have tmux before automatically executing it..
+#if which tmux 2>&1 >/dev/null; then
+  # If we're not in a tmux session already open one up that will automatically close when we exit or detach
+#  if [[ "$TERM" != "screen" ]]; then
+    #tmux && exit 
+#  fi
+#fi
 
 # Source all executable files that live the system-specific folder
 for FILE in $HOME/.dotfiles/system-specific/*; do
@@ -18,7 +23,7 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
-alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
+alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
 alias gs='git status'
 
 # Function that allows some quick directory traversing
@@ -31,6 +36,9 @@ function go {
     cd $HOME
   fi
 }
+
+# Source the git-completion file
+source $HOME/.dotfiles/helpers/git-completion.sh
 
 # Some color definitions
 GREEN=$(tput setaf 2)
@@ -61,7 +69,15 @@ function setup_prompt {
     export PS1="$__user_host $__path$__git $__exit_status "
   fi
 }
-setup_prompt
+# Setup PS1 variable
+#setup_prompt
+
+# For when I inevitable break my PS1...
+if [[ -n "$TMUX_PANE" ]]; then
+  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+else 
+  export PS1="[\u@\h \W] \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+fi
 
 # Load RVM up
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
