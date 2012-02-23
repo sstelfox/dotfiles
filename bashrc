@@ -8,6 +8,10 @@ if [[ $- != *i* ]]; then
   return
 fi
 
+# Encoding help?
+export LC_ALL=en_US.utf-8
+export LANG="$LC_ALL"
+
 # Test to ensure we have tmux before automatically executing it..
 #if which tmux 2>&1 >/dev/null; then
   # If we're not in a tmux session already open one up that will automatically close when we exit or detach
