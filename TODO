@@ -8,7 +8,6 @@ vimrc
   * Syntax highlighting for ruby
 
 tmux
-  * Disable mouse mode (it's not worth it to support Ubuntu)
   * Get page up/page down working
 
 my.cnf

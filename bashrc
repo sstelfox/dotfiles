@@ -20,7 +20,17 @@ done
 
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
 alias gs='git status'
-alias codecount='find . -type f -exec cat {} \; | wc -l'
+
+# Function that allows some quick directory traversing
+function go {
+  if [[ "$1" -eq "rp" ]]; then
+    cd ~/ruby_projects
+  elif [[ "$1" -eq "dot" ]]; then
+    cd ~/.dotfiles
+  else
+    cd
+  fi
+}
 
 # Some color definitions
 GREEN=$(tput setaf 2)
