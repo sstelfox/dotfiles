@@ -93,6 +93,7 @@ nnoremap <C-L> :nohl<CR><C-L>
 
 " Turn on syntax highlighting
 syntax on
+set ai
 
 set encoding=utf8
 try
