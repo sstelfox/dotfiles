@@ -8,6 +8,10 @@ if [[ $- != *i* ]]; then
   return
 fi
 
+# Encoding help?
+export LC_ALL=en_US.utf-8
+export LANG="$LC_ALL"
+
 # Test to ensure we have tmux before automatically executing it..
 #if which tmux 2>&1 >/dev/null; then
   # If we're not in a tmux session already open one up that will automatically close when we exit or detach
@@ -28,12 +32,14 @@ alias gs='git status'
 
 # Function that allows some quick directory traversing
 function go {
-  if [[ "$1" == "rp" ]]; then
-    cd $HOME/ruby_projects
-  elif [[ "$1" == "dot" ]]; then
-    cd $HOME/.dotfiles
+  if [[ "$1" = "b" ]]; then
+    popd > /dev/null
+  elif [[ "$1" = "rp" ]]; then
+    pushd $HOME/ruby_projects > /dev/null
+  elif [[ "$1" = "dot" ]]; then
+    pushd $HOME/.dotfiles > /dev/null
   else
-    cd $HOME
+    pushd $HOME > /dev/null
   fi
 }
 
@@ -74,9 +80,9 @@ function setup_prompt {
 
 # For when I inevitable break my PS1...
 if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\W\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+  export PS1="\$($HOME/.dotfiles/bin/shortdir)\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 else 
-  export PS1="[\u@\h \W] \[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 fi
 
 # Load RVM up

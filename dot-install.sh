@@ -8,7 +8,7 @@
 # if they existed for reference. This folder is not included in the
 # repository and as such will not migrate between machines
 
-FILES=( bashrc vimrc tmux.conf gitconfig sqliterc )
+FILES=( bashrc bash_profile vimrc tmux.conf gitconfig sqliterc )
 
 # This function takes a filename (without the preceding .) and backs
 # it up before installing a symbolic link to the repository version
@@ -30,3 +30,12 @@ function backup_and_install {
 for DOTFILE in ${FILES[@]}; do
   backup_and_install $DOTFILE
 done
+
+# Mark the git file as untracked locally so we can make changes without
+# affecting what's in the repo
+pushd $HOME/.dotfiles/ > /dev/null
+git update-index --assume-unchanged system-specific/git-user-info.sh
+popd > /dev/null
+
+# Start using the new profile :)
+source $HOME/.bash_profile
