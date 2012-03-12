@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby 
+
+# As a oneliner:
+#puts File.read("/usr/share/dict/words").split("\n").shuffle[1..4].map { |w| w.gsub(/[^[:alpha:]]/," ").split(" ").each { |s| s.capitalize! }.join("") }.join("")
+
+# Read file
+file_contents = File.read("/usr/share/dict/words")
+
+# Split into lines
+lines = file_contents.split("\n")
+
+# Shuffle (randomize the list)
+random_lines = lines.shuffle
+
+# Take the first four
+four_words = random_lines[1..4]
+
+cleaned = four_words.map do |word|
+  # Clean out non-alpha characters, replacing them with spaces
+  only_alpha = word.gsub(/[^[:alpha:]]/," ")
+  
+  # Break up the word where there used to be bad characters
+  broken_word = only_alpha.split(" ")
+  
+  # Capitalize each segment
+  capitalized = broken_word.map do |segment|
+    segment.capitalize
+  end
+  
+  # And join it back together into a word again
+  clean_word = capitalized.join("")
+end
+
+# Join all the words together to form the password!
+password = cleaned.join("")
+
+# And print it out
+puts password

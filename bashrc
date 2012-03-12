@@ -29,7 +29,7 @@ done
 
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
 alias gs='git status'
-alias newpass='ruby -e \'puts File.read("/usr/share/dict/words").split("\n").shuffle[1..4].map { |w| w.gsub(/[^[:alnum:]]/,"").capitalize }.join("")\''
+alias quickpass=$HOME/.dotfiles/bin/quickpass
 
 # Function that allows some quick directory traversing
 function go {
