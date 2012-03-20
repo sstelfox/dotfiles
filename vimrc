@@ -87,6 +87,16 @@ set confirm
 set pastetoggle=<F11>
 nnoremap <C-L> :nohl<CR><C-L>
 
+" Disable the arrow keys... yeah I'm a bit of a masochist
+inoremap  <Up>     <NOP>
+inoremap  <Down>   <NOP>
+inoremap  <Left>   <NOP>
+inoremap  <Right>  <NOP>
+noremap   <Up>     <NOP>
+noremap   <Down>   <NOP>
+noremap   <Left>   <NOP>
+noremap   <Right>  <NOP>
+
 """""""""""""""""""""""""""""""""""""""""""""""""
 " COLORS AND FONTS
 """""""""""""""""""""""""""""""""""""""""""""""""
