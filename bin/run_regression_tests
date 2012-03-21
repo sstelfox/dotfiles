@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# This will run tests on every git revision between the master branch, and the
+# origin master branch in reverse order.
+
+(set -e;
+  git rev-list --reverse origin/master..master |
+    while read rev; do
+      echo "Checking out: $(git log --oneline -1 $rev)";
+      git checkout -q $rev;
+      cucumber;
+      rspec;
+    done)
