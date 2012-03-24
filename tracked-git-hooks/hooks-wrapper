@@ -25,10 +25,11 @@ fi
 
 # Trigger the local hook if it exists
 if [ -x $0.local ]; then
-    $0.local "$@" || exit $?
+  $0.local "$@" || exit $?
 fi
 
 # Trigger the hooks that are stored in the git repository
 if [ -x tracked-git-hooks/$HOOK ]; then
-    tracked-git-hooks/$HOOK "$@" || exit $?
+  tracked-git-hooks/$HOOK "$@" || exit $?
 fi
+
