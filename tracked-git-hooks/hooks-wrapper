@@ -23,8 +23,6 @@ if [ "$HOOK" == "hooks-wrapper" ]; then
   exit 1
 fi
 
-echo "Git hook triggered: $HOOK"
-
 # Trigger the local hook if it exists
 if [ -x $0.local ]; then
     $0.local "$@" || exit $?
