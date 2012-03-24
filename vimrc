@@ -29,6 +29,22 @@ filetype off
 set rtp+=~/.vim/bundle/vundle/
 call vundle#rc()
 
+" Let Vundle manage itself so it can get updated with
+" all the rest
+Bundle 'gmarik/vundle'
+
+" The bundles I want to use, these are git repositories and can take three
+" forms:
+"   * Bundle 'name'       => Installs plugin 'name' from the vim-scripts github
+"   repo (https://github.com/vim-scripts)
+"   * Bundle 'user/name'  => Installs plugin 'name' from the 'user' github
+"   repo (https://github.com/<user>
+"   * Bundle 'git://git.example.com/plugin.git'  => Installs plugin from a git
+"   repository that isn't located on git hub
+
+Bundle 'tpope/vim-fugitive'
+Bundle 'tpope/vim-rails'
+
 " Enable filetype plugin
 filetype indent plugin on
 
