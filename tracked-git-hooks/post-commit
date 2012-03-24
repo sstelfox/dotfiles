@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# This hook doesn't receive any arguments
+
+# Build a list of files that were modified during the last commit
+MODIFIED_FILES=$(git diff --name-only HEAD^1)
+
+for FILE in $MODIFIED_FILES; do
+  if [ "$FILE" == "vimrc" ]; then
+    # If the vimrc file has changed re-bundle and cleanup plugins that have
+    # been specified, this isn't smart enough to know if bundle lines have
+    # actually changed. It'll run it one way or another
+    #
+    # This opens vim updates and installs new plugins, cleans up deleted
+    # plugins, quit and accepts only input from STDIN
+    vim +BundleInstall! +BundleClean +q -
+  fi
+done
