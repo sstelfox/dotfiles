@@ -49,6 +49,8 @@ Bundle 'tpope/vim-fugitive'
 Bundle 'tpope/vim-git'
 Bundle 'tpope/vim-rails'
 
+" REMOVE ME: This is just to test the post-commit hook
+
 " Enable filetype plugin
 filetype indent plugin on
 
