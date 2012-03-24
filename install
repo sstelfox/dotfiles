@@ -10,6 +10,8 @@
 
 FILES=( bashrc bash_profile vim vimrc tmux.conf gitconfig sqliterc pryrb )
 
+DOTFILE_DIR="$HOME/.dotfiles"
+
 # This function takes a filename (without the preceding .) and backs
 # it up before installing a symbolic link to the repository version
 function backup_and_install {
@@ -20,7 +22,7 @@ function backup_and_install {
     if [ -h "$HOME/.$1" ]; then
       rm -f $HOME/.$1
     elif [ -d "$HOME/.$1" -o -f "$HOME/.$1" ]; then
-      mv $HOME/.$1 $HOME/.dotfiles/system-originals/$1
+      mv $HOME/.$1 $DOTFILE_DIR/system-originals/$1
     else
       echo "\tFound inode type this installer isn't aware of. Skipping install"
       return 1
@@ -34,11 +36,19 @@ for DOTFILE in ${FILES[@]}; do
   backup_and_install $DOTFILE
 done
 
+# Install the git hooks
+echo "Installing git hooks..."
+$DOTFILE_DIR/bin/dotfile-hook-setup
+
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
 pushd $HOME/.dotfiles/ > /dev/null
 git update-index --assume-unchanged system-specific/git-user-info.sh
 popd > /dev/null
 
+echo "Sourcing new bash profile..."
+
 # Start using the new profile :)
 source $HOME/.bash_profile
+
+echo "Done."
