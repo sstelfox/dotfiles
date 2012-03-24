@@ -21,6 +21,9 @@ function backup_and_install {
       rm -f $HOME/.$1
     elif [ -d "$HOME/.$1" -o -f "$HOME/.$1" ]; then
       mv $HOME/.$1 $HOME/.dotfiles/system-originals/$1
+    else
+      echo "\tFound inode type this installer isn't aware of. Skipping install"
+      return 1
     fi
   fi
 
