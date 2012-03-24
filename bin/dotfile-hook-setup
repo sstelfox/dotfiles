@@ -13,7 +13,7 @@ HOOK_NAMES=( applypatch-msg pre-applypatch post-applypatch pre-commit
 
 # This performs the actual hook installation
 for HOOK in ${HOOK_NAMES[@]}; do
-    echo "\tInstalling git hook $HOOK"
+    echo -e "\tInstalling git hook $HOOK"
 
     # If the hook already exists, is executable, and is not a symlink
     # then backup the hook as a .local file for execution by the hook-wrapper
