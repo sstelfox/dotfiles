@@ -4,9 +4,11 @@
   diff        = auto
   status      = auto
   ui          = auto
+
 [apply]
-	whitespace  = nowarn
+  whitespace = nowarn
+
 [core]
-	autocrlf    = input
-	safecrlf    = false
-	editor      = vi
+  autocrlf   = input
+  safecrlf   = false
+  editor     = vi
