@@ -1,7 +1,7 @@
 #!/bin/bash
 
-pushd $HOME/.dotfiles
+pushd $HOME/.dotfiles > /dev/null
 
 git submodule update
 
-popd
+popd > /dev/null
