@@ -15,7 +15,7 @@
 
 # Check if this script was called directly and if it was
 # print an error out and exit with an error
-if [ "$(basename $0)" -eq "hooks-wrapper" ]; then
+if [ "$(basename $0)" == "hooks-wrapper" ]; then
   echo "This script should only be called through git-hook symlinks"
   echo "Please read the header comment in this file"
   exit 1
