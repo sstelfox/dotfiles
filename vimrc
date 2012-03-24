@@ -9,17 +9,28 @@ set history=500
 " Turn off vi compatibility mode
 set nocompatible
 
-" Enable filetype plugin
-filetype indent plugin on
-
-" Set to auto read when a file is changed from the outside
-set autoread
-
 " When vimrc is edited, reload it
 autocmd! bufwritepost vimrc source ~/.vimrc
 
 " Check the first 10 lines of a file for vim settings
 set modelines=10
+
+" Set to auto read when a file is changed from the outside
+set autoread
+
+"""""""""""""""""""""""""""""""""""""""""""""""""
+" PLUGINS SETUP
+"""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Apparently required for the vundle setup
+filetype off
+
+" Require and initialize vundle
+set rtp+=~/.vim/vundle.git/
+call vundle#rc()
+
+" Enable filetype plugin
+filetype indent plugin on
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " USER INTERFACE CONFIGURATION
