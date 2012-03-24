@@ -40,9 +40,12 @@ Bundle 'gmarik/vundle'
 "   * Bundle 'user/name'  => Installs plugin 'name' from the 'user' github
 "   repo (https://github.com/<user>
 "   * Bundle 'git://git.example.com/plugin.git'  => Installs plugin from a git
-"   repository that isn't located on git hub
+"   repository that isn't located on git hub (The same can be done with an
+"   http path)
 
+Bundle 'godlygeek/tabular'
 Bundle 'tpope/vim-fugitive'
+Bundle 'tpope/vim-git'
 Bundle 'tpope/vim-rails'
 
 " Enable filetype plugin
