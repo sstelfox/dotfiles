@@ -26,7 +26,7 @@ set autoread
 filetype off
 
 " Require and initialize vundle
-set rtp+=~/.vim/vundle.git/
+set rtp+=~/.vim/bundle/vundle/
 call vundle#rc()
 
 " Enable filetype plugin
