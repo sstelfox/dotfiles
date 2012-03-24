@@ -13,6 +13,6 @@ for FILE in $MODIFIED_FILES; do
     #
     # This opens vim updates and installs new plugins, cleans up deleted
     # plugins, quit and accepts only input from STDIN
-    vim +BundleInstall! +BundleClean +q -
+    vim +BundleInstall! +BundleClean +qa! -
   fi
 done
