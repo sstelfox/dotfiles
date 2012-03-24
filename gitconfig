@@ -3,7 +3,7 @@
   interactive = auto
   diff        = auto
   status      = auto
-	ui          = auto
+  ui          = auto
 [apply]
 	whitespace  = nowarn
 [core]
