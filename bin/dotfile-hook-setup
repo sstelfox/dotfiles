@@ -25,6 +25,6 @@ for HOOK in ${HOOK_NAMES[@]}; do
     # Create a symlink, over-writing the file if it exists, this
     # is mostly a safety trick for older versions of git that had the
     # sample hooks match the hook name and just didn't have them executable
-    ln -s -f $DOTFILE_DIR/bin/hooks-wrapper $HOOK_DIR/$HOOK
+    ln -s -f $DOTFILE_DIR/tracked-git-hooks/hooks-wrapper $HOOK_DIR/$HOOK
 done
 
