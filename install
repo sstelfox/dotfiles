@@ -15,11 +15,11 @@ FILES=( bashrc bash_profile vimrc tmux.conf gitconfig sqliterc pryrb )
 function backup_and_install {
   echo "Installing $1..."
 
-  if [ -f "$HOME/.$1" ]; then
+  if [ -e "$HOME/.$1" ]; then
     # If it's a link just delete it
     if [ -h "$HOME/.$1" ]; then
       rm -f $HOME/.$1
-    else
+    elif [ -d "$HOME/.$1" -o -f "$HOME/.$1" ]; then
       mv $HOME/.$1 $HOME/.dotfiles/system-originals/$1
     fi
   fi
