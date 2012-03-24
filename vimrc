@@ -44,6 +44,7 @@ Bundle 'gmarik/vundle'
 "   http path)
 
 Bundle 'godlygeek/tabular'
+Bundle 'kchmck/vim-coffee-script'
 Bundle 'tpope/vim-fugitive'
 Bundle 'tpope/vim-git'
 Bundle 'tpope/vim-rails'
