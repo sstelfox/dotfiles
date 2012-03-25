@@ -95,5 +95,4 @@ fi
 # RVM doesn't always seem to come up properly for me, this does the trick
 rvm reload > /dev/null
 
-
 PATH=$PATH:$HOME/.rvm/bin # Add RVM to PATH for scripting
