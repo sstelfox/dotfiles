@@ -48,6 +48,7 @@ function go {
 
 # Source the git-completion file
 source $HOME/.dotfiles/helpers/git-completion.sh
+source $HOME/.dotfiles/helpers/ssh-agent.sh
 
 # Some color definitions
 GREEN=$(tput setaf 2)
