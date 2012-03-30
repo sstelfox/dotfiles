@@ -1,0 +1,2 @@
+gem:  --local --gen-rdoc --run-tests
+rdoc: --inline-source --line-numbers --all
