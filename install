@@ -45,6 +45,9 @@ git submodule init
 git submodule sync
 git submodule update
 
+# Fix the detached head environment each of the repositories start in
+git submodule -q foreach git checkout -q master
+
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
 pushd $HOME/.dotfiles/ > /dev/null
