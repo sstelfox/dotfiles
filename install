@@ -54,8 +54,9 @@ pushd $HOME/.dotfiles/ > /dev/null
 git update-index --assume-unchanged system-specific/git-user-info.sh
 popd > /dev/null
 
-echo "Installing VIM plugins..."
-vim +BundleInstall! +BundleClean +qa!
+# Don't believe this is necessary anymore
+#echo "Installing VIM plugins..."
+#vim +BundleInstall! +BundleClean +qa!
 
 echo "Sourcing new bash profile..."
 # Start using the new profile :)
