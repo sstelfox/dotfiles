@@ -169,16 +169,24 @@ set lbr
 " Files, backups, and undo
 """""""""""""""""""""""""""""""""""""""""""""""""
 
-" Turn backup off, everything is in git anyway
-set nobackup
-set nowritebackup
-
-" Damn these things...
-set noswapfile
-
-" Setup a persistant undo file
+" Setup backups in the scratch directory
 try
-  set undodir=~/.dotfiles/vim-undodir
+  set backup
+  set backupdir=~/.dotfiles/vim-scratch//
+  set writebackup
+catch
+endtry
+
+" Keep swapfiles in the scratch directory 
+try
+  set directory=~/.dotfiles/vim-scratch//
+  set swapfile
+catch
+endtry
+
+" Keep persistant undo files in the scratch directory
+try
+  set undodir=~/.dotfiles/vim-scratch//
   set undofile
 catch
 endtry
