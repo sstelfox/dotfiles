@@ -30,6 +30,7 @@ done
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
 alias gs='git status'
 alias guard='bundle exec guard'
+alias db_prep='rm db/*.sqlite3; rake db:migrate && rake db:seed && rake db:test:prepare && RAILS_ENV="test" rake db:seed'
 
 export PATH="$HOME/.dotfiles/bin:$PATH"
 
