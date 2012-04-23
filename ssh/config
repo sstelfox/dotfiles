@@ -1,0 +1,18 @@
+ForwardAgent yes
+Compression yes
+CompressionLevel 6
+
+ControlMaster auto
+ControlPath ~/.ssh/control/%l-%r@%h:%p
+ControlPersist 900
+
+Protocol 2
+
+VisualHostKey yes
+
+Host ss
+  HostName somethingsketchy.net
+
+Host io
+  HostName lounge.gentlemenslounge.org
+  Port 2200
