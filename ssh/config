@@ -3,7 +3,7 @@ Compression yes
 CompressionLevel 6
 
 ControlMaster auto
-ControlPath ~/.ssh/control/%l-%r@%h:%p
+ControlPath ~/.ssh/control/%r@%h:%p
 ControlPersist 900
 
 Protocol 2
