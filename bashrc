@@ -15,11 +15,6 @@ export LANG="$LC_ALL"
 # Big surprise? I think not
 export EDITOR="vim"
 
-# Drop out of this script if we're in a dumb shell
-if [[ "`ps --no-headers -o command -p $$`" -eq "sh" ]]; then
-  exit
-fi
-
 # Test to ensure we have tmux before automatically executing it..
 #if which tmux 2>&1 >/dev/null; then
   # If we're not in a tmux session already open one up that will automatically close when we exit or detach
