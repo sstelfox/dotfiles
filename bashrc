@@ -94,10 +94,12 @@ else
   export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 fi
 
-# Load RVM up
-[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+# Load RVM up if it's setup
+if [ -d "$HOME/.rvm" ]; then
+  [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
-# RVM doesn't always seem to come up properly for me, this does the trick
-rvm reload > /dev/null
+  # RVM doesn't always seem to come up properly for me, this does the trick
+  rvm reload > /dev/null
 
-PATH=$PATH:$HOME/.rvm/bin # Add RVM to PATH for scripting
+  PATH=$PATH:$HOME/.rvm/bin # Add RVM to PATH for scripting
+fi
