@@ -52,8 +52,9 @@ if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
     echo "Found existing authorized keys file. Bringing into the dotfiles..."
     mv $DOTFILE_DIR/system-originals/ssh/authorized_keys $DOTFILE_DIR/ssh/
   fi
-
 fi
+
+chmod 0640 $DOTFILE_DIR/ssh/config
 
 # Install the git hooks
 echo "Installing git hooks..."
