@@ -2,10 +2,6 @@ ForwardAgent yes
 Compression yes
 CompressionLevel 6
 
-ControlMaster auto
-ControlPath ~/.ssh/control/%r@%h:%p
-ControlPersist 900
-
 Protocol 2
 
 VisualHostKey yes
