@@ -48,6 +48,7 @@ Bundle 'kchmck/vim-coffee-script'
 Bundle 'tpope/vim-fugitive'
 Bundle 'tpope/vim-git'
 Bundle 'tpope/vim-rails'
+Bundle 'Lokaltog/vim-powerline'
 
 " Enable filetype plugin
 filetype indent plugin on
