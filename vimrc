@@ -143,6 +143,8 @@ try
 catch
 endtry
 
+"colorscheme vividchalk
+
 " Default file types
 set ffs=unix,dos,mac
 
