@@ -62,13 +62,8 @@ $DOTFILE_DIR/bin/dotfile-hook-setup
 
 pushd $DOTFILE_DIR > /dev/null
 
-# Setting up and updating submodules
-git submodule init
-git submodule sync
-git submodule update
-
-# Fix the detached head environment each of the repositories start in
-git submodule -q foreach git checkout -q master
+# Update the all the submodules in the dotfile directory
+update-submodules
 
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo

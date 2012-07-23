@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby 
 
-# As a oneliner:
-#puts File.read("/usr/share/dict/words").split("\n").shuffle[1..4].map { |w| w.gsub(/[^[:alpha:]]/," ").split(" ").each { |s| s.capitalize! }.join("") }.join("")
+# If we use this as a pipe make sure it exits cleanly
+trap("PIPE", "EXIT")
 
 # Read file
 file_contents = File.read("/usr/share/dict/words")
@@ -36,3 +36,4 @@ password = cleaned.join("")
 
 # And print it out
 puts password
+

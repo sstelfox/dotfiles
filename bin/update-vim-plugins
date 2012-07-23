@@ -1,7 +1,1 @@
-#!/bin/bash
-
-pushd $HOME/.dotfiles > /dev/null
-
-git submodule update
-
-popd > /dev/null
+update-submodules
