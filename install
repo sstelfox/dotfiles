@@ -63,7 +63,7 @@ $DOTFILE_DIR/bin/dotfile-hook-setup
 pushd $DOTFILE_DIR > /dev/null
 
 # Update the all the submodules in the dotfile directory
-update-submodules
+$DOTFILE_DIR/bin/update-submodules
 
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
