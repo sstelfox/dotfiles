@@ -1,9 +1,9 @@
 ForwardAgent yes
 Compression yes
 CompressionLevel 6
-
+HashKnownHosts yes
 Protocol 2
-
+User sstelfox
 VisualHostKey yes
 
 Host ss
@@ -12,3 +12,4 @@ Host ss
 Host io
   HostName lounge.gentlemenslounge.org
   Port 2200
+
