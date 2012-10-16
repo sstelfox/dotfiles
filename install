@@ -56,6 +56,9 @@ fi
 
 chmod 0640 $DOTFILE_DIR/ssh/config
 
+echo "Installing fonts and updating font cache..."
+fc-cache > /dev/null
+
 # Install the git hooks
 echo "Installing git hooks..."
 $DOTFILE_DIR/bin/dotfile-hook-setup
