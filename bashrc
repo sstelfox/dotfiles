@@ -1,7 +1,11 @@
+
 # Source global definitions
 if [ -f /etc/bashrc ]; then
   source /etc/bashrc
 fi
+
+# Enable globstar matching
+shopt -s globstar
 
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
 if [[ $- != *i* ]]; then
@@ -55,10 +59,6 @@ function go {
     pushd $HOME > /dev/null
   fi
 }
-
-# Source the git-completion file
-source $HOME/.dotfiles/helpers/git-completion.sh
-source $HOME/.dotfiles/helpers/ssh-agent.sh
 
 # Some color definitions
 GREEN=$(tput setaf 2)
@@ -115,3 +115,8 @@ if [ -d $HOME/.rbenv ]; then
   export PATH="$HOME/.rbenv/bin:$PATH"
   eval "$(rbenv init -)"
 fi
+
+# Source the git-completion file
+source $HOME/.dotfiles/helpers/git-completion.sh
+source $HOME/.dotfiles/helpers/ssh-agent.sh
+
