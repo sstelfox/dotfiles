@@ -11,4 +11,7 @@
 [core]
   autocrlf   = input
   safecrlf   = false
-  editor     = vi
+  editor     = vim
+
+[push]
+  default    = matching

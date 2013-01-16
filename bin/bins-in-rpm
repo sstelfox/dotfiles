@@ -1,0 +1,3 @@
+#!/bin/bash
+
+rpm -ql $1 | grep -E "/s?bin/" | grep -oiE "[a-z-]+$" --color=none | sort
