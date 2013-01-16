@@ -36,6 +36,9 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
+# Fuck this command search bull shit
+unset command_not_found_handle
+
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=relative'
 alias gs='git status'
 alias guard='bundle exec guard'
