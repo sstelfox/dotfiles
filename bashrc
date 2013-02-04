@@ -1,7 +1,11 @@
+
 # Source global definitions
 if [ -f /etc/bashrc ]; then
   source /etc/bashrc
 fi
+
+# Enable globstar matching
+shopt -s globstar
 
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
 if [[ $- != *i* ]]; then
@@ -37,6 +41,10 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
 done
 
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
+
+# Fuck this command search bull shit
+unset command_not_found_handle
+
 alias gs='git status'
 alias guard='bundle exec guard'
 alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && rake db:test:prepare'
@@ -55,10 +63,6 @@ function go {
     pushd $HOME > /dev/null
   fi
 }
-
-# Source the git-completion file
-source $HOME/.dotfiles/helpers/git-completion.sh
-source $HOME/.dotfiles/helpers/ssh-agent.sh
 
 # Some color definitions
 GREEN=$(tput setaf 2)
@@ -115,3 +119,8 @@ if [ -d $HOME/.rbenv ]; then
   export PATH="$HOME/.rbenv/bin:$PATH"
   eval "$(rbenv init -)"
 fi
+
+# Source the git-completion file
+source $HOME/.dotfiles/helpers/git-completion.sh
+source $HOME/.dotfiles/helpers/ssh-agent.sh
+
