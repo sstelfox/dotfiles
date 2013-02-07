@@ -47,7 +47,7 @@ unset command_not_found_handle
 
 alias gs='git status'
 alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && rake db:test:prepare'
-alias octal='stat -c "%a %n" /usr/bin/crontab'
+alias octal='stat -c "%A %a %n"'
 
 export PATH="$HOME/.dotfiles/bin:$PATH"
 
