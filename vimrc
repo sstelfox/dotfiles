@@ -227,3 +227,7 @@ map \t :w\|!rspec %<cr>
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 
+" Add in support for per-directory vim configurations
+if filereadable(".vim.custom")
+  so .vim.custom
+endif
