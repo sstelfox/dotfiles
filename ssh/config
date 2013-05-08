@@ -1,15 +1,13 @@
-ForwardAgent yes
 Compression yes
 CompressionLevel 6
 HashKnownHosts yes
 Protocol 2
-User sstelfox
 VisualHostKey yes
 
 Host ss
   HostName somethingsketchy.net
 
 Host io
-  HostName lounge.gentlemenslounge.org
+  HostName home.stelfox.net
   Port 2200
 
