@@ -18,6 +18,9 @@ set modelines=10
 " Set to auto read when a file is changed from the outside
 set autoread
 
+" Configure spell checking
+setlocal spell spelllang=en_us
+
 """""""""""""""""""""""""""""""""""""""""""""""""
 " PLUGINS SETUP
 """""""""""""""""""""""""""""""""""""""""""""""""
