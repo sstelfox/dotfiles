@@ -18,8 +18,8 @@ set modelines=10
 " Set to auto read when a file is changed from the outside
 set autoread
 
-" Configure spell checking
-setlocal spell spelllang=en_us
+" Configure spell checking, but leave it disabled by default
+setlocal nospell spelllang=en_us
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " PLUGINS SETUP
