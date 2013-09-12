@@ -46,7 +46,7 @@ alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s
 unset command_not_found_handle
 
 alias gs='git status'
-alias gr='git fetch && git rebase origin master'
+alias gr='git fetch && git rebase origin/master'
 alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && rake db:test:prepare'
 alias octal='stat -c "%A %a %n"'
 
