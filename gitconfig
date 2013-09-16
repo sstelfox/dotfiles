@@ -14,4 +14,4 @@
   editor     = vim
 
 [push]
-  default    = matching
+  default    = current
