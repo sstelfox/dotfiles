@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+# Golf: p $stdin.read.chomp.bytes.map{|i|i-=32;i>0?i|0xFF00:0x3000}.pack("U*")
+
 input = $stdin.read.chomp.bytes
-wide_bytes = input.map { |i| i - 32 }.map { |i| (i > 0) ? (i | 0xFF00) : 0x3000 }
+wide_bytes = input.map { |i| i -= 32; (i > 0) ? (i | 0xFF00) : 0x3000 }
 p wide_bytes.pack("U*")
+
