@@ -21,6 +21,9 @@ set autoread
 " Configure spell checking, but leave it disabled by default
 setlocal nospell spelllang=en_us
 
+highlight ColorColumn ctermbg=magenta
+call matchadd('ColorColumn', '\%81v', 100)
+
 """""""""""""""""""""""""""""""""""""""""""""""""
 " PLUGINS SETUP
 """""""""""""""""""""""""""""""""""""""""""""""""
