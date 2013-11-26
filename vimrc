@@ -24,6 +24,13 @@ setlocal nospell spelllang=en_us
 highlight ColorColumn ctermbg=magenta
 call matchadd('ColorColumn', '\%81v', 100)
 
+" When encrypting any file, use the much stronger blowfish algorithm
+set cryptmethod=blowfish
+
+" If there is a key set for the file, disable things like swap files, backups,
+" temporary files, and history.
+autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= nobackup noshelltemp history=0 secure | endif
+
 """""""""""""""""""""""""""""""""""""""""""""""""
 " PLUGINS SETUP
 """""""""""""""""""""""""""""""""""""""""""""""""
@@ -174,6 +181,10 @@ set nowrap
 
 " When wrapping break on spaces rather than in the middle of a word
 set lbr
+
+" Highlight tabs and trailing spaces
+set listchars=tab:>-,trail:-
+set list
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " Files, backups, and undo
