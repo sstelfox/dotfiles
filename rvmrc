@@ -1,1 +1,2 @@
 rvm_configure_env=(CFLAGS="-march=native -O2")
+rvm_auto_reload_flag=2

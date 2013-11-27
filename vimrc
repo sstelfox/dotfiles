@@ -13,6 +13,7 @@ set nocompatible
 autocmd! bufwritepost vimrc source ~/.vimrc
 
 " Check the first 10 lines of a file for vim settings
+set modeline
 set modelines=10
 
 " Set to auto read when a file is changed from the outside
