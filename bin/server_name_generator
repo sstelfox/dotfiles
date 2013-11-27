@@ -1,0 +1,188 @@
+#!/usr/bin/env
+
+require 'securerandom'
+
+module NumericSyllable
+  def consonents
+    %w[ b d g h j k m n p r s t z ]
+  end
+
+  def inverse
+    "wi"
+  end
+
+  def syllables
+    consonents.product(vowels).map(&:join)
+  end
+
+  def vowels
+    %w[ a e i o u ]
+  end
+
+  def break_up_num(num)
+    modulus = num % syllables.count
+    remainder = num / syllables.count
+
+    (num == 0) ? "" : "#{break_up_num(remainder)}#{syllables[modulus]}"
+  end
+
+  def from_int(num)
+    raise ArgumentError unless num.kind_of?(Fixnum)
+    prefix = (num < 0) ? inverse : ""
+    "#{prefix}#{break_up_num(num.abs)}"
+  end
+
+  def to_int(str)
+    string_to_int(str)
+  end
+
+  def string_to_int(str)
+    return 0 if str.length == 0
+    return (-1 * string_to_int(str[2..-1])) if str.match(/^#{inverse}/)
+    return (syllables.count * string_to_int(str[0..-3])) + syl_to_num(str[-2, 2])
+  end
+
+  def syl_to_num(str)
+    raise ArgumentError unless str.empty? || syllables.include?(str)
+    str.empty? ? 0 : syllables.index(str)
+  end
+
+  module_function :consonents, :inverse, :syllables, :vowels, :break_up_num,
+    :from_int, :to_int, :string_to_int, :syl_to_num
+end
+
+module Adjective
+  def get
+    list.sample
+  end
+
+  def list
+    %w{ abolished abrupt ancient billowing bitter blazing bloody bold burning
+        cackling calibrated carnal chaotic coarse cool cosmic crimson demonic
+        divine elaborate elemental eloquent emergent energized enlightened
+        exiled fathomless frosty glorious hidden icy immortal impious infernal
+        mighty misty mysterious nameless nefarious ominous passionate patient
+        polished profane proud quiet restless rough sanguine silent solitary
+        sparkling still triumphant tyrannical unholy vile weathered wild wintry
+        }
+  end
+
+  module_function :get, :list
+end
+
+module Noun
+  def get
+    list.sample
+  end
+
+  def list
+    %w{ abyss ancients ambrosia apocalypse battle bedrock breeze brook bush
+        cloud corruption chasm cult dew doom dream dust edge emblem field fire
+        firefly fog forest fountain frog frost funeral glade grass hill lake
+        leaf meadow moon mountain night paper pine pond rain resonance river
+        sacrifice sea shadow silence sky smoke snow sorrow sound star sun surf
+        tempest thunder torment tree vengeance voice water waterfall wave wind
+        wood }
+  end
+
+  module_function :get, :list
+end
+
+module RandomSyllable
+  def get
+    NumericSyllable.from_int(SecureRandom.hex(3).to_i(16))
+  end
+
+  module_function :get
+end
+
+module TimeName
+  def get
+    list.sample
+  end
+
+  def list
+    %w{ afternoon dawn dusk evening gloam midday midnight morning night noon
+        sunrise sunset twilight }
+  end
+
+  module_function :get, :list
+end
+
+def generate_name
+  chunks = [Adjective.get, TimeName.get, Noun.get]
+  chunks << NumericSyllable.from_int(build_chk_num(*chunks))
+
+  # Build the final name
+  chunks.join('-')
+end
+
+def build_chk_num(adj, time, noun)
+  s = ([adj, time, noun]).join.split(//).map(&:ord).inject(&:+)
+  s % (NumericSyllable.syllables.count ** 2)
+end
+
+def validate_name(name)
+  # Split apart the built name into it's components
+  adj, time, noun, checksum = name.split('-')
+
+  # Retrieve the numeric checksum and convert it back into a number
+  chk = NumericSyllable.to_int(checksum)
+
+  # Using the extracted components recalculate the checksum
+  chk_recalc = build_chk_num(adj, time, noun)
+
+  (chk == chk_recalc)
+end
+
+repetition_chance = Rational(1, (Adjective.list.size * TimeName.list.size * Noun.list.size))
+puts repetition_chance
+
+10.times do
+  printf "%-40s ", name = generate_name
+  puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
+end
+
+distribution = Hash.new(0)
+
+low = nil
+high = nil
+total = 0
+count = 0
+
+Adjective.list.each do |a|
+  TimeName.list.each do |t|
+    Noun.list.each do |n|
+      value = build_chk_num(a, t, n)
+      low = value if low.nil? || value < low
+      high = value if high.nil? || value > high
+
+      total += value
+      count += 1
+
+      distribution[value] += 1
+    end
+  end
+end
+
+unique_values = distribution.count
+
+#ary_dist = []
+#distribution.each { |k, v| ary_dist[(k.to_i - low)] = v }
+
+distribution.delete_if { |k, v| v <= 2 }
+
+#require 'json'
+#puts JSON.pretty_generate(distribution)
+#puts ary_dist.inspect
+
+coverage = (unique_values.to_f / (NumericSyllable.syllables.count ** 2)) * 100
+
+puts "Average: #{total / count.to_f}"
+puts "Highest: #{high}"
+puts "Lowest: #{low}"
+puts "Unique values: #{unique_values}"
+puts "Values above threshold of 2: #{distribution.count}"
+puts "Checksum coverage: #{sprintf("%3.2f", coverage)}%"
+puts "Total combinations: #{count}"
+
