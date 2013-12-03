@@ -57,14 +57,18 @@ module Adjective
   end
 
   def list
-    %w{ abolished abrupt ancient billowing bitter blazing bloody bold burning
-        cackling calibrated carnal chaotic coarse cool cosmic crimson demonic
-        divine elaborate elemental eloquent emergent energized enlightened
-        exiled fathomless frosty glorious hidden icy immortal impious infernal
-        mighty misty mysterious nameless nefarious ominous passionate patient
-        polished profane proud quiet restless rough sanguine silent solitary
-        sparkling still triumphant tyrannical unholy vile weathered wild wintry
-        }
+    %w{
+
+      abolished abrupt ancient billowing bitter blazing bloody bold burning
+      cackling calibrated carnal chaotic coarse cool cosmic corrosive crimson
+      demonic divine elaborate elemental eloquent emergent energized
+      enlightened exiled fathomless frosty glorious hidden icy immortal impious
+      infernal mighty misty mysterious nameless nefarious ominous passionate
+      patient polished profane proud quiet restless rough sanguine silent
+      solitary sparkling still triumphant tyrannical unholy vile weathered wild
+      wintry
+
+    }
   end
 
   module_function :get, :list
