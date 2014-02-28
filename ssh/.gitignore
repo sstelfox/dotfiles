@@ -1,4 +1,4 @@
-id_rsa*
+id_*
 authorized_keys
 known_hosts
 environment

@@ -154,7 +154,7 @@ set ai
 
 set encoding=utf8
 try
-	lang en_US
+  lang en_US
 catch
 endtry
 

@@ -51,6 +51,8 @@ alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && r
 alias octal='stat -c "%A %a %n"'
 
 export PATH="$HOME/.dotfiles/bin:$PATH"
+export HISTCONTROL="ignoredups"
+export HISTTIMEFORMAT="%F %T "
 
 # Function that allows some quick directory traversing
 function go {
@@ -91,7 +93,7 @@ function setup_prompt {
 
   if [[ "$TERM" == "screen" ]]; then
     export PS1="$__path$__git $__exit_status "
-  else 
+  else
     export PS1="$__user_host $__path$__git $__exit_status "
   fi
 }
@@ -101,18 +103,14 @@ function setup_prompt {
 # For when I inevitable break my PS1...
 if [[ -n "$TMUX_PANE" ]]; then
   export PS1="\$($HOME/.dotfiles/bin/shortdir)\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
-else 
+else
   export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$YELLOW\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 fi
 
 # Load RVM up if it's setup
 if [ -d "$HOME/.rvm" ]; then
+  # Load RVM into a shell session *as a function*
   [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
-
-  # RVM doesn't always seem to come up properly for me, this does the trick
-  rvm reload > /dev/null
-
-  PATH=$PATH:$HOME/.rvm/bin # Add RVM to PATH for scripting
 fi
 
 # Load RBENV if it's setup
