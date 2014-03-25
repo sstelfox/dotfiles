@@ -123,3 +123,5 @@ fi
 source $HOME/.dotfiles/helpers/git-completion.sh
 source $HOME/.dotfiles/helpers/ssh-agent.sh
 
+export VAGRANT_DEFAULT_PROVIDER=libvirt
+
