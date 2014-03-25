@@ -139,54 +139,54 @@ def validate_name(name)
   (chk == chk_recalc)
 end
 
-repetition_chance = Rational(1, (Adjective.list.size * TimeName.list.size * Noun.list.size))
-puts repetition_chance
+#repetition_chance = Rational(1, (Adjective.list.size * TimeName.list.size * Noun.list.size))
+#puts repetition_chance
 
 10.times do
   printf "%-40s ", name = generate_name
   puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
 end
 
-distribution = Hash.new(0)
-
-low = nil
-high = nil
-total = 0
-count = 0
-
-Adjective.list.each do |a|
-  TimeName.list.each do |t|
-    Noun.list.each do |n|
-      value = build_chk_num(a, t, n)
-      low = value if low.nil? || value < low
-      high = value if high.nil? || value > high
-
-      total += value
-      count += 1
-
-      distribution[value] += 1
-    end
-  end
-end
-
-unique_values = distribution.count
-
-#ary_dist = []
-#distribution.each { |k, v| ary_dist[(k.to_i - low)] = v }
-
-distribution.delete_if { |k, v| v <= 2 }
-
-#require 'json'
-#puts JSON.pretty_generate(distribution)
-#puts ary_dist.inspect
-
-coverage = (unique_values.to_f / (NumericSyllable.syllables.count ** 2)) * 100
-
-puts "Average: #{total / count.to_f}"
-puts "Highest: #{high}"
-puts "Lowest: #{low}"
-puts "Unique values: #{unique_values}"
-puts "Values above threshold of 2: #{distribution.count}"
-puts "Checksum coverage: #{sprintf("%3.2f", coverage)}%"
-puts "Total combinations: #{count}"
-
+#distribution = Hash.new(0)
+#
+#low = nil
+#high = nil
+#total = 0
+#count = 0
+#
+#Adjective.list.each do |a|
+#  TimeName.list.each do |t|
+#    Noun.list.each do |n|
+#      value = build_chk_num(a, t, n)
+#      low = value if low.nil? || value < low
+#      high = value if high.nil? || value > high
+#
+#      total += value
+#      count += 1
+#
+#      distribution[value] += 1
+#    end
+#  end
+#end
+#
+#unique_values = distribution.count
+#
+##ary_dist = []
+##distribution.each { |k, v| ary_dist[(k.to_i - low)] = v }
+#
+#distribution.delete_if { |k, v| v <= 2 }
+#
+##require 'json'
+##puts JSON.pretty_generate(distribution)
+##puts ary_dist.inspect
+#
+#coverage = (unique_values.to_f / (NumericSyllable.syllables.count ** 2)) * 100
+#
+#puts "Average: #{total / count.to_f}"
+#puts "Highest: #{high}"
+#puts "Lowest: #{low}"
+#puts "Unique values: #{unique_values}"
+#puts "Values above threshold of 2: #{distribution.count}"
+#puts "Checksum coverage: #{sprintf("%3.2f", coverage)}%"
+#puts "Total combinations: #{count}"
+#
