@@ -5,6 +5,8 @@ Protocol 2
 VisualHostKey yes
 IdentityFile ~/.ssh/id_ecdsa
 IdentityFile ~/.ssh/id_rsa
+Controlmaster auto
+Controlpath ~/.ssh/ssh-%r@%h:%p.sock
 
 Host ss
   HostName somethingsketchy.net
