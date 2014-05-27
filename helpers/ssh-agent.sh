@@ -1,6 +1,25 @@
 #!/bin/bash
 
+function error_handler() {
+  echo "$(basename ${BASH_SOURCE[0]}) Error occurred in script at line ${1} with status code ${2}"
+  set +o errtrace
+}
+
+trap 'error_handler ${LINENO} $?' ERR
+
+set -o errtrace
+
 SSH_ENV="$HOME/.ssh/environment"
+
+function destroy_gnome_interference {
+  if [ -n "${GNOME_KEYRING_PID}" ]; then
+    if $(kill -0 ${GNOME_KEYRING_PID} &> /dev/null); then
+      kill -9 ${GNOME_KEYRING_PID}
+    fi
+  fi
+
+  unset GNOME_KEYRING_CONTROL SSH_AUTH_SOCK GNOME_KEYRING_PID
+}
 
 # start the ssh-agent
 function start_agent {
@@ -26,6 +45,8 @@ function test_identities {
   fi
 }
 
+destroy_gnome_interference
+
 # check for running ssh-agent with proper $SSH_AGENT_PID
 if [ -n "$SSH_AGENT_PID" ]; then
   ps -ef | grep "$SSH_AGENT_PID" | grep ssh-agent > /dev/null
@@ -46,3 +67,4 @@ else
   fi
 fi
 
+set +o errtrace
