@@ -4,12 +4,6 @@
 AGENT_TIMEOUT=14400
 SSH_ENV="$HOME/.ssh/environment"
 
-# If the environment file exists, source it. If it's not accurate it'll be
-# dealt with later.
-if [ -f "${SSH_ENV}" ]; then
-  . ${SSH_ENV}
-fi
-
 # Remove the error tracing and unset our trap.
 function cleanup() {
   set +o errtrace
@@ -32,24 +26,6 @@ function error_handler() {
 trap 'error_handler "${BASH_SOURCE[0]}" ${LINENO} $?' ERR
 set -o errtrace
 
-# Return whether or not there is a valid agent running
-function check_agent_status() {
-  if $(ps h ${SSH_AGENT_PID}); then
-    # Agent's PID still seems active... Can we check the status of our keys?
-    if $(ssh-add -l &> /dev/null); then
-      # We still have an active agent connection
-      return 0
-    fi
-  fi
-
-  if [ -n "${SSH_AUTH_SOCK}" ]; then
-    rm -f ${SSH_AUTH_SOCK}
-  fi
-
-  unset SSH_AGENT_PID SSH_AUTH_SOCK
-  return 1
-}
-
 # Gnome is a damn evil bastard, it tries wants control over SSH agent's but
 # I'll have none of that.
 function destroy_gnome_interference() {
@@ -67,37 +43,37 @@ function destroy_gnome_interference() {
   unset GNOME_KEYRING_CONTROL GNOME_KEYRING_PID SSH_ASKPASS
 }
 
-# start the ssh-agent
-function start_agent {
-  echo "Initializing new SSH agent..."
-  # spawn ssh-agent
-  if $(ssh-agent -t 14400 | sed 's/^echo/#echo/' > "${SSH_ENV}"); then
-    echo "Succeeded"
-    chmod 0600 "$SSH_ENV"
-    . "$SSH_ENV" > /dev/null
-    ssh-add
+function ensure_agent_running() {
+  if [ -z "$(ps -ef | grep ssh-agent | grep -v grep | awk '{ print $2 }')" ]; then
+    # There is no ssh agent running...
+    echo 'Starting up an agent'
+
+    # Remove any old environment files that may exist
+    if [ -f "${SSH_ENV}" ]; then
+      rm -f "${SSH_ENV}"
+    fi
+
+    if $(ssh-agent -t ${AGENT_TIMEOUT} | sed 's/^echo/#echo/' > "${SSH_ENV}"); then
+      echo "Succeeded"
+      chmod 0600 "$SSH_ENV"
+    fi
   fi
 }
 
-function test_identities {
+function source_environment() {
+  [ -f "${SSH_ENV}" ] && . "${SSH_ENV}"
+}
+
+function test_identities() {
   # Test whether standard identities have been added to the agent already
-  if $(ssh-add -l | grep "The agent has no identities" > /dev/null); then
+  if $(ssh-add -l | grep "The agent has no identities" &> /dev/null); then
     ssh-add
   fi
 }
 
 destroy_gnome_interference
-
-# If no agent...
-if check_agent_status; then
-  echo "Agent seems good..."
-else
-  echo "Need too startup the agent..."
-  start_agent
-fi
-
+ensure_agent_running
+source_environment
 test_identities
-
-# Once the script has exited we need to ensure we cleanup our changed settings.
 cleanup
 
