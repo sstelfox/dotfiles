@@ -1,0 +1,22 @@
+#!/bin/bash
+
+GIT_DIR="$1"
+
+if [ -z "${GIT_DIR}" ]; then
+  echo "Git directory needs to be specified"
+  exit 1
+fi
+
+if [ "$(basename ${GIT_DIR})" != ".git" ]; then
+  echo "Argument does not appear to be a git directory."
+  exit 2
+fi
+
+if [ -f "${GIT_DIR}/hooks/post-commit" ]; then
+  # Just exit silently
+  exit 0
+fi
+
+echo "Installing git-shots into $(dirname ${GIT_DIR})"
+ln -s ${HOME}/.dotfiles/bin/git-shots ${GIT_DIR}/hooks/post-commit
+

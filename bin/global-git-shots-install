@@ -1,0 +1,3 @@
+#!/bin/bash
+
+find ${HOME} -type d -name .git -exec install-git-shots {} \; 2> /dev/null
