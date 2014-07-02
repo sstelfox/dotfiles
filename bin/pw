@@ -15,10 +15,15 @@ ambiguous_characters.each do |ac|
   character_set.delete(ac)
 end
 
-COUNT.times do |i|
-  password = ""
-  (LENGTH / (2 ** i)).times do
-    password += character_set[rand(character_set.length)].to_s
-  end
-  puts password
+#COUNT.times do |i|
+#  password = ""
+#  (LENGTH / (2 ** i)).times do
+#    password += character_set[rand(character_set.length)].to_s
+#  end
+#  puts password
+#end
+
+16.times do
+  print character_set[rand(character_set.length)].to_s
 end
+puts
