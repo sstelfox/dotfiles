@@ -119,9 +119,8 @@ if [ -d $HOME/.rbenv ]; then
   eval "$(rbenv init -)"
 fi
 
-# Source the git-completion file
-source $HOME/.dotfiles/helpers/git-completion.sh
-source $HOME/.dotfiles/helpers/ssh-agent.sh
+# Source the file that gives us our prompt function
+source $HOME/.dotfiles/helpers/git-prompt.sh
 
 export VAGRANT_DEFAULT_PROVIDER=libvirt
 
