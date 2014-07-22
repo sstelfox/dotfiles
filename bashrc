@@ -121,6 +121,7 @@ fi
 
 # Source the file that gives us our prompt function
 source $HOME/.dotfiles/helpers/git-prompt.sh
+source $HOME/.dotfiles/helpers/sagent.sh
 
 export VAGRANT_DEFAULT_PROVIDER=libvirt
 
