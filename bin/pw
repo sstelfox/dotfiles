@@ -23,7 +23,7 @@ end
 #  puts password
 #end
 
-16.times do
+32.times do
   print character_set[rand(character_set.length)].to_s
 end
 puts
