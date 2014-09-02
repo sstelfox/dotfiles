@@ -54,19 +54,7 @@ alias dig='dig +nocmd +noall +answer'
 export PATH="$HOME/.dotfiles/bin:$PATH"
 export HISTCONTROL="ignoredups"
 export HISTTIMEFORMAT="%F %T "
-
-# Function that allows some quick directory traversing
-function go {
-  if [[ "$1" = "b" ]]; then
-    popd > /dev/null
-  elif [[ "$1" = "rp" ]]; then
-    pushd $HOME/ruby_projects > /dev/null
-  elif [[ "$1" = "dot" ]]; then
-    pushd $HOME/.dotfiles > /dev/null
-  else
-    pushd $HOME > /dev/null
-  fi
-}
+export GOPATH="${HOME}/src/go"
 
 # Some color definitions
 GREEN=$(tput setaf 2)
