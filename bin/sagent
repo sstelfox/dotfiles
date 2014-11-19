@@ -60,7 +60,8 @@ function sshagent_init {
   # start a new one
   if [ $AGENTFOUND = 0 ]; then
     # TODO: This isn't working
-    eval $(ssh-agent -t ${AGENT_TIMEOUT})
+    #eval $(ssh-agent -t ${AGENT_TIMEOUT})
+    eval $(ssh-agent)
   fi
 
   # Clean up

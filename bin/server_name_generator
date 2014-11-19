@@ -85,10 +85,10 @@ module Noun
       abyss ancients ambrosia apocalypse battle bedrock breeze brook bush cloud
       corruption chasm cult dew doom dream dust edge emblem field fire firefly
       fog forest fountain frog frost funeral glade grass hill knight lake leaf
-      meadow moon mountain necropolis paper pine pond rain resonance river
-      sacrifice sea shadow silence sky smoke snow sorrow sound star sun surf
-      tempest thunder torment tree vengeance voice water waterfall wave wind
-      wood zombie
+      meadow moon mountain necropolis overwatch paper pine pond rain resonance
+      river sacrifice sea shadow silence sky smoke snow sorrow sound star sun
+      surf tempest thunder torment tree vengeance voice water waterfall wave
+      wind wood zombie
 
     }
   end
