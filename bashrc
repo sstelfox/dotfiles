@@ -112,7 +112,7 @@ fi
 source $HOME/.dotfiles/helpers/git-prompt.sh
 source $HOME/.dotfiles/helpers/sagent.sh
 
+unset LESSOPEN
+
 export VAGRANT_DEFAULT_PROVIDER=libvirt
-
-
 export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
