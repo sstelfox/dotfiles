@@ -2,8 +2,6 @@ Compression yes
 CompressionLevel 6
 HashKnownHosts yes
 Protocol 2
-VisualHostKey yes
-IdentityFile ~/.ssh/id_ecdsa
 IdentityFile ~/.ssh/id_rsa
 Controlmaster auto
 Controlpath ~/.ssh/ssh-%r@%h:%p.sock
