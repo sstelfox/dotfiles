@@ -40,7 +40,7 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
-alias gl='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
+alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
 
 # Fuck this command search bull shit
 unset command_not_found_handle
@@ -113,4 +113,6 @@ source $HOME/.dotfiles/helpers/git-prompt.sh
 source $HOME/.dotfiles/helpers/sagent.sh
 
 unset LESSOPEN
+
 export VAGRANT_DEFAULT_PROVIDER=libvirt
+export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
