@@ -4,7 +4,7 @@ INTERFACE="$(ip route | grep default | awk '{ print $5 }')"
 SUBNET="$(ip -o -4 addr show $INTERFACE | awk '{ print $4 }')"
 
 echo -n 'Scanning... '
-SENSOR_IPS="$(nmap -p 22,1443 -oG - -T5 $SUBNET | grep -vE 'losed|filtered' | grep open | awk '{ print $2 }')"
+SENSOR_IPS="$(nmap -p 22,1443 -oG - -T5 $SUBNET | grep -vE 'closed|filtered' | grep open | awk '{ print $2 }')"
 echo 'Done'
 
 echo 'Probably Pwnie Sensors:'
