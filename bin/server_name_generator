@@ -65,7 +65,7 @@ module Descriptor
   end
 
   def list
-    %w{
+    @list ||= %w{
 
       abandoned able abolished abrupt absolute aching aged ancient anxious
       apetalous askew auspicious balanced bare bashful bawdy bewildered
@@ -119,7 +119,7 @@ module Descriptor
       urgent vain vile vicious volatile wanton wary wasteful whispering
       weathered wicked wild wintry wise withered wondrous young
 
-    }
+    }.sort
   end
 
   module_function :get, :list
@@ -131,7 +131,7 @@ module Target
   end
 
   def list
-    %w{
+    @list ||= %w{
 
       abyss accord ancients ambrosia annulet apocalypse battle bedrock bordello
       bottle breeze brooch brook bush cloud clover corruption cavern chasm
@@ -146,7 +146,7 @@ module Target
       tower treasure tree triptych trove tunnel vengeance voice water waterfall
       wave wind wood world zombie
 
-    }
+    }.sort
   end
 
   module_function :get, :list
@@ -158,12 +158,12 @@ module TimeName
   end
 
   def list
-    %w{
+    @list ||= %w{
 
       afternoon autumn dawn dusk evening gloaming midday midnight morning night
       noon spring summer sunrise sunset twilight winter
 
-    }
+    }.sort
   end
 
   module_function :get, :list
@@ -171,34 +171,45 @@ end
 
 def generate_name
   chunks = [Descriptor.get, TimeName.get, Target.get]
-  chunks << NumericSyllable.from_int(build_chk_num(*chunks))
+  chunks << NumericSyllable.from_int(name_index(*chunks))
 
   # Build the final name
   chunks.join('-')
 end
 
-def build_chk_num(desc, time, target)
-  Descriptor.list.index(desc) * TimeName.list.index(time) * Target.list.index(target)
+def name_index(desc, time, target)
+  Descriptor.list.index(desc) +
+    (Descriptor.list.count * TimeName.list.index(time)) +
+    (Descriptor.list.count * TimeName.list.count * Target.list.index(target))
+end
+
+def index_name(abs_index)
+  target_index = (abs_index / (Descriptor.list.count * TimeName.list.count))
+  abs_index -= target_index * (Descriptor.list.count * TimeName.list.count)
+
+  time_name_index = (abs_index / Descriptor.list.count)
+  abs_index -= time_name_index * Descriptor.list.count
+
+  descriptor_index = abs_index
+
+  [Descriptor.list[descriptor_index], TimeName.list[time_name_index], Target.list[target_index]]
 end
 
 def validate_name(name)
   # Split apart the built name into it's components
-  adj, time, noun, checksum = name.split('-')
+  desc, time, target, checksum = name.split('-')
   return false if checksum.nil?
 
   # Retrieve the numeric checksum and convert it back into a number
   chk = NumericSyllable.to_int(checksum)
+  desc2, time2, target2 = index_name(chk)
 
-  # Using the extracted components recalculate the checksum
-  chk_recalc = build_chk_num(adj, time, noun)
-
-  (chk == chk_recalc)
+  (desc == desc2 && time == time2 && target == target2)
 end
 
 possible_outcomes = Descriptor.list.size * TimeName.list.size * Target.list.size
 repetition_chance = Rational(1, possible_outcomes)
 puts "Repetition chance: #{repetition_chance}"
-puts NumericSyllable.from_int(possible_outcomes)
 
 printf "%-40s ", name = generate_name
 puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
