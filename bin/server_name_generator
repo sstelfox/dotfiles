@@ -51,51 +51,6 @@ module NumericSyllable
     :from_int, :to_int, :string_to_int, :syl_to_num
 end
 
-module Adjective
-  def get
-    list.sample
-  end
-
-  def list
-    %w{
-
-      abolished abrupt ancient billowing bitter blazing bloody bold burning
-      cackling calibrated carnal chaotic coarse cool cosmic corndusted
-      corrosive crimson demonic divine elaborate elemental eloquent emergent
-      energized enlightened exiled fathomless frosty glorious hidden icy
-      immortal impious infernal mighty misty mysterious nameless nefarious
-      ominous passionate patient polished profane proud quiet restless rough
-      sanguine shuffling silent solitary sparkling still tumescent triumphant
-      tyrannical unholy vile weathered wild wintry
-
-    }
-  end
-
-  module_function :get, :list
-end
-
-module Noun
-  def get
-    list.sample
-  end
-
-  def list
-    %w{
-
-      abyss ancients ambrosia apocalypse battle bedrock breeze brook bush cloud
-      corruption chasm cult dew doom dream dust edge emblem field fire firefly
-      fog forest fountain frog frost funeral glade grass hill knight lake leaf
-      meadow moon mountain necropolis overwatch paper pine pond rain resonance
-      river sacrifice sea shadow silence sky smoke snow sorrow sound star sun
-      surf tempest thunder torment tree vengeance voice water waterfall wave
-      wind wood zombie
-
-    }
-  end
-
-  module_function :get, :list
-end
-
 module RandomSyllable
   def get
     NumericSyllable.from_int(SecureRandom.hex(3).to_i(16))
@@ -104,93 +59,157 @@ module RandomSyllable
   module_function :get
 end
 
+module Descriptor
+  def get
+    list.sample
+  end
+
+  def list
+    @list ||= %w{
+
+      abandoned able abolished abrupt absolute aching aged ancient anxious
+      apetalous askew auspicious balanced bare bashful bawdy bewildered
+      billowing biting bitter blazing blocked bloody bold bound brash brave
+      breathless briefest bright bristling bubbling burning burnished cackling
+      calibrated calming carnal cerulean changing chaotic charred chilling
+      civilized clean clever clinging closed coarse collapsed comforting
+      complacent condescending congealing cool cosmic corndusted corrosive
+      coruscant courteous coy cracked crescent crimson crushed crystal curious
+      daft dainty dangerous deep desperate delicate demonic diligent dim
+      distant divine dreadful dripping drunken dull dusty dying echoing
+      effortless effulgent elaborate elemental eloquent embarrassed emergent
+      empty endless energized engraved enlightened envied etched even
+      exasperated exciting exiled explored faceted faint familiar fancy faraway
+      fast fathomless fearsome feathered feigned fierce finished fizzing
+      flagrant flickering floating flooded fond foolish foreign forgotten frail
+      frantic frayed free friendly frightened frosty fulsome furious furrowed
+      gasping gathered gentle giggling gilded gleaming glistening gloating
+      glorious glowing graceful grating graven greedy grubby guarded guilty
+      halfseen healthy heaving heavy hidden hollow hopeful horrid howling
+      humming hurried hushed icy idle immortal impious important improper
+      indecent infernal innocent intent intoxicating intractable inviolate
+      invisible irritated isolated ivory jagged jittery jostled joyful just
+      keening kindled kindly kinked knowing lacking laden lank laughing
+      lavender leathery level light lithe lively loathe lonely looming lost
+      loved lovely lurching luxurious mad managed marvelous massive mauled
+      meddling melting mended metal mewling mighty mirrored missing misty
+      moaning modest moonswept mortal motherly moving muffled murmuring
+      mysterious nameless narrow natural neat nefarious nervous nestled
+      newfound nonchalant normal numb obscured obvious odd offended ominous
+      oily oozing ordinary ornate overgrown padded painted pale panicked
+      passionate patient penultimate perfect perfumed poisoned poor polished
+      plain planned playful pleasant pleased polished precious precise
+      preserved prickly prideful private prized profane proper proud pure
+      puzzling quick quiet quivering radiant ragged rakish rare reasonable
+      recovered reflected refused relaxed reluctant replaced resting rediculous
+      restless ringing rippled rising roasted roiling rough rude ruined safe
+      sanguine satisfied scarce scarred scattered scintillant scraped screaming
+      sealed seasoned secret seemly seething selfish sensible shallow sharp
+      shattered shimmering shining shivering shuffling shy silent simple
+      singing sinister skewed slanting sleeping slick slow small smoky smooth
+      smudged snarling soaked soft solitary sooty sound sparkling spattered
+      spiraling spiteful splintered sprawling squeeking squirming staggering
+      startled stately steaming steep stiff still stirring stolid stormy
+      strange striking strong stubborn sublime sufficient suitable sullen sure
+      supicious sweet swollen tangled tarnished tattered tawdry tempered tender
+      tenebrific terrible thieving threatening tinkling tiny tired toasted
+      toppled tumescent tremulant triumphant troublesome truculent trusted
+      tyrannical unassuming unbroken uncertain uncommon underground unholy
+      unexpected unique unkind unknown unseen unthinkable unwashed upsetting
+      urgent vain vile vicious volatile wanton wary wasteful whispering
+      weathered wicked wild wintry wise withered wondrous young
+
+    }.sort
+  end
+
+  module_function :get, :list
+end
+
+module Target
+  def get
+    list.sample
+  end
+
+  def list
+    @list ||= %w{
+
+      abyss accord ancients ambrosia annulet apocalypse battle bedrock bordello
+      bottle breeze brooch brook bush cloud clover corruption cavern chasm
+      cloud cobweb creek cult debris dew doom dream dust eddy edge ember emblem
+      experiment faerie field figurine fire firefly fireplace fissure flower
+      fog forest fountain frog frost funeral gift glade grass heart herbs hill
+      home jar karma knight lake laurel leaf marble meadow moon mountain moss
+      necropolis overwatch paper passage peak poet picture pine pond quest rain
+      remnant resonance river road sacrifice scent sea seed shadow shaft
+      shelter shield silence spirit sky smoke snow soldier sorrow sound star
+      staircase sun surf surface tempest thought threshold thunder torment
+      tower treasure tree triptych trove tunnel vengeance voice water waterfall
+      wave wind wood world zombie
+
+    }.sort
+  end
+
+  module_function :get, :list
+end
+
 module TimeName
   def get
     list.sample
   end
 
   def list
-    %w{ afternoon dawn dusk evening gloam midday midnight morning night noon
-        sunrise sunset twilight }
+    @list ||= %w{
+
+      afternoon autumn dawn dusk evening gloaming midday midnight morning night
+      noon spring summer sunrise sunset twilight winter
+
+    }.sort
   end
 
   module_function :get, :list
 end
 
 def generate_name
-  chunks = [Adjective.get, TimeName.get, Noun.get]
-  chunks << NumericSyllable.from_int(build_chk_num(*chunks))
+  chunks = [Descriptor.get, TimeName.get, Target.get]
+  chunks << NumericSyllable.from_int(name_index(*chunks))
 
   # Build the final name
   chunks.join('-')
 end
 
-def build_chk_num(adj, time, noun)
-  s = ([adj, time, noun]).join.split(//).map(&:ord).inject(&:+)
-  s % (NumericSyllable.syllables.count ** 2)
+def name_index(desc, time, target)
+  Descriptor.list.index(desc) +
+    (Descriptor.list.count * TimeName.list.index(time)) +
+    (Descriptor.list.count * TimeName.list.count * Target.list.index(target))
+end
+
+def index_name(abs_index)
+  target_index = (abs_index / (Descriptor.list.count * TimeName.list.count))
+  abs_index -= target_index * (Descriptor.list.count * TimeName.list.count)
+
+  time_name_index = (abs_index / Descriptor.list.count)
+  abs_index -= time_name_index * Descriptor.list.count
+
+  descriptor_index = abs_index
+
+  [Descriptor.list[descriptor_index], TimeName.list[time_name_index], Target.list[target_index]]
 end
 
 def validate_name(name)
   # Split apart the built name into it's components
-  adj, time, noun, checksum = name.split('-')
+  desc, time, target, checksum = name.split('-')
+  return false if checksum.nil?
 
   # Retrieve the numeric checksum and convert it back into a number
   chk = NumericSyllable.to_int(checksum)
+  desc2, time2, target2 = index_name(chk)
 
-  # Using the extracted components recalculate the checksum
-  chk_recalc = build_chk_num(adj, time, noun)
-
-  (chk == chk_recalc)
+  (desc == desc2 && time == time2 && target == target2)
 end
 
-#repetition_chance = Rational(1, (Adjective.list.size * TimeName.list.size * Noun.list.size))
-#puts repetition_chance
+possible_outcomes = Descriptor.list.size * TimeName.list.size * Target.list.size
+repetition_chance = Rational(1, possible_outcomes)
+puts "Repetition chance: #{repetition_chance}"
 
-10.times do
-  printf "%-40s ", name = generate_name
-  puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
-end
-
-#distribution = Hash.new(0)
-#
-#low = nil
-#high = nil
-#total = 0
-#count = 0
-#
-#Adjective.list.each do |a|
-#  TimeName.list.each do |t|
-#    Noun.list.each do |n|
-#      value = build_chk_num(a, t, n)
-#      low = value if low.nil? || value < low
-#      high = value if high.nil? || value > high
-#
-#      total += value
-#      count += 1
-#
-#      distribution[value] += 1
-#    end
-#  end
-#end
-#
-#unique_values = distribution.count
-#
-##ary_dist = []
-##distribution.each { |k, v| ary_dist[(k.to_i - low)] = v }
-#
-#distribution.delete_if { |k, v| v <= 2 }
-#
-##require 'json'
-##puts JSON.pretty_generate(distribution)
-##puts ary_dist.inspect
-#
-#coverage = (unique_values.to_f / (NumericSyllable.syllables.count ** 2)) * 100
-#
-#puts "Average: #{total / count.to_f}"
-#puts "Highest: #{high}"
-#puts "Lowest: #{low}"
-#puts "Unique values: #{unique_values}"
-#puts "Values above threshold of 2: #{distribution.count}"
-#puts "Checksum coverage: #{sprintf("%3.2f", coverage)}%"
-#puts "Total combinations: #{count}"
-#
+printf "%-40s ", name = generate_name
+puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
