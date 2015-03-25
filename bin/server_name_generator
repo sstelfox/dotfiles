@@ -143,8 +143,8 @@ module Target
       remnant resonance river road sacrifice scent sea seed shadow shaft
       shelter shield silence spirit sky smoke snow soldier sorrow sound star
       staircase sun surf surface tempest thought threshold thunder torment
-      tower treasure tree triptych trove tunnel vengeance voice water waterfall
-      wave wind wood world zombie
+      tower treasure tree triptych trove tunnel valediction vengeance voice
+      water waterfall wave wind wood world zombie
 
     }.sort
   end
@@ -211,5 +211,9 @@ possible_outcomes = Descriptor.list.size * TimeName.list.size * Target.list.size
 repetition_chance = Rational(1, possible_outcomes)
 puts "Repetition chance: #{repetition_chance}"
 
-printf "%-40s ", name = generate_name
-puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
+count = ARGV.empty? ? 3 : ARGV.first.to_i
+
+count.times do
+  printf "%-40s ", name = generate_name
+  puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
+end

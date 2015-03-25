@@ -3,8 +3,6 @@ CompressionLevel 6
 HashKnownHosts yes
 Protocol 2
 IdentityFile ~/.ssh/id_rsa
-Controlmaster auto
-Controlpath ~/.ssh/ssh-%r@%h:%p.sock
 
 #Host *
 #  KexAlgorithms diffie-hellman-group-exchange-sha256
