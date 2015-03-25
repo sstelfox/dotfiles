@@ -6,8 +6,8 @@ IdentityFile ~/.ssh/id_rsa
 Controlmaster auto
 Controlpath ~/.ssh/ssh-%r@%h:%p.sock
 
-Host *
-  KexAlgorithms diffie-hellman-group-exchange-sha256
+#Host *
+#  KexAlgorithms diffie-hellman-group-exchange-sha256
 
 Host ss
   HostName somethingsketchy.net
