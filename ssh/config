@@ -14,3 +14,23 @@ Host io
   HostName home.stelfox.net
   Port 2200
 
+Host nat1-primary
+  HostName 54.210.146.35
+  ForwardAgent yes
+  LocalForward 127.0.0.1:15672 10.100.62.63:15672
+
+Host nat-qa
+  HostName nat-qa.pxinfra.net
+  ForwardAgent yes
+
+Host pwnieupdates
+  HostName updates.pwnieexpress.com
+  User pxadmin
+  Port 55522
+
+Host web01
+  HostName 104.236.71.103
+  Port 2200
+
+Host orig-web01
+  HostName 75.119.221.203
