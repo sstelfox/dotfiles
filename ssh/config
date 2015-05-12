@@ -17,7 +17,12 @@ Host io
 Host nat1-primary
   HostName 54.210.146.35
   ForwardAgent yes
-  LocalForward 127.0.0.1:15672 10.100.62.63:15672
+  LocalForward 127.0.0.1:15673 10.100.62.63:15672
+
+Host pspro
+  ForwardAgent yes
+  HostName 10.73.73.206
+  User root
 
 Host nat-qa
   HostName nat-qa.pxinfra.net

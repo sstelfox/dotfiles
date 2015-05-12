@@ -55,6 +55,7 @@ export PATH="$HOME/.dotfiles/bin:$PATH"
 export HISTCONTROL="ignoredups"
 export HISTTIMEFORMAT="%F %T "
 export GOPATH="${HOME}/src/go"
+export PATH="$PATH:$GOPATH/bin"
 
 # Some color definitions
 GREEN=$(tput setaf 2)
