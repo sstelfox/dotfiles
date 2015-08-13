@@ -23,7 +23,7 @@ module NumericSyllable
     modulus = num % syllables.count
     remainder = num / syllables.count
 
-    (num == 0) ? "" : "#{break_up_num(remainder)}#{syllables[modulus]}"
+    (num == 0) ? "" : "#{syllables[modulus]}#{break_up_num(remainder)}"
   end
 
   def from_int(num)
@@ -39,7 +39,7 @@ module NumericSyllable
   def string_to_int(str)
     return 0 if str.length == 0
     return (-1 * string_to_int(str[2..-1])) if str.match(/^#{inverse}/)
-    return (syllables.count * string_to_int(str[0..-3])) + syl_to_num(str[-2, 2])
+    return syl_to_num(str[0...2]) + (syllables.count * string_to_int(str[2..-1]))
   end
 
   def syl_to_num(str)
@@ -49,14 +49,6 @@ module NumericSyllable
 
   module_function :consonents, :inverse, :syllables, :vowels, :break_up_num,
     :from_int, :to_int, :string_to_int, :syl_to_num
-end
-
-module RandomSyllable
-  def get
-    NumericSyllable.from_int(SecureRandom.hex(3).to_i(16))
-  end
-
-  module_function :get
 end
 
 module Descriptor
@@ -212,7 +204,6 @@ repetition_chance = Rational(1, possible_outcomes)
 puts "Repetition chance: #{repetition_chance}"
 
 count = ARGV.empty? ? 3 : ARGV.first.to_i
-
 count.times do
   printf "%-40s ", name = generate_name
   puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
