@@ -63,8 +63,8 @@ RED=$(tput setaf 1)
 BLUE=$(tput setaf 5)
 RST=$(tput sgr0)
 
-#GOOD=$(echo -e '\xE2\x9C\x93')
-GOOD=$(echo +)
+GOOD=$(echo -e '\xE2\x9C\x93')
+#GOOD=$(echo +)
 BAD=$(echo -)
 
 function exit_status {
@@ -78,24 +78,24 @@ function exit_status {
 function setup_prompt {
   local __user_host="[\u@\h]"
   local __path="\W"
-  local __git="\[$BLUE\]$(__git_ps1)\[$RST\]"
+  local __git="\[$BLUE\]\$(__git_ps1)\[$RST\]"
   local __exit_status="\$(exit_status)"
 
-  if [[ "$TERM" == "screen" ]]; then
+  if [[ -n "$TMUX_PANE" ]]; then
     export PS1="$__path$__git $__exit_status "
   else
     export PS1="$__user_host $__path$__git $__exit_status "
   fi
 }
 # Setup PS1 variable
-#setup_prompt
+setup_prompt
 
 # For when I inevitable break my PS1...
-if [[ -n "$TMUX_PANE" ]]; then
-  export PS1="\$($HOME/.dotfiles/bin/shortdir)\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
-else
-  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
-fi
+#if [[ -n "$TMUX_PANE" ]]; then
+#  export PS1="\$($HOME/.dotfiles/bin/shortdir)\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+#else
+#  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
+#fi
 
 # Load RVM up if it's setup
 if [ -d "$HOME/.rvm" ]; then
