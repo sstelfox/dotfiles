@@ -59,7 +59,7 @@ RST=$(tput sgr0)
 
 GOOD=$(echo -e '\xE2\x9C\x93')
 #GOOD=$(echo +)
-BAD=$(echo -)
+BAD="-"
 
 function exit_status {
   if [ "$?" -eq "0" ]; then
@@ -71,7 +71,7 @@ function exit_status {
 
 function setup_prompt {
   local __user_host="[\u@\h]"
-  local __path="\W"
+  local __path="\$($HOME/.dotfiles/bin/shortdir)"
   local __git="\[$BLUE\]\$(__git_ps1)\[$RST\]"
   local __exit_status="\$(exit_status)"
 
