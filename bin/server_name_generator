@@ -64,33 +64,33 @@ module Descriptor
       billowing biting bitter blazing blocked bloody bold bound brash brave
       breathless briefest bright bristling bubbling burning burnished cackling
       calibrated calming carnal cerulean changing chaotic charred chilling
-      civilized clean clever clinging closed coarse collapsed comforting
-      complacent condescending congealing cool cosmic corndusted corrosive
-      coruscant courteous coy cracked crescent crimson crushed crystal curious
-      daft dainty dangerous deep desperate delicate demonic diligent dim
-      distant divine dreadful dripping drunken dull dusty dying echoing
-      effortless effulgent elaborate elemental eloquent embarrassed emergent
-      empty endless energized engraved enlightened envied etched even
-      exasperated exciting exiled explored faceted faint familiar fancy faraway
-      fast fathomless fearsome feathered feigned fierce finished fizzing
-      flagrant flickering floating flooded fond foolish foreign forgotten frail
-      frantic frayed free friendly frightened frosty fulsome furious furrowed
-      gasping gathered gentle giggling gilded gleaming glib glistening gloating
-      glorious glowing graceful grating graven greedy grubby guarded guilty
-      halfseen healthy heaving heavy hidden hollow hopeful horrid howling
-      humming hurried hushed icy idle immortal impious important improper
-      indecent infernal innocent intent intoxicating intractable inviolate
-      invisible irritated isolated ivory jagged jittery jostled joyful just
-      keening kindled kindly kinked knowing lacking laden lank laughing
-      lavender leathery level light lithe lively loathe lonely looming lost
-      loved lovely lurching luxurious mad managed marvelous massive mauled
-      meddling melting mended metal mewling mighty mirrored missing misty
-      moaning modest moonswept mortal motherly moving muffled murmuring
-      mysterious nameless narrow natural neat nefarious nervous nestled
-      newfound nonchalant normal numb obscured obvious odd offended ominous
-      oily oozing ordinary ornate overgrown padded painted pale panicked
-      passionate patient penultimate perfect perfumed poisoned poor polished
-      plain planned playful pleasant pleased polished precious precise
+      civilized clean cleftal clever clinging closed coarse collapsed
+      comforting complacent condescending congealing cool cosmic corndusted
+      corrosive coruscant courteous coy cracked crescent crimson crushed
+      crystal curious daft dainty dangerous deep desperate delicate demonic
+      diligent dim distant divine dreadful dripping drunken dull dusty dying
+      echoing effortless effulgent elaborate elemental eloquent elusive
+      embarrassed emergent empty endless energized engraved enlightened envied
+      etched even exasperated exciting exiled explored faceted faint familiar
+      fancy faraway fast fathomless fearsome feathered feigned fierce finished
+      fizzing flagrant flickering floating flooded fond foolish foreign
+      forgotten frail frantic frayed free friendly frightened frosty fulsome
+      furious furrowed gasping gathered gentle giggling gilded gleaming glib
+      glistening gloating glorious glowing graceful grating graven greedy
+      grubby guarded guilty halfseen healthy heaving heavy hidden hollow
+      hopeful horrid howling humming hurried hushed icy idle immortal impious
+      important improper indecent infernal innocent intent intoxicating
+      intractable inviolate invisible irritated isolated ivory jagged jittery
+      jostled joyful just keening kindled kindly kinked knowing lacking laden
+      lank laughing lavender leathery level light lithe lively loathe lonely
+      looming lost loved lovely lurching luxurious mad managed marvelous
+      massive mauled meddling melting mended metal mewling mighty mirrored
+      missing misty moaning modest moonswept mortal motherly moving muffled
+      murmuring mysterious nameless narrow natural neat nefarious nervous
+      nestled newfound nonchalant normal numb obscured obvious odd offended
+      ominous oily oozing ordinary ornate overgrown padded painted pale
+      panicked passionate patient penultimate perfect perfumed poisoned poor
+      polished plain planned playful pleasant pleased polished precious precise
       preserved prickly prideful private prized profane proper proud pure
       puzzling quick quiet quivering radiant ragged rakish rare reasonable
       recovered reflected refused relaxed reluctant replaced resting rediculous
@@ -130,13 +130,13 @@ module Target
       cloud cobweb creek cult debris dew doom dream dust eddy edge ember emblem
       experiment faerie field figurine fire firefly fireplace fissure flower
       fog forest fountain frog frost funeral gift glade grass heart herbs hill
-      home imprecation jar karma knight lake laurel leaf marble meadow moon
-      mountain moss necropolis overwatch paper passage peak picture pine poet
-      pond poignard quest rain remnant resonance river road sacrifice scent sea
-      seed shadow shaft shelter shield silence spirit sky smoke snow soldier
-      sorrow sound star staircase sun surf surface tempest thought threshold
-      thunder torment tower treasure tree triptych trove tunnel valediction
-      vengeance voice water waterfall wave wind wood world zombie
+      home horizon imprecation jar karma knight lake laurel leaf marble meadow
+      moon mountain moss necropolis overwatch paper passage peak picture pine
+      poet pond poignard quest rain remnant resonance river road sacrifice
+      scent sea seed shadow shaft shelter shield silence spirit sky smoke snow
+      soldier sorrow sound star staircase sun surf surface tempest thought
+      threshold thunder torment tower treasure tree triptych trove tunnel
+      valediction vengeance voice water waterfall wave wind wood world zombie
 
     }.sort
   end
