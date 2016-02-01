@@ -9,17 +9,17 @@
   whitespace = nowarn
 
 [core]
-  autocrlf   = input
-  safecrlf   = false
-  editor     = vim
-  filemode   = true
+  autocrlf = input
+  safecrlf = false
+  editor   = vim
+  filemode = true
 
   # Use aggressive compression. All my computers have the CPU cycles to spare.
   # This can slow things down though.
   compression = 9
 
 [pull]
-  default    = current
+  default = current
 
 [push]
-  default    = current
+  default = current
