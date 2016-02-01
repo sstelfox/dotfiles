@@ -61,24 +61,18 @@ GOOD=$(echo -e '\xE2\x9C\x93')
 #GOOD=$(echo +)
 BAD="-"
 
-function exit_status {
-  if [ "$?" -eq "0" ]; then
-    echo $GOOD
-  else
-    echo $BAD
-  fi
-}
+DOTFILES_DIR="$HOME/.dotfiles"
 
 function setup_prompt {
   local __user_host="[\u@\h]"
-  local __path="\$($HOME/.dotfiles/bin/shortdir)"
-  local __git="\[$BLUE\]\$(__git_ps1)\[$RST\]"
-  local __exit_status="\$(exit_status)"
+  local __path="\$($DOTFILES_DIR/bin/shortdir)"
+  local __git="\[$BLUE\]\$($DOTFILES_DIR/bin/git-ps1-wrapper.sh)\[$RST\]"
+  local __exit_status="\$($DOTFILES_DIR/bin/exit_status $?)"
 
   if [[ -n "$TMUX_PANE" ]]; then
-    export PS1="$__path$__git $__exit_status "
+    export PS1="$__exit_status $__path$__git \\$ "
   else
-    export PS1="$__user_host $__path$__git $__exit_status "
+    export PS1="$__exit_status $__user_host $__path$__git \\$ "
   fi
 }
 # Setup PS1 variable
