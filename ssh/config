@@ -4,9 +4,6 @@ HashKnownHosts yes
 Protocol 2
 IdentityFile ~/.ssh/id_rsa
 
-#Host *
-#  KexAlgorithms diffie-hellman-group-exchange-sha256
-
 Host ss
   HostName somethingsketchy.net
 
@@ -14,19 +11,17 @@ Host io
   HostName home.stelfox.net
   Port 2200
 
-Host nat1-primary
+Host nat-prod
   HostName 54.210.146.35
-  ForwardAgent yes
-  LocalForward 127.0.0.1:15673 10.100.62.63:15672
 
-Host pspro
-  ForwardAgent yes
-  HostName 10.73.73.206
-  User root
+Host *.prod
+  ProxyCommand ssh -q nat-prod "nc $(echo %h | sed 's;\.prod$;;') %p"
 
 Host nat-qa
-  HostName nat-qa.pxinfra.net
-  ForwardAgent yes
+  HostName nat1q.nat.qa.pxinfra.net
+
+Host *.qa
+  ProxyCommand ssh -q nat-qa "nc $(echo %h | sed 's;\.qa$;;') %p"
 
 Host pwnieupdates
   HostName updates.pwnieexpress.com
@@ -39,3 +34,12 @@ Host web01
 
 Host orig-web01
   HostName 75.119.221.203
+
+Host nj0
+  HostName nj0.ddns.net
+  Port 12231
+  User sysadmin
+
+Host ircp
+  HostName wild-spring-cobweb.stelfox.net
+  Port 2200
