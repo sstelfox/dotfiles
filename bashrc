@@ -48,7 +48,7 @@ alias dig='dig +nocmd +noall +answer'
 export PATH="$HOME/.dotfiles/bin:$PATH"
 export HISTCONTROL="ignoredups"
 export HISTTIMEFORMAT="%F %T "
-export GOPATH="${HOME}/src/go"
+export GOPATH="${HOME}/workspace/go"
 export PATH="$PATH:$GOPATH/bin"
 
 # Some color definitions
