@@ -33,7 +33,7 @@ Host pwnieupdates
   Port 55522
 
 Host web01
-  HostName 104.236.71.103
+  HostName host.stelfox.net
   Port 2200
 
 Host orig-web01
@@ -47,3 +47,27 @@ Host nj0
 Host ircp
   HostName wild-spring-cobweb.stelfox.net
   Port 2200
+
+Host shared-receiver
+  HostName receiver.pxinfra.net
+
+# 002
+Host sens04.levi
+  User root
+  ProxyCommand ssh -q shared-receiver "nc 127.0.0.1 3349"
+
+# 003
+Host sens01.levi
+  User root
+  ProxyCommand ssh -q shared-receiver "nc 127.0.0.1 3341"
+
+# 004
+Host sens02.levi
+  User root
+  ProxyCommand ssh -q shared-receiver "nc 127.0.0.1 3344"
+
+# 006
+Host sens03.levi
+  User root
+  ProxyCommand ssh -q shared-receiver "nc 127.0.0.1 3346"
+
