@@ -15,6 +15,9 @@ Host io
 Host nat-prod
   HostName 54.210.146.35
 
+Host *.sn
+  ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
+
 Host *.prod
   ProxyCommand ssh -q nat-prod "nc $(echo %h | sed 's;\.prod$;;') %p"
 
