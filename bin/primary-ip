@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ip -o -4 addr show $(ip route | grep default |
+  awk '{ print $5 }') | awk '{ print $4 }' | cut -d '/' -f 1
