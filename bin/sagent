@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "Disabled in favor of GPG agent."
+exit 0
+
 # Expiration in seconds that the SSH agent will hold on to the keys.
 AGENT_TIMEOUT=14400
 

@@ -99,9 +99,13 @@ fi
 
 # Source the file that gives us our prompt function
 source $HOME/.dotfiles/helpers/git-prompt.sh
-source $HOME/.dotfiles/helpers/sagent.sh
+#source $HOME/.dotfiles/helpers/sagent.sh
+source $HOME/.dotfiles/helpers/gpg-agent.sh
+
+export SSH_AUTH_SOCK=$HOME/.gnupg/S.gpg-agent.ssh
 
 unset LESSOPEN
+unset SSH_ASKPASS
 
 export VAGRANT_DEFAULT_PROVIDER=libvirt
 export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
