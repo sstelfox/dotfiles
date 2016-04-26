@@ -18,6 +18,9 @@
   # This can slow things down though.
   compression = 9
 
+[commit]
+  gpgsign = true
+
 [pull]
   default = current
 
