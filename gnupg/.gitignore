@@ -1,5 +1,7 @@
 *
 !.gitignore
-!gpg.conf
 !gpg-agent.conf
+!gpg.conf
+!README_CERT.md
 !scdaemon.conf
+!sks-keyservers.netCA.pem
