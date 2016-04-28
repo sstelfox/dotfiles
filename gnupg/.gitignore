@@ -1,5 +1,6 @@
 *
 !.gitignore
+!dirmngr.conf
 !gpg-agent.conf
 !gpg.conf
 !README_CERT.md
