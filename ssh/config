@@ -29,8 +29,6 @@ Host *.qa
 
 Host pwnieupdates
   HostName updates.pwnieexpress.com
-  User pxadmin
-  Port 55522
 
 Host web01
   HostName host.stelfox.net
