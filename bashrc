@@ -46,7 +46,7 @@ alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
 export PATH="$HOME/.dotfiles/bin:$PATH"
-export HISTCONTROL="ignoredups"
+export HISTCONTROL="ignoreboth"
 export HISTTIMEFORMAT="%F %T "
 export GOPATH="${HOME}/workspace/golang"
 export PATH="$PATH:$GOPATH/bin"
