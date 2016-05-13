@@ -16,3 +16,17 @@ virt-manager
 wireshark-gnome
 
 google-chrome-stable
+
+autoconf
+automake
+bison
+gcc-c++
+libffi-devel
+libpcap-devel
+libtool
+libyaml-devel
+openssl-devel
+pam-devel
+readline-devel
+sqlite-devel
+zlib-devel
