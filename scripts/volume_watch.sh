@@ -21,5 +21,5 @@ echo ${CUR_VOL} > ${VOL_TRACK_FILE}
 if [ -n "${LST_VOL}" -a "${CUR_VOL}" != "${LST_VOL}" ]; then
   MSG="Volume changed from ${LST_VOL} to ${CUR_VOL}"
   echo "[$(date -Iseconds)] ${MSG}" >> ${VOL_CHANGE_LOG}
-  notify-send 'Volume Change' "${MSG}"
+  notify-send -t 1000 'Volume Change' "${MSG}"
 fi
