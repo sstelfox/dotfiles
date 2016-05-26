@@ -12,17 +12,23 @@ Host io
   HostName home.stelfox.net
   Port 2200
 
+Host nat-eu
+  HostName 52.50.14.219
+
 Host nat-prod
   HostName 54.210.146.35
 
-Host *.sn
-  ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
+Host nat-qa
+  HostName nat1q.nat.qa.pxinfra.net
+
+Host *.eu
+  ProxyCommand ssh -q nat-eu "nc $(echo %h | sed 's;\.eu$;;') %p"
 
 Host *.prod
   ProxyCommand ssh -q nat-prod "nc $(echo %h | sed 's;\.prod$;;') %p"
 
-Host nat-qa
-  HostName nat1q.nat.qa.pxinfra.net
+Host *.sn
+  ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
 
 Host *.qa
   ProxyCommand ssh -q nat-qa "nc $(echo %h | sed 's;\.qa$;;') %p"
