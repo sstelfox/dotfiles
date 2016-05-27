@@ -8,9 +8,11 @@ IdentityFile ~/.ssh/id_rsa
 Host ss
   HostName somethingsketchy.net
 
+Host old-apa
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
+
 Host io
-  HostName home.stelfox.net
-  Port 2200
+  ProxyCommand ssh -q old-apa "nc 172.23.194.107 22"
 
 Host nat-eu
   HostName 52.50.14.219
