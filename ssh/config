@@ -8,21 +8,29 @@ IdentityFile ~/.ssh/id_rsa
 Host ss
   HostName somethingsketchy.net
 
+Host old-apa
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
+
 Host io
-  HostName home.stelfox.net
-  Port 2200
+  ProxyCommand ssh -q old-apa "nc 172.23.194.107 22"
+
+Host nat-eu
+  HostName 52.50.14.219
 
 Host nat-prod
   HostName 54.210.146.35
 
-Host *.sn
-  ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
+Host nat-qa
+  HostName nat1q.nat.qa.pxinfra.net
+
+Host *.eu
+  ProxyCommand ssh -q nat-eu "nc $(echo %h | sed 's;\.eu$;;') %p"
 
 Host *.prod
   ProxyCommand ssh -q nat-prod "nc $(echo %h | sed 's;\.prod$;;') %p"
 
-Host nat-qa
-  HostName nat1q.nat.qa.pxinfra.net
+Host *.sn
+  ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
 
 Host *.qa
   ProxyCommand ssh -q nat-qa "nc $(echo %h | sed 's;\.qa$;;') %p"

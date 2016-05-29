@@ -2,7 +2,9 @@
 
 set -o errexit
 
-HOST_IP=$(/usr/bin/dig +nocmd +noall +answer io.stelfox.net | awk '{ print $5 }')
+unset SSH_AUTH_SOCK
+
+HOST_IP=$(/usr/bin/dig +nocmd +noall +answer wild-spring-cobweb.stelfox.net | awk '{ print $5 }')
 if [ -z "${HOST_IP}" ]; then
   # Unable to resolve the shell host, bail out
   exit 0
@@ -17,4 +19,4 @@ if /usr/sbin/ss -nt | grep ESTAB | grep -q ${HOST_IP}:2200; then
   fi
 fi
 
-ssh io -fi ~/.ssh/auto_io_tunnel_rsa -R 127.0.0.1:4320:127.0.0.1:22 -o ExitOnForwardFailure=yes -N
+ssh wild-spring-cobweb.stelfox.net -p 2200 -fi /home/sstelfox/.ssh/auto_io_tunnel_rsa -R 127.0.0.1:4320:127.0.0.1:22 -o ExitOnForwardFailure=yes -N
