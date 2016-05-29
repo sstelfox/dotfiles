@@ -27,6 +27,13 @@ Host nat-qa
 Host *.qa
   ProxyCommand ssh -q nat-qa "nc $(echo %h | sed 's;\.qa$;;') %p"
 
+Host gen-rec
+  HostName receiver.pxinfra.net
+
+Host nf
+  User root
+  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3350"
+
 Host pwnieupdates
   HostName updates.pwnieexpress.com
 
