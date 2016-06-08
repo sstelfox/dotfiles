@@ -18,6 +18,9 @@
   # This can slow things down though.
   compression = 9
 
+[gpg]
+  program = gpg2
+
 [commit]
   gpgsign = true
 
