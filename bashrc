@@ -102,8 +102,6 @@ source $HOME/.dotfiles/helpers/git-prompt.sh
 #source $HOME/.dotfiles/helpers/sagent.sh
 source $HOME/.dotfiles/helpers/gpg-agent.sh
 
-export SSH_AUTH_SOCK=$HOME/.gnupg/S.gpg-agent.ssh
-
 unset LESSOPEN
 unset SSH_ASKPASS
 

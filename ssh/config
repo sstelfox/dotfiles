@@ -43,7 +43,7 @@ Host gen-rec
 
 Host nf
   User root
-  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3350"
+  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3351"
 
 Host pwnieupdates
   HostName updates.pwnieexpress.com
