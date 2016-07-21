@@ -8,20 +8,27 @@ IdentityFile ~/.ssh/id_rsa
 Host ss
   HostName somethingsketchy.net
 
-Host old-apa
-  ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
-
 Host proc
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4320"
 
+Host old-apa
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
+
+Host new-apa
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
+
 Host io
   ProxyCommand ssh -q old-apa "nc 172.23.194.107 22"
+
+Host nat-siphon
+  HostName 52.72.127.111
 
 Host nat-eu
   HostName 52.50.14.219
 
 Host nat-prod
   HostName 54.210.146.35
+  RemoteForward 8080 log1b:8080
 
 Host nat-qa
   HostName nat1q.nat.qa.pxinfra.net
@@ -32,6 +39,9 @@ Host *.eu
 Host *.prod
   ProxyCommand ssh -q nat-prod "nc $(echo %h | sed 's;\.prod$;;') %p"
 
+Host *.si
+  ProxyCommand ssh -q nat-siphon "nc $(echo %h | sed 's;\.si$;;') %p"
+
 Host *.sn
   ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
 
@@ -41,7 +51,15 @@ Host *.qa
 Host gen-rec
   HostName receiver.pxinfra.net
 
+Host *.grec
+  User pwnie
+  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 $(echo %h | sed 's;\.grec$;;')"
+
 Host nf
+  User root
+  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3350"
+
+Host nf2
   User root
   ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3351"
 
