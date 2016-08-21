@@ -18,7 +18,7 @@ Host new-apa
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
 
 Host io
-  ProxyCommand ssh -q old-apa "nc 172.23.194.107 22"
+  ProxyCommand ssh -q new-apa "nc 10.13.37.12 22"
 
 Host nat-siphon
   HostName 52.72.127.111
