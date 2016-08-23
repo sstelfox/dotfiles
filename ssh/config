@@ -8,14 +8,17 @@ IdentityFile ~/.ssh/id_rsa
 Host ss
   HostName somethingsketchy.net
 
-Host proc
-  ProxyCommand ssh -q ircp "nc 127.0.0.1 4320"
+Host new-apa
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
 
 Host old-apa
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
 
-Host new-apa
-  ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
+Host proc
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 4320"
+  LocalForward /home/sstelfox/.gnupg/S.gpg-agent.ssh /home/sstelfox/.gnupg/S.gpg-agent.ssh
+  StreamLocalBindMask 0177
+  StreamLocalBindUnlink yes
 
 Host srv1
   ProxyCommand ssh -q new-apa "nc 10.13.37.31 22"
