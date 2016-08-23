@@ -17,6 +17,9 @@ Host old-apa
 Host new-apa
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
 
+Host srv1
+  ProxyCommand ssh -q new-apa "nc 10.13.37.31 22"
+
 Host io
   ProxyCommand ssh -q new-apa "nc 10.13.37.12 22"
 
