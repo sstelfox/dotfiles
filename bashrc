@@ -45,7 +45,9 @@ alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && r
 alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
-export PATH="$HOME/.dotfiles/bin:$PATH"
+export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$PATH"
+export GOROOT="$HOME/go_install/go"
+
 export HISTCONTROL="ignoreboth"
 export HISTTIMEFORMAT="%F %T "
 export GOPATH="${HOME}/workspace/golang"
