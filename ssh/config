@@ -16,12 +16,20 @@ Host old-apa
 
 Host proc
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4320"
-  LocalForward /home/sstelfox/.gnupg/S.gpg-agent.ssh /home/sstelfox/.gnupg/S.gpg-agent.ssh
-  StreamLocalBindMask 0177
-  StreamLocalBindUnlink yes
+#  LocalForward /home/sstelfox/.gnupg/S.gpg-agent.ssh /home/sstelfox/.gnupg/S.gpg-agent.ssh
+#  StreamLocalBindMask 0177
+#  StreamLocalBindUnlink yes
+
+Host home1
+  ProxyCommand ssh -q new-apa "nc 10.13.37.95 22"
+  ControlMaster auto
+  ControlPath ~/.ssh/%C.sock
 
 Host srv1
   ProxyCommand ssh -q new-apa "nc 10.13.37.31 22"
+
+Host srv2
+  ProxyCommand ssh -q new-apa "nc 10.13.37.130 22"
 
 Host io
   ProxyCommand ssh -q new-apa "nc 10.13.37.12 22"
@@ -33,11 +41,16 @@ Host nat-eu
   HostName 52.50.14.219
 
 Host nat-prod
-  HostName 54.210.146.35
-  RemoteForward 8080 log1b:8080
+  HostName nat1p.nat.prod.pxinfra.net
 
 Host nat-qa
   HostName nat1q.nat.qa.pxinfra.net
+
+Host nat1p
+  HostName 52.55.178.59
+
+Host *.p
+  ProxyCommand ssh -q nat1p "nc $(echo %h | sed 's;\.p$;;') %p"
 
 Host *.eu
   ProxyCommand ssh -q nat-eu "nc $(echo %h | sed 's;\.eu$;;') %p"
