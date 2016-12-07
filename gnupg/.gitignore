@@ -1,8 +1,6 @@
-*
-!.gitignore
-!dirmngr.conf
-!gpg-agent.conf
-!gpg.conf
-!README_CERT.md
-!scdaemon.conf
-!sks-keyservers.netCA.pem
+*.gpg
+*.status
+*~
+private-keys-v1.d/
+random_seed
+*.kbx
