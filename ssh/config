@@ -16,7 +16,9 @@ Host old-apa
 
 Host proc
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4320"
-#  LocalForward /home/sstelfox/.gnupg/S.gpg-agent.ssh /home/sstelfox/.gnupg/S.gpg-agent.ssh
+  RemoteForward /run/user/1000/gnupg/S.gpg-agent /home/sstelfox/.gnupg/S.gpg-agent.remote
+  StreamLocalBindUnlink yes
+
 #  StreamLocalBindMask 0177
 #  StreamLocalBindUnlink yes
 
