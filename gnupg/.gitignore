@@ -1,4 +1,5 @@
 *.gpg
+.gpg-v21-migrated
 *.status
 *~
 private-keys-v1.d/
