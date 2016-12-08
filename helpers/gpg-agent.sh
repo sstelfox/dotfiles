@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# If we're on an SSH connection don't attempt to setup the gpg-agent:
+if [ -z "${SSH_CONNECTION}" ]; then
+  exit 0
+fi
+
 # Set GPG TTY
 export GPG_TTY=$(tty)
 
