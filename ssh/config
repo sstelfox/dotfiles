@@ -40,7 +40,7 @@ Host nat-siphon
   HostName 52.72.127.111
 
 Host nat-eu
-  HostName 52.50.14.219
+  HostName 52.213.225.88
 
 Host nat-prod
   HostName nat1p.nat.prod.pxinfra.net
