@@ -48,8 +48,17 @@ alias dig='dig +nocmd +noall +answer'
 export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$PATH"
 export GOROOT="$HOME/go_install/go"
 
+# You know what I really need? An archive of every bash command I ever run in
+# the future...
+if [ ! -d "${HOME}/.dotfiles/bash-histories" ]; then
+  mkdir -p "${HOME}/.dotfiles/bash-histories"
+fi
+export HISTFILE="${HOME}/.dotfiles/bash-histories/$(date -u +%Y%m%d.%H%M)-$(hostname -s).$$"
+
 export HISTCONTROL="ignoreboth"
+export HISTSIZE=-1
 export HISTTIMEFORMAT="%F %T "
+
 export GOPATH="${HOME}/workspace/golang"
 export PATH="$PATH:$GOPATH/bin"
 
@@ -86,6 +95,8 @@ setup_prompt
 #else
 #  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 #fi
+
+
 
 # Load RVM up if it's setup
 if [ -d "$HOME/.rvm" ]; then
