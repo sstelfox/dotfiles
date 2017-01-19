@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -o errexit
+set -o errtrace
+set -o pipefail
+set -o nounset
+
+function error_handler() {
+  if [ "${DEBUG:-}" = "true" ]; then
+    echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
+  fi
+}
+
+trap 'error_handler ${LINENO} $?' ERR
+
+# Diagnostic logging when necessary
+if [ "${DEBUG:-}" = "true" ]; then
+  set -o xtrace
+fi
+
+if [ -z "${1:-}" ]; then
+  echo "A host or subnet needs to be provided as an argument"
+  exit 1
+fi
+
+sudo nmap -sP $1 |
+  awk '/Nmap scan report for/{printf $5;}/MAC Address:/{print " - "tolower($3);}'
+echo
