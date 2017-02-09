@@ -96,14 +96,6 @@ setup_prompt
 #  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 #fi
 
-
-
-# Load RVM up if it's setup
-if [ -d "$HOME/.rvm" ]; then
-  # Load RVM into a shell session *as a function*
-  [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
-fi
-
 # Load RBENV if it's setup
 if [ -d $HOME/.rbenv ]; then
   export PATH="$HOME/.rbenv/bin:$PATH"
@@ -120,3 +112,6 @@ unset SSH_ASKPASS
 
 export VAGRANT_DEFAULT_PROVIDER=libvirt
 export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
+
+# Load RVM into a shell session *as a function*
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
