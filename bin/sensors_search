@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INTERFACE="$(ip route | grep default | awk '{ print $5 }')"
+INTERFACE="$(ip route | grep default | awk '{ print $5 }' | head -n 1)"
 SUBNET="$(ip -o -4 addr show $INTERFACE | awk '{ print $4 }')"
 
 echo -n 'Scanning... '
