@@ -18,6 +18,8 @@ if [ -f "${GIT_DIR}/hooks/post-commit" ]; then
 fi
 
 if [ ! -L ${GIT_DIR}/hooks/post-commit ]; then
-  echo "Installing git-shots into $(dirname ${GIT_DIR})"
   ln -s ${HOME}/.dotfiles/bin/git-shots ${GIT_DIR}/hooks/post-commit
+  if [ $? -eq 0 ]; then
+    echo "Installed git-shots into $(dirname ${GIT_DIR})"
+  fi
 fi
