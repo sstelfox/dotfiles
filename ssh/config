@@ -47,7 +47,7 @@ Host nat-prod
   DynamicForward 127.0.0.1:1080
 
 Host nat-qa
-  HostName nat1q.nat.qa.pxinfra.net
+  HostName nat.qa.pxinfra.net
   DynamicForward 127.0.0.1:1080
 
 Host nat1p

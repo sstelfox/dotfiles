@@ -35,6 +35,7 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
 done
 
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
+alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
 
 # Fuck this command search bull shit
 unset command_not_found_handle
