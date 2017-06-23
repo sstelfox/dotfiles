@@ -1,0 +1,77 @@
+# Name to be displayed on sent emails:
+set my_name = "Sam Stelfox"
+
+# May want this to make threads thinner:
+#set narrow_tree = yes
+
+# This may be annoying but... any mail server that supports DSN extensions will
+# send me back an email when it has been successfully delivered, the delivery
+# failed, or it has been delayed.
+set dsn_notify = "delay,failure,success"
+set dsn_return = "hdrs"
+
+# Cache messages and headers locally
+set header_cache = ~/.cache/mutt
+set message_cachedir = ~/.cache/mutt
+
+# Where to store emails and drafts
+set record = +Sent
+set postponed = +Drafts
+
+# Use VIM as our editor
+set editor = /usr/bin/vim
+
+# Don't announce a user agent
+unset user_agent
+
+# Display all headers
+unignore headers *
+
+set markers = no
+set abort_nosubject = yes
+set include = ask-yes
+set postpone = ask-yes
+set delete = yes
+
+set beep = no
+
+set sort = threads
+set indent_str = "> "
+set collapse_unread = no
+
+set date_format="%Y%m%d %T"
+set index_format="%2C %Z [%d] %f %s"
+
+set signature = ".signature"
+set send_charset = utf-8
+
+# A custom header with no current value, I can drop useful internal only
+# information in this.
+my_hdr X-Access-Validation: `dd if=/dev/urandom bs=1 count=16 2>/dev/null | hexdump | head -n 1`
+
+# Default color definitions
+color signature brightmagenta black
+color indicator black cyan
+color attachment black green
+color error red black
+color message white black
+color search brightwhite magenta
+color status brightyellow blue
+color tree brightblue black
+color normal white black
+color tilde green black
+color bold brightyellow black
+#color underline magenta black
+color markers brightcyan black
+color status green black
+color indicator default red
+
+# Reduce polling frequency, but faster for current inbox
+set mail_check = 60
+set timeout = 10
+
+set realname = $my_name
+set envelope_from = yes
+set use_from = yes
+set reverse_name = yes
+set fast_reply = yes

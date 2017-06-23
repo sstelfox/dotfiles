@@ -23,6 +23,6 @@ if [ -z "${1:-}" ]; then
   exit 1
 fi
 
-sudo nmap -sP $1 |
+sudo nmap -sn $1 |
   awk '/Nmap scan report for/{printf $5;}/MAC Address:/{print " - "tolower($3);}'
 echo

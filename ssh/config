@@ -41,14 +41,18 @@ Host nat-siphon
 
 Host nat-eu
   HostName 52.213.225.88
+  DynamicForward 127.0.0.1:1080
+  ProxyCommand ssh -q proc "nc %h %p"
 
 Host nat-prod
   HostName nat1p.nat.prod.pxinfra.net
   DynamicForward 127.0.0.1:1080
+  ProxyCommand ssh -q proc "nc %h %p"
 
 Host nat-qa
   HostName nat.qa.pxinfra.net
   DynamicForward 127.0.0.1:1080
+  ProxyCommand ssh -q proc "nc %h %p"
 
 Host nat1p
   HostName 52.55.178.59
