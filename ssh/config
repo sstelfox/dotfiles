@@ -1,9 +1,6 @@
 Compression yes
-CompressionLevel 6
 HashKnownHosts yes
 Protocol 2
-IdentityFile ~/.ssh/id_ed25519
-IdentityFile ~/.ssh/id_rsa
 
 Host ss
   HostName somethingsketchy.net
