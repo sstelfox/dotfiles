@@ -46,6 +46,8 @@ alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && r
 alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
+alias vi='vim'
+
 export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$PATH"
 export GOROOT="$HOME/go_install/go"
 
