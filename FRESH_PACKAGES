@@ -1,4 +1,4 @@
-docker fswebcam gnupg2-smime golang iptables-services libvirt meld nmap pcsc-lite-ccid pidgin pv ruby tcpdump tmux vim-enhanced virt-manager wireshark-gnome autoconf automake bison gcc-c++ libffi-devel libpcap-devel libtool libyaml-devel openssl-devel pam-devel readline-devel sqlite-devel zlib-devel
+docker awscli fswebcam gnupg2-smime golang iptables-services libvirt meld nmap pcsc-lite-ccid pidgin pv ruby tcpdump tmux vim-enhanced virt-manager wireshark-gnome autoconf automake bison gcc-c++ libffi-devel libpcap-devel libtool libyaml-devel openssl-devel pam-devel readline-devel sqlite-devel zlib-devel
 
 sudo systemctl start pcscd.service
 
