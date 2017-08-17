@@ -56,6 +56,7 @@ fi
 
 chmod 0600 ${DOTFILE_DIR}/ssh/* ${DOTFILE_DIR}/gnupg/*
 chmod 0700 ${DOTFILE_DIR}/ssh ${DOTFILE_DIR}/gnupg
+chmod 0750 ${DOTFILE_DIR}
 
 echo "Installing fonts and updating font cache..."
 fc-cache > /dev/null
