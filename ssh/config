@@ -3,6 +3,9 @@ HashKnownHosts yes
 Protocol 2
 IdentitiesOnly yes
 
+Host github.com
+  IdentityFile ~/.ssh/gpg_key.pub
+
 Host new-apa
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
