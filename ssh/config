@@ -1,110 +1,93 @@
-Compression yes
+CheckHostIP yes
 HashKnownHosts yes
 Protocol 2
-
-Host ss
-  HostName somethingsketchy.net
+IdentitiesOnly yes
 
 Host new-apa
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
 
 Host old-apa
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
 
 Host proc
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q ircp "nc 127.0.0.1 4320"
-  RemoteForward /run/user/1000/gnupg/S.gpg-agent /home/sstelfox/.gnupg/S.gpg-agent.remote
-  StreamLocalBindUnlink yes
-
-#  StreamLocalBindMask 0177
-#  StreamLocalBindUnlink yes
 
 Host home1
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q new-apa "nc 10.13.37.95 22"
-  ControlMaster auto
-  ControlPath ~/.ssh/%C.sock
+  #ControlMaster auto
+  #ControlPath ~/.ssh/%C.sock
 
 Host srv1
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q new-apa "nc 10.13.37.31 22"
 
 Host srv2
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q new-apa "nc 10.13.37.130 22"
 
 Host io
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q new-apa "nc 10.13.37.12 22"
-
-Host nat-siphon
-  HostName 52.72.127.111
 
 Host nat-eu
   HostName 52.213.225.88
-  DynamicForward 127.0.0.1:1080
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q proc "nc %h %p"
 
 Host nat-prod
   HostName nat1p.nat.prod.pxinfra.net
-  DynamicForward 127.0.0.1:1080
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q proc "nc %h %p"
 
 Host nat-qa
   HostName nat.qa.pxinfra.net
+  IdentityFile ~/.ssh/gpg_key.pub
   DynamicForward 127.0.0.1:1080
   ProxyCommand ssh -q proc "nc %h %p"
 
 Host nat1p
   HostName 52.55.178.59
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -q proc "nc %h %p"
 
 Host *.p
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q nat1p "nc $(echo %h | sed 's;\.p$;;') %p"
 
 Host *.eu
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q nat-eu "nc $(echo %h | sed 's;\.eu$;;') %p"
 
 Host *.prod
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q nat-prod "nc $(echo %h | sed 's;\.prod$;;') %p"
 
-Host *.si
-  ProxyCommand ssh -q nat-siphon "nc $(echo %h | sed 's;\.si$;;') %p"
-
-Host *.sn
-  ProxyCommand ssh -q io "nc $(echo %h | sed 's;\.sn$;;') %p"
-
 Host *.qa
+  IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q nat-qa "nc $(echo %h | sed 's;\.qa$;;') %p"
 
 Host gen-rec
+  IdentityFile ~/.ssh/gpg_key.pub
   HostName receiver.pxinfra.net
 
 Host *.grec
   User pwnie
   ProxyCommand ssh -q gen-rec "nc 127.0.0.1 $(echo %h | sed 's;\.grec$;;')"
 
-Host nf
-  User root
-  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3350"
-
-Host nf2
-  User root
-  ProxyCommand ssh -q gen-rec "nc 127.0.0.1 3351"
-
 Host pwnieupdates
+  IdentityFile ~/.ssh/gpg_key.pub
   HostName updates.pwnieexpress.com
 
 Host web01
   HostName host.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
   Port 2200
-
-Host orig-web01
-  HostName 75.119.221.203
-
-Host nj0
-  HostName nj0.ddns.net
-  Port 12231
-  User sysadmin
 
 Host ircp
   HostName wild-spring-cobweb.stelfox.net
   Port 2200
-
-Host shared-receiver
-  HostName receiver.pxinfra.net
+  IdentityFile ~/.ssh/gpg_key.pub
