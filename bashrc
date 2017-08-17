@@ -48,7 +48,7 @@ alias dig='dig +nocmd +noall +answer'
 
 alias vi='vim'
 
-export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$PATH"
+export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/.cargo/bin:$PATH"
 export GOROOT="$HOME/go_install/go"
 
 # You know what I really need? An archive of every bash command I ever run in
