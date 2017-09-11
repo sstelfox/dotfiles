@@ -46,7 +46,6 @@ export GOROOT="$HOME/go_install/go"
 if [ ! -d "${HOME}/.dotfiles/bash-histories" ]; then
   mkdir -p "${HOME}/.dotfiles/bash-histories"
 fi
-export HISTFILE="${HOME}/.dotfiles/bash-histories/$(date -u +%Y%m%d.%H%M)-$(hostname -s).$$"
 
 export HISTCONTROL="ignoreboth"
 export HISTSIZE=-1
