@@ -22,9 +22,8 @@ set autoread
 " Configure spell checking, but leave it disabled by default
 set spelllang=en_us
 set spellfile=$HOME/.dotfiles/vim-spellfile.add
-" Spellcheck seems to be disable by default, comment this out to when you get
-" sick of the highlighting.
-set spell
+" This is really annoying in files that primarily don't contain prose
+set nospell
 
 highlight ColorColumn ctermbg=magenta
 call matchadd('ColorColumn', '\%81v', 100)
