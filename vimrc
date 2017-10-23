@@ -20,7 +20,11 @@ set modelines=10
 set autoread
 
 " Configure spell checking, but leave it disabled by default
-setlocal nospell spelllang=en_us
+set spelllang=en_us
+set spellfile=$HOME/.dotfiles/vim-spellfile.add
+" Spellcheck seems to be disable by default, comment this out to when you get
+" sick of the highlighting.
+set spell
 
 highlight ColorColumn ctermbg=magenta
 call matchadd('ColorColumn', '\%81v', 100)
