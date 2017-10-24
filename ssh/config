@@ -85,6 +85,19 @@ Host pwnieupdates
   IdentityFile ~/.ssh/gpg_key.pub
   HostName updates.pwnieexpress.com
 
+Host *.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host cas
+  HostName collapsed-autumn-sound.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+  Port 2200
+
+Host onr
+  HostName ornate-night-resonance.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+  Port 2200
+
 Host web01
   HostName host.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
