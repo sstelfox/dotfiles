@@ -236,3 +236,6 @@ Redis
 Memcached
 IATA
 LOCODE
+dracut
+chroot
+LVM
