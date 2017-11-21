@@ -152,8 +152,8 @@ module TimeName
   def list
     @list ||= %w{
 
-      afternoon autumn dawn dusk evening gloaming midday midnight morning night
-      noon spring summer sunrise sunset twilight winter
+      afterlight afternoon autumn dawn dusk evening eventide gloaming midday
+      midnight morning night noon spring summer sunrise sunset twilight winter
 
     }.sort
   end
