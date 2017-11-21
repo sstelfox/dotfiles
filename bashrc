@@ -39,6 +39,7 @@ alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
 alias vi='vim'
+alias gdb='gdb -q'
 
 export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/.cargo/bin:$PATH"
 export GOROOT="$HOME/go_install/go"
