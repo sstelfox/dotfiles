@@ -21,6 +21,7 @@ Host proc
 Host home1
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q new-apa "nc 10.13.37.95 22"
+  LocalForward 127.0.0.1:5900 127.0.0.1:5900
   #ControlMaster auto
   #ControlPath ~/.ssh/%C.sock
 
