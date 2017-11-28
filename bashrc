@@ -15,6 +15,7 @@ fi
 # Encoding help?
 export LC_ALL=en_US.utf-8
 export LANG="$LC_ALL"
+export TZ="America/New_York"
 
 # Big surprise? I think not
 export EDITOR="vim"
