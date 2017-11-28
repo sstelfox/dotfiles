@@ -3,6 +3,8 @@ HashKnownHosts yes
 Protocol 2
 IdentitiesOnly yes
 
+ServerAliveInterval 10
+
 Host github.com
   IdentityFile ~/.ssh/gpg_key.pub
 

@@ -15,6 +15,7 @@ fi
 # Encoding help?
 export LC_ALL=en_US.utf-8
 export LANG="$LC_ALL"
+export TZ="America/New_York"
 
 # Big surprise? I think not
 export EDITOR="vim"
@@ -39,9 +40,13 @@ alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
 alias vi='vim'
+alias gdb='gdb -q'
 
-export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/.cargo/bin:$PATH"
-export GOROOT="$HOME/go_install/go"
+export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/.gem/ruby/2.4.0/bin:$HOME/.cargo/bin:$PATH"
+
+if [ -d "$HOME/go_install/go" ]; then
+  export GOROOT="$HOME/go_install/go"
+fi
 
 # You know what I really need? An archive of every bash command I ever run in
 # the future...
