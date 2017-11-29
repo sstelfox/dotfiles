@@ -1,0 +1,3 @@
+#!/bin/bash
+
+echo 'UPDATESTARTUPTTY' | gpg-connect-agent
