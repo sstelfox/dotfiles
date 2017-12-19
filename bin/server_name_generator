@@ -164,7 +164,7 @@ end
 
 def generate_name
   chunks = [Descriptor.get, TimeName.get, Target.get]
-  chunks << NumericSyllable.from_int(name_index(*chunks))
+  #chunks << NumericSyllable.from_int(name_index(*chunks))
 
   # Build the final name
   chunks.join('-')
@@ -202,10 +202,11 @@ end
 
 possible_outcomes = Descriptor.list.size * TimeName.list.size * Target.list.size
 repetition_chance = Rational(1, possible_outcomes)
-puts "Repetition chance: #{repetition_chance}"
+puts "Repetition chance: #{repetition_chance}\n\n"
 
 count = ARGV.empty? ? 3 : ARGV.first.to_i
 count.times do
-  printf "%-40s ", name = generate_name
-  puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
+  #printf "%-40s ", name = generate_name
+  #puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
+  puts generate_name
 end
