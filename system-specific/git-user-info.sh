@@ -4,8 +4,8 @@
 # gitconfig file which is useful because the gitconfig file can't
 # source other files, and these can be system specific between say
 # work and home machines.
-export GIT_COMMITTER_EMAIL=""
-export GIT_COMMITTER_NAME=""
+export GIT_COMMITTER_EMAIL="sstelfox@bedroomprogrammers.net"
+export GIT_COMMITTER_NAME="Sam Stelfox"
 
 # You probably don't need to change these unless they're different
 # for some reason than those above
