@@ -42,6 +42,9 @@ alias dig='dig +nocmd +noall +answer'
 alias vi='vim'
 alias gdb='gdb -q'
 
+# Shortcut for generating a QR code in the command line
+alias qr='echo "$@" | qrencode -m 3 -t UTF8 -o -'
+
 export PATH="$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/.gem/ruby/2.4.0/bin:$HOME/.cargo/bin:$PATH"
 
 if [ -d "$HOME/go_install/go" ]; then
