@@ -7,3 +7,4 @@ crls.d/
 private-keys-v1.d/
 random_seed
 *.kbx
+tofu.db
