@@ -42,23 +42,23 @@ Host io
 Host nat-eu
   HostName 52.213.225.88
   IdentityFile ~/.ssh/gpg_key.pub
-  ProxyCommand ssh -q proc "nc %h %p"
+  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host nat-prod
   HostName nat1p.nat.prod.pxinfra.net
   IdentityFile ~/.ssh/gpg_key.pub
-  ProxyCommand ssh -q proc "nc %h %p"
+  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host nat-qa
   HostName nat.qa.pxinfra.net
   IdentityFile ~/.ssh/gpg_key.pub
   DynamicForward 127.0.0.1:1080
-  ProxyCommand ssh -q proc "nc %h %p"
+  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host nat1p
   HostName 52.55.178.59
   IdentityFile ~/.ssh/gpg_key.pub
-  ProxyCommand ssh -q proc "nc %h %p"
+  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host *.p
   IdentityFile ~/.ssh/gpg_key.pub
