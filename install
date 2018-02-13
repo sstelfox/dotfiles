@@ -2,13 +2,13 @@
 
 # This file replaces various dotfiles in the user's home directory
 # it makes some assumptions about what's installed such as vim, bash,
-# git, bash-completion, rvm, and tmux.
+# git, bash-completion, and tmux.
 #
 # The original files are stored in $HOME/.dotfiles/system-originals/
 # if they existed for reference. This folder is not included in the
 # repository and as such will not migrate between machines
 
-FILES=( bashrc bash_profile muttrc vim vimrc tmux.conf gitconfig sqliterc ssh pryrb fonts rvmrc gnupg )
+FILES=( bashrc bash_profile muttrc vim vimrc tmux.conf gitconfig sqliterc ssh pryrb fonts gnupg )
 
 DOTFILE_DIR="$HOME/.dotfiles"
 

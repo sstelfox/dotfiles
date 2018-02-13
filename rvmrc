@@ -1,3 +1,0 @@
-rvm_configure_env=(CFLAGS="-march=native -O2")
-rvm_auto_reload_flag=2
-rvm_silence_path_mismatch_check_flag=1
