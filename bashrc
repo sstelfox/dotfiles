@@ -104,6 +104,11 @@ if [ -d $HOME/.rbenv ]; then
   eval "$(rbenv init -)"
 fi
 
+# If the rust toolchain in installed source it's environment
+if [ -f $HOME/.cargo/env ]; then
+  source $HOME/.cargo/env
+fi
+
 # Source the file that gives us our prompt function
 source $HOME/.dotfiles/helpers/git-prompt.sh
 #source $HOME/.dotfiles/helpers/sagent.sh
