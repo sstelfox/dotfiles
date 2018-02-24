@@ -101,11 +101,13 @@ Host cas
   HostName collapsed-autumn-sound.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
   Port 2200
+  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host onr
   HostName ornate-night-resonance.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
   Port 2200
+  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host web01
   HostName host.stelfox.net
