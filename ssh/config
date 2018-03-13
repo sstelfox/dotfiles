@@ -11,6 +11,9 @@ Host repomgmt.pxinfra.net
 Host 192.168.0.*
   IdentityFile ~/.ssh/gpg_key.pub
 
+Host 192.168.122.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
 Host github.com
   IdentityFile ~/.ssh/gpg_key.pub
 
