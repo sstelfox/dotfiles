@@ -14,6 +14,10 @@ Host 192.168.0.*
 Host 192.168.122.*
   IdentityFile ~/.ssh/gpg_key.pub
 
+Host *.dp
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -q 192.168.0.22 "nc $(echo %h | sed 's;\.dp$;;') %p"
+
 Host github.com
   IdentityFile ~/.ssh/gpg_key.pub
 
