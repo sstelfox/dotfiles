@@ -110,12 +110,6 @@ Host *.stelfox.net
 Host *.devtty.org
   IdentityFile ~/.ssh/gpg_key.pub
 
-Host pnr
-  HostName penultimate-noon-resonance.devtty.org
-  IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-  ProxyCommand ssh -q ircp "nc %h %p"
-
 Host web01
   HostName host.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
