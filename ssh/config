@@ -11,6 +11,9 @@ Host repomgmt.pxinfra.net
 Host 192.168.0.*
   IdentityFile ~/.ssh/gpg_key.pub
 
+Host 192.168.2.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
 Host 192.168.122.*
   IdentityFile ~/.ssh/gpg_key.pub
 
@@ -104,17 +107,8 @@ Host pwnieupdates
 Host *.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
 
-Host cas
-  HostName collapsed-autumn-sound.stelfox.net
+Host *.devtty.org
   IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-  ProxyCommand ssh -q ircp "nc %h %p"
-
-Host onr
-  HostName ornate-night-resonance.stelfox.net
-  IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-  ProxyCommand ssh -q ircp "nc %h %p"
 
 Host web01
   HostName host.stelfox.net
