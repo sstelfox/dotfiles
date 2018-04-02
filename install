@@ -54,9 +54,8 @@ if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
   fi
 fi
 
-chmod 0600 ${DOTFILE_DIR}/ssh/* ${DOTFILE_DIR}/gnupg/*
-chmod 0700 ${DOTFILE_DIR}/ssh ${DOTFILE_DIR}/gnupg
-chmod 0750 ${DOTFILE_DIR}
+chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
+chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/{gnupg,ssh}
 
 echo "Installing fonts and updating font cache..."
 fc-cache > /dev/null
