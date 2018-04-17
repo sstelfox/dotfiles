@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+
+# Ensure merges and stuff don't break the required permissions for SSH and
+# GnuPG to maintain functionality during merges
+chmod -R u=rwX,g=rX,o= ${GIT_ROOT}
+chmod -R u=rwX,g=,o= ${GIT_ROOT}/{gnupg,ssh}
