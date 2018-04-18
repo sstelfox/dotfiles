@@ -8,10 +8,7 @@ ServerAliveInterval 10
 Host repomgmt.pxinfra.net
   IdentityFile ~/.ssh/gpg_key.pub
 
-Host 192.168.0.*
-  IdentityFile ~/.ssh/gpg_key.pub
-
-Host 192.168.2.*
+Host 192.168.1.*
   IdentityFile ~/.ssh/gpg_key.pub
 
 Host 192.168.122.*

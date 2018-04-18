@@ -87,6 +87,9 @@ function setup_prompt {
   else
     export PS1="$__exit_status $__user_host $__path$__git \\$ "
   fi
+
+  # Don't expose more than path through the window title...
+  export PROMPT_COMMAND='echo -en "\033]0;${PWD/#$HOME/\~}\a"'
 }
 # Setup PS1 variable
 setup_prompt
