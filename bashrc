@@ -61,8 +61,13 @@ export HISTCONTROL="ignoreboth"
 export HISTSIZE=-1
 export HISTTIMEFORMAT="%F %T "
 
+# For Go
 export GOPATH="${HOME}/workspace/golang"
 export PATH="$PATH:$GOPATH/bin"
+
+# And for RVM
+export PATH="$PATH:$HOME/.rvm/bin"
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 
 # Some color definitions
 GREEN=$(tput setaf 2)
@@ -70,8 +75,8 @@ RED=$(tput setaf 1)
 BLUE=$(tput setaf 5)
 RST=$(tput sgr0)
 
-GOOD=$(echo -e '\xE2\x9C\x93')
-#GOOD=$(echo +)
+#GOOD=$(echo -e '\xE2\x9C\x93')
+GOOD=$(echo +)
 BAD="-"
 
 DOTFILES_DIR="$HOME/.dotfiles"
@@ -100,12 +105,6 @@ setup_prompt
 #else
 #  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
 #fi
-
-# Load RBENV if it's setup
-if [ -d $HOME/.rbenv ]; then
-  export PATH="$HOME/.rbenv/bin:$PATH"
-  eval "$(rbenv init -)"
-fi
 
 # If the rust toolchain in installed source it's environment
 if [ -f $HOME/.cargo/env ]; then
