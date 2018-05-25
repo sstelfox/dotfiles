@@ -1,5 +1,8 @@
-docker awscli fswebcam gnupg2-smime graphviz golang iptables-services jq libvirt meld nmap pcsc-lite-ccid pidgin pv ruby tcpdump tmux vim-enhanced virt-manager wireshark-gnome autoconf automake bison gcc-c++ libffi-devel libpcap-devel libtool libyaml-devel openssl-devel pam-devel readline-devel redhat-rpm-config ruby-devel sqlite-devel zlib-devel
+docker awscli fswebcam gnupg2-smime golang graphviz iptables-services jq libvirt meld nmap pcsc-lite-ccid pidgin pv ruby tcpdump tmux vim-enhanced virt-manager wireshark-gnome autoconf automake bison gcc-c++ libffi-devel libpcap-devel libtool libyaml-devel openssl-devel pam-devel readline-devel redhat-rpm-config ruby-devel sqlite-devel zlib-devel kicad transmission-gtk docker-compose curl-devel fftw3 fftw3-devel postgresql postgresql-devel v8
 
 sudo systemctl start pcscd.service
 
 google-chrome-stable
+
+curl -sSL https://get.rvm.io | bash -s stable
+curl https://sh.rustup.rs -sSf | sh
