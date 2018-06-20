@@ -30,6 +30,16 @@ Host ircp
   Port 2200
   IdentityFile ~/.ssh/gpg_key.pub
 
+Host *.i
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -q ircp "nc 127.0.0.1 $(echo %h | sed 's;\.i$;;')"
+
+Host mtun
+  HostName singing-evening-road.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+  Port 2200
+  RemoteForward 127.0.0.1:8000 127.0.0.1:3000
+
 Host web01
   HostName host.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
