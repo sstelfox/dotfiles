@@ -1,4 +1,4 @@
-autoconf automake awscli bison cmake curl-devel docker docker-compose fftw3 fftw3-devel fswebcam gcc-c++ gnupg2-smime golang graphviz iptables-services jq kicad libffi-devel libpcap-devel libtool libvirt libyaml-devel meld nmap openssl-devel pam-devel pcsc-lite-ccid pidgin postgresql postgresql-devel pv readline-devel redhat-rpm-config ruby ruby-devel sqlite-devel tcpdump tmux transmission-gtk v8 vim-enhanced virt-manager wireshark-gnome zlib-devel
+autoconf automake awscli bison cmake curl-devel docker docker-compose fftw3 fftw3-devel fswebcam gcc-c++ gnupg2-smime golang graphviz iptables-services jq kicad libffi-devel libpcap-devel libtool libvirt libyaml-devel meld nmap openssl-devel pam-devel pcsc-lite-ccid pidgin postgresql postgresql-devel privoxy pv readline-devel redhat-rpm-config ruby ruby-devel sqlite-devel tcpdump tmux tor transmission-gtk v8 vim-enhanced virt-manager wireshark-gnome zlib-devel
 
 sudo systemctl start pcscd.service
 
