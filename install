@@ -8,7 +8,7 @@
 # if they existed for reference. This folder is not included in the
 # repository and as such will not migrate between machines
 
-FILES=( bashrc bash_profile muttrc vim vimrc tmux.conf gitconfig sqliterc ssh pryrb fonts gnupg rvmrc )
+FILES=( bashrc bash_profile fonts gitconfig gnupg muttrc pryrb rvmrc sqliterc ssh tmux.conf toprc vim vimrc )
 
 DOTFILE_DIR="$HOME/.dotfiles"
 
