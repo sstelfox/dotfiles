@@ -93,23 +93,24 @@ module Descriptor
       polished plain planned playful pleasant pleased polished precious precise
       preserved prickly prideful private prized profane proper proud pure
       puzzling quick quiet quivering quotidian radiant ragged rakish rare
-      reasonable recovered reflected refused relaxed reluctant replaced resting
-      rediculous restless ringing rippled rising roasted roiling rough rude
-      ruined safe sanguine satisfied scarce scarred scattered scintillant
-      scraped screaming sealed seasoned secret seemly seething selfish sensible
-      shallow sharp shattered shimmering shining shivering shuffling shy silent
-      simple singing sinister skewed slanting sleeping slick slow small smoky
-      smooth smudged snarling soaked soft solitary sooty sound sparkling
-      spattered spiraling spiteful splintered sprawling squeeking squirming
-      staggering startled stately steaming steep stiff still stirring stolid
-      stormy strange striking strong stubborn sublime sufficient suitable
-      sullen sure supicious sweet swollen tangled tarnished tattered tawdry
-      tempered tender tenebrific terrible thieving threatening tinkling tiny
-      tired toasted toppled tumescent tremulant triumphant troublesome
-      truculent trusted tyrannical unassuming unbroken uncertain uncommon
-      underground unholy unexpected unique unkind unknown unseen unthinkable
-      unwashed upsetting urgent vain vile vicious volatile wanton wary wasteful
-      whispering weathered wicked wild wintry wise withered wondrous young
+      rarified reasonable recovered reflected refused relaxed reluctant
+      replaced resting rediculous restless ringing rippled rising roasted
+      roiling rough rude ruined safe sanguine satisfied scarce scarred
+      scattered scintillant scraped screaming sealed seasoned secret seemly
+      seething selfish sensible shallow sharp shattered shimmering shining
+      shivering shuffling shy silent simple singing sinister skewed slanting
+      sleeping slick slow small smoky smooth smudged snarling soaked soft
+      solitary sooty sound sparkling spattered spiraling spiteful splintered
+      sprawling squeeking squirming staggering startled stately steaming steep
+      stiff still stirring stolid stormy strange striking strong stubborn
+      sublime sufficient suitable sullen sure supicious sweet swollen tangled
+      tarnished tattered tawdry tempered tender tenebrific terrible thieving
+      threatening tinkling tiny tired toasted toppled tumescent tremulant
+      triumphant troublesome truculent trusted tyrannical unassuming unbroken
+      uncertain uncommon underground unholy unexpected unique unkind unknown
+      unseen unthinkable unwashed upsetting urgent vain vile vicious volatile
+      wanton wary wasteful whispering weathered wicked wild wintry wise
+      withered wondrous young
 
     }.sort
   end
@@ -136,8 +137,8 @@ module Target
       sacrifice scent sea seed shadow shaft shelter shield silence spirit sky
       smoke snow soldier sorrow sound star staircase sun surf surface tempest
       thought threshold thunder torment tower treasure tree triptych trove
-      tunnel valediction vengeance voice water waterfall wave wind wood world
-      zombie
+      tunnel vacuum valediction vengeance voice water waterfall wave wind wood
+      world zombie
 
     }.sort
   end
@@ -202,7 +203,8 @@ end
 
 possible_outcomes = Descriptor.list.size * TimeName.list.size * Target.list.size
 repetition_chance = Rational(1, possible_outcomes)
-puts "Repetition chance: #{repetition_chance}\n\n"
+puts "Repetition chance: #{repetition_chance}\n"
+puts "Bits represented: #{Math.log(possible_outcomes, 2)}\n\n"
 
 count = ARGV.empty? ? 3 : ARGV.first.to_i
 count.times do
