@@ -5,54 +5,57 @@ IdentitiesOnly yes
 
 ServerAliveInterval 10
 
-Host 192.168.1.*
-  IdentityFile ~/.ssh/gpg_key.pub
-
 Host 192.168.122.*
   IdentityFile ~/.ssh/gpg_key.pub
 
 Host github.com
   IdentityFile ~/.ssh/gpg_key.pub
 
-Host new-apa
+Host cackling-evening-brook.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
-  ProxyCommand ssh -q ircp "nc 127.0.0.1 4322"
+  Port 2200
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
 
-Host old-apa
+Host singing-evening-road.stelfox.net
+  Port 2200
   IdentityFile ~/.ssh/gpg_key.pub
-  ProxyCommand ssh -q ircp "nc 127.0.0.1 4321"
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
 
-Host *.stelfox.net
+Host wild-spring-cobweb.stelfox.net
+  Port 2200
   IdentityFile ~/.ssh/gpg_key.pub
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
 
 Host ircp
   HostName wild-spring-cobweb.stelfox.net
   Port 2200
   IdentityFile ~/.ssh/gpg_key.pub
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
+
+Host mtun
+  HostName singing-evening-road.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+  Port 2200
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
+  RemoteForward 127.0.0.1:8000 127.0.0.1:3000
+  RemoteForward 127.0.0.1:8001 127.0.0.1:9292
+
+Host web01
+  HostName host.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
+  Port 2200
 
 Host *.i
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -q ircp "nc 127.0.0.1 $(echo %h | sed 's;\.i$;;')"
 
-Host mtun
-  HostName singing-evening-road.stelfox.net
+Host *.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-  RemoteForward 127.0.0.1:8000 127.0.0.1:3000
-
-Host web01
-  HostName host.stelfox.net
-  IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-
-Host singing-evening-road.stelfox.net
-  IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-
-Host mtun
-  HostName singing-evening-road.stelfox.net
-  IdentityFile ~/.ssh/gpg_key.pub
-  Port 2200
-  RemoteForward 127.0.0.1:8000 127.0.0.1:3000
-  RemoteForward 127.0.0.1:8001 127.0.0.1:9292
 
