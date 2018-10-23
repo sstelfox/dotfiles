@@ -7,6 +7,10 @@ fi
 # Enable globstar matching
 shopt -s globstar
 
+# Disable the XON/XOFF flow control completely (Ctrl-Q/Ctrl-S). Damn this is an
+# annoying legacy feature...
+stty -ixon
+
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
 if [[ $- != *i* ]]; then
   return
@@ -37,7 +41,7 @@ alias gs='git status'
 alias gr='git fetch && git rebase origin/master'
 alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && rake db:test:prepare'
 alias octal='stat -c "%A %a %n"'
-alias dig='dig +nocmd +noall +answer'
+#alias dig='dig +nocmd +noall +answer'
 
 alias vi='vim'
 alias gdb='gdb -q'
