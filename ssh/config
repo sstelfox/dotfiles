@@ -43,7 +43,6 @@ Host mtun
   FingerprintHash=sha256
   VerifyHostKeyDNS=yes
   RemoteForward 127.0.0.1:8000 127.0.0.1:3000
-  RemoteForward 127.0.0.1:8001 127.0.0.1:9292
 
 Host web01
   HostName host.stelfox.net
