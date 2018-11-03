@@ -17,6 +17,12 @@ Host cackling-evening-brook.stelfox.net
   FingerprintHash=sha256
   VerifyHostKeyDNS=yes
 
+Host isolated-twilight-bottle.stelfox.net
+  IdentityFile ~/.ssh/gpg_key.pub
+  Port 2200
+  FingerprintHash=sha256
+  VerifyHostKeyDNS=yes
+
 Host singing-evening-road.stelfox.net
   Port 2200
   IdentityFile ~/.ssh/gpg_key.pub
