@@ -1,8 +1,7 @@
 autoconf automake awscli bison cmake curl-devel discord docker docker-compose fftw3 fftw3-devel fswebcam gcc-c++ gnupg2-smime golang graphviz iptables-services jq kicad libffi-devel libpcap-devel libtool libvirt libyaml-devel meld nmap openssl-devel pam-devel pcsc-lite-ccid pidgin postgresql postgresql-devel privoxy pv readline-devel redhat-rpm-config ruby ruby-devel sqlite-devel tcpdump tmux tor transmission-gtk v8 vim-enhanced virt-manager wireshark-gnome zlib-devel
 
 sudo systemctl start pcscd.service
-
-google-chrome-stable
+sudo systemctl enable pcscd.service
 
 curl -sSL https://get.rvm.io | bash -s stable
 curl https://sh.rustup.rs -sSf | sh
