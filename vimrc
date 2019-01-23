@@ -197,21 +197,21 @@ set list
 " Setup backups in the scratch directory
 try
   set backup
-  set backupdir=~/.dotfiles/vim-scratch//
+  set backupdir=~/.dotfiles/vim-scratch/
   set writebackup
 catch
 endtry
 
-" Keep swapfiles in the scratch directory 
+" Keep swapfiles in the scratch directory
 try
-  set directory=~/.dotfiles/vim-scratch//
+  set directory=~/.dotfiles/vim-scratch/
   set swapfile
 catch
 endtry
 
 " Keep persistant undo files in the scratch directory
 try
-  set undodir=~/.dotfiles/vim-scratch//
+  set undodir=~/.dotfiles/vim-scratch/
   set undofile
 catch
 endtry
