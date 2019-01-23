@@ -59,7 +59,7 @@ Host web01
 
 Host *.i
   IdentityFile ~/.ssh/gpg_key.pub
-  ProxyCommand ssh -q ircp "nc 127.0.0.1 $(echo %h | sed 's;\.i$;;')"
+  ProxyCommand ssh -q singing-evening-road.stelfox.net "nc 127.0.0.1 $(echo %h | sed 's;\.i$;;')"
 
 Host *.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
