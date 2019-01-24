@@ -6,7 +6,7 @@ sudo dnf install \
 
 sudo dnf copr enable @kicad/kicad -y
 
-sudo dnf install arm-none-eabi-gdb awscli docker docker-compose fswebcam gimp gimp-lqr-plugin gimp-save-for-web git gnupg2-smime \
+sudo dnf install arm-none-eabi-gdb awscli docker docker-compose fswebcam gdb gimp gimp-lqr-plugin gimp-save-for-web git gnupg2-smime \
   golang graphviz jq kicad kicad-packages3d mutt nmap openocd pcsc-lite-ccid privoxy \
   pv tcpdump tmux tor transmission-gtk v8 vim-enhanced vlc wireshark
 
@@ -86,8 +86,12 @@ rustup target add --toolchain nightly thumbv6m-none-eabi
 cargo install cargo-binutils itm
 rustup component add llvm-tools-preview
 
+gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
 curl -sSL https://get.rvm.io | bash -s stable
 source ~/.bashrc
+
+sudo dnf install patch autoconf automake bison gcc-c++ libffi-devel libtool \
+  libyaml-devel patch readline-devel sqlite-devel zlib-devel openssl-devel -y
 
 rvm install ruby-2.5.3
 
