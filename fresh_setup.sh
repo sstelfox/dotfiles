@@ -6,7 +6,7 @@ sudo dnf install \
 
 sudo dnf copr enable @kicad/kicad -y
 
-sudo dnf install awscli discord docker docker-compose fswebcam git \
+sudo dnf install awscli discord docker docker-compose fswebcam gdb git \
   gnupg2-smime golang graphviz jq kicad kicad-packages3d mutt nmap \
   pcsc-lite-ccid privoxy pv tcpdump tmux tor transmission-gtk v8 vim-enhanced \
   vlc wireshark-gnome
