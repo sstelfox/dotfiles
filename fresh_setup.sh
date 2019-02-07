@@ -89,6 +89,6 @@ rustup component add llvm-tools-preview
 curl -sSL https://get.rvm.io | bash -s stable
 source ~/.bashrc
 
-rvm install ruby-2.5.3
+rvm install ruby-2.6.1
 
 echo 'You probably still need a reboot...'
