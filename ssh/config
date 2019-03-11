@@ -64,3 +64,12 @@ Host *.i
 Host *.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
 
+Host 10.202.254.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host 10.186.208.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host 127.0.0.1
+  IdentityFile ~/.ssh/gpg_key.pub
+

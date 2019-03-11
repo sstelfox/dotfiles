@@ -14,18 +14,32 @@ set dsn_return = "hdrs"
 set header_cache = ~/.cache/mutt
 set message_cachedir = ~/.cache/mutt
 
-# Where to store emails and drafts
-set record = +Sent
-set postponed = +Drafts
+# Mail format
+set mbox_type="Maildir"
+set folder="~/mails/maildir"
 
-# Use VIM as our editor
-set editor = /usr/bin/vim
+# Where to store emails and drafts
+set postponed = +drafts
+set record = +sent
+
+# Indicate text written uses a combination of soft and hard line breaks. This
+# is why I use the formatoptions+=w in the extra vim options.
+set text_flowed
+
+# Use VIM as our editor with a couple mutt specific options
+set editor = 'vim +/^$ "+setlocal formatoptions+=w spell" +noh'
 
 # Don't announce a user agent
 unset user_agent
 
 # Display all headers
 unignore headers *
+
+# Maybe? TODO: Play with this
+#set edit_headers
+
+# Reference an alias file in the root directory
+set alias_file = "=aliases"
 
 set markers = no
 set abort_nosubject = yes
