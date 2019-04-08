@@ -71,7 +71,10 @@ export PATH="$PATH:$GOPATH/bin"
 
 # And for RVM
 export PATH="$PATH:$HOME/.rvm/bin"
-[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" &> /dev/null
+if declare -F rvm &> /dev/null; then
+  rvm use default &> /dev/null
+fi
 
 # Some color definitions
 GREEN=$(tput setaf 2)
