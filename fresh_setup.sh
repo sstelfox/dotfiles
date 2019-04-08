@@ -47,7 +47,7 @@ source ~/.bashrc
 sudo dnf install patch autoconf automake bison gcc-c++ libffi-devel libtool \
   libyaml-devel patch readline-devel sqlite-devel zlib-devel openssl-devel -y
 
-rvm install ruby-2.6.1
+rvm install ruby-2.6.2
 
 echo 'You probably still need a reboot...'
 
