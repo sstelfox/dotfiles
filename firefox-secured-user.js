@@ -1342,7 +1342,7 @@ user_pref("dom.serviceWorkers.enabled", false);
 
 /* 2304: disable web notifications
  * [1] https://developer.mozilla.org/docs/Web/API/Notifications_API ***/
-user_pref("dom.webnotifications.enabled", false); // [FF22+]
+// user_pref("dom.webnotifications.enabled", false); // [FF22+]
 user_pref("dom.webnotifications.serviceworker.enabled", false); // [FF44+]
 
 /* 2305: set a default permission for Notifications (see 2304) [FF58+]
