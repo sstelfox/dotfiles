@@ -125,7 +125,7 @@
             "Window title": 3,
             "Window title (only for the focused window)": 4
         },
-        "value": 1
+        "value": 2
     },
     "scroll-behavior": {
         "type": "combobox",
@@ -158,7 +158,7 @@
             "Launch new app instance": 2,
             "Close last focused window in group": 3
         },
-        "value": 3
+        "value": 1
     },
     "pinned-apps": {
         "type": "generic",
@@ -179,7 +179,7 @@
         "type": "checkbox",
         "default": true,
         "description": "Group windows by application",
-        "value": true
+        "value": false
     },
     "show-alerts": {
         "type": "checkbox",
@@ -197,13 +197,13 @@
         "type": "checkbox",
         "default": false,
         "description": "Pin system favorites",
-        "value": false
+        "value": true
     },
     "show-all-workspaces": {
         "type": "checkbox",
         "default": false,
         "description": "Show windows from all workspaces",
-        "value": false
+        "value": true
     },
     "enable-app-button-dragging": {
         "type": "checkbox",
@@ -226,7 +226,7 @@
         "type": "checkbox",
         "default": true,
         "description": "Only list windows from the current monitor",
-        "value": true
+        "value": false
     },
     "cycleMenusHotkey": {
         "type": "keybinding",
@@ -260,7 +260,7 @@
             "250 ms": 250,
             "500 ms": 500
         },
-        "value": 250
+        "value": 50
     },
     "thumbnail-size": {
         "type": "combobox",
@@ -320,7 +320,7 @@
         "type": "checkbox",
         "default": true,
         "description": "Show recent items",
-        "value": true
+        "value": false
     },
     "autostart-menu-item": {
         "type": "checkbox",
