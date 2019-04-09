@@ -85,17 +85,22 @@ BAD="-"
 
 DOTFILES_DIR="$HOME/.dotfiles"
 
-function setup_prompt {
+function personal_ps1_prompt() {
   local __user_host="[\u@\h]"
   local __path="\$($DOTFILES_DIR/bin/shortdir)"
   local __git="\[$BLUE\]\$($DOTFILES_DIR/bin/git-ps1-wrapper.sh)\[$RST\]"
   local __exit_status="\$($DOTFILES_DIR/bin/exit_status $?)"
+  local __bat_status="\$($DOTFILES_DIR/bin/bat_status PS1)"
 
   if [[ -n "$TMUX_PANE" ]]; then
-    export PS1="$__exit_status $__path$__git \\$ "
+    echo "$__bat_status$__exit_status $__path$__git \\$"
   else
-    export PS1="$__exit_status $__user_host $__path$__git \\$ "
+    echo "$__bat_status$__exit_status $__user_host $__path$__git \\$"
   fi
+}
+
+function setup_prompt {
+  export PS1="$(personal_ps1_prompt) "
 
   # Don't expose more than path through the window title...
   export PROMPT_COMMAND='echo -en "\033]0;${PWD/#$HOME/\~}\a"'
