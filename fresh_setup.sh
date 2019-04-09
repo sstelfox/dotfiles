@@ -44,8 +44,9 @@ gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D69
 curl -sSL https://get.rvm.io | bash -s stable
 source ~/.bashrc
 
-sudo dnf install patch autoconf automake bison gcc-c++ libffi-devel libtool \
-  libyaml-devel patch readline-devel sqlite-devel zlib-devel openssl-devel -y
+sudo dnf install patch autoconf automake bison fftw-devel gcc-c++ \
+  libcurl-devel libffi-devel libtool libyaml-devel openssl-devel patch \
+  postgresql-devel readline-devel sqlite-devel zlib-devel -y
 
 rvm install ruby-2.6.2
 
