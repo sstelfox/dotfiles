@@ -7,6 +7,8 @@ ServerAliveInterval 10
 
 Host 192.168.122.*
   IdentityFile ~/.ssh/gpg_key.pub
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
 
 Host github.com
   IdentityFile ~/.ssh/gpg_key.pub
@@ -64,3 +66,53 @@ Host *.i
 Host *.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
 
+Host 10.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host 127.0.0.1
+  IdentityFile ~/.ssh/gpg_key.pub
+
+# Begin Minim
+Host *.minim.co
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host bastion.minim.co
+  ControlMaster auto
+  ControlPersist 5m
+  IdentityFile ~/.ssh/gpg_key.pub
+  User sstelfox
+
+Host monitor.minim.co
+  HostName 10.0.5.51
+  IdentityFile ~/.ssh/gpg_key.pub
+  LocalForward 127.0.0.1:3000 127.0.0.1:3000
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co
+
+Host nginx.minim.co
+  Hostname 10.0.1.160
+  IdentityFile ~/.ssh/nginx.pem
+  User ec2-user
+  ProxyCommand ssh bastion.minim.co -W %h:%p
+
+Host vpc-tunnel-host-minim
+  Hostname 10.0.5.91
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh bastion.minim.co -W %h:%p
+
+Host vpc-tunnel-host-aerez
+  Hostname 54.244.67.42
+  IdentityFile ~/.ssh/gpg_key.pub
+
+# Needed for ansible
+Host 54.244.67.42
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host aerez-admin
+  Host 172.16.0.113
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co
+
+Host margharita
+  Host 172.16.0.211
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co

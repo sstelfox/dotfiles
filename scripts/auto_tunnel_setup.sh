@@ -16,12 +16,15 @@ if [ "${DEBUG:-}" = "true" ]; then
   set -o xtrace
 fi
 
-REMOTE_TUNNEL_HOST="wild-spring-cobweb.stelfox.net"
-REMOTE_TUNNEL_HOST_PORT="2200"
-
-if [ -f "${HOME}/.dotfiles/system-specific/auto_tunnel.conf" ]; then
-  source "${HOME}/.dotfiles/system-specific/auto_tunnel.conf"
+if [ ! -f "${HOME}/.dotfiles/system-specific/auto_tunnel.conf" ]; then
+  cat << EOF > "${HOME}/.dotfiles/system-specific/auto_tunnel.conf"
+REMOTE_TUNNEL_USER="receiver"
+REMOTE_TUNNEL_HOST="singing-evening-road.stelfox.net"
+REMOTE_TUNNEL_LOOPBACK_PORT="4319"
+EOF
 fi
+
+source "${HOME}/.dotfiles/system-specific/auto_tunnel.conf"
 
 mkdir -p "${HOME}/.ssh"
 if [ ! -f "${HOME}/.ssh/auto_tunnel_key" ]; then
@@ -34,10 +37,10 @@ chmod -R u=rwX,g=,o= "${HOME}/.ssh"
 
 if ! crontab -l 2>&1 | grep -q auto_tunnel.sh; then
   echo "Installing crontab"
-  echo "* * * * * ${HOME}/.dotfiles/scripts/auto_tunnel.sh" | crontab
+  echo "* * * * * ${HOME}/.dotfiles/scripts/auto_tunnel.sh" | crontab -
 fi
 
 echo 'Attempting to install auto tunnel key on remote host...'
 
-ssh-copy-id -i /home/sstelfox/.ssh/auto_tunnel_key ${REMOTE_TUNNEL_HOST} -p ${REMOTE_TUNNEL_HOST_PORT}
+ssh-copy-id -i /home/sstelfox/.ssh/auto_tunnel_key ${REMOTE_TUNNEL_HOST}
 
