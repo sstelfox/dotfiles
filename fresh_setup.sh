@@ -8,10 +8,11 @@ sudo dnf copr enable @kicad/kicad -y
 
 sudo dnf remove vim-powerline -y
 
-sudo dnf install arm-none-eabi-gdb awscli docker docker-compose fswebcam gdb \
-  gimp gimp-lqr-plugin gimp-save-for-web git git-email gnupg2-smime golang \
-  graphviz jq kicad kicad-packages3d mutt nmap openocd pcsc-lite-ccid privoxy \
-  pv tcpdump tmux tor transmission-gtk v8 vim-enhanced vlc wireshark -y
+sudo dnf install arm-none-eabi-gdb awscli docker docker-compose fswebcam \
+  httpd-tools gdb gimp gimp-lqr-plugin gimp-save-for-web git git-email \
+  gnupg2-smime golang graphviz jq kicad kicad-packages3d mutt nmap openocd \
+  pcsc-lite-ccid privoxy pv tcpdump tmux tor transmission-gtk v8 vim-enhanced \
+  vlc wireshark -y
 
 # Get rid of powerline but leave vim
 sudo dnf remove vim-powerline --noautoremove
