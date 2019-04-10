@@ -106,3 +106,13 @@ Host vpc-tunnel-host-aerez
 # Needed for ansible
 Host 54.244.67.42
   IdentityFile ~/.ssh/gpg_key.pub
+
+Host aadm
+  Hostname 172.16.0.113
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co
+
+Host marg
+  Hostname 172.16.0.211
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co
