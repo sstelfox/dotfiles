@@ -314,6 +314,7 @@ user_pref("extensions.pocket.enabled", false);
  * [1] https://en.wikipedia.org/wiki/Captive_portal
  * [2] https://wiki.mozilla.org/Necko/CaptivePortal
  * [3] https://trac.torproject.org/projects/tor/ticket/21790 ***/
+
 // TODO: Sam this is super useful if I can setup this service on my own...
 user_pref("captivedetect.canonicalURL", "");
 user_pref("network.captive-portal-service.enabled", false); // [FF52+]
@@ -339,6 +340,7 @@ user_pref("_user.js.parrot", "0400 syntax error: the parrot's passed on!");
  * [NOTE] It includes updates for "revoked certificates"
  * [1] https://blog.mozilla.org/security/2015/03/03/revoking-intermediate-certificates-introducing-onecrl/
  * [2] https://trac.torproject.org/projects/tor/ticket/16931 ***/
+
 // TODO: Sam Can I host this myself? Proxy it or something?
 user_pref("extensions.blocklist.enabled", true); // [DEFAULT: true]
 user_pref("extensions.blocklist.url", "https://blocklists.settings.services.mozilla.com/v1/blocklist/3/%APP_ID%/%APP_VERSION%/");
@@ -467,9 +469,6 @@ user_pref("_user.js.parrot", "0500 syntax error: the parrot's cashed in 'is chip
 user_pref("app.normandy.enabled", false);
 user_pref("app.normandy.api_url", "");
 
-// Sam: Personal addition fuck this order
-user_pref("browser.ctrlTab.recentlyUsedOrder", false);
-
 /* 0505: disable System Add-on updates ***/
 // user_pref("extensions.systemAddon.update.enabled", false); // [FF62+]
 // user_pref("extensions.systemAddon.update.url", ""); // [FF44+]
@@ -597,6 +596,7 @@ user_pref("network.ftp.enabled", false);
 /* 0709: disable using UNC (Uniform Naming Convention) paths [FF61+]
  * [SETUP-CHROME] Can break extensions for profiles on network shares
  * [1] https://trac.torproject.org/projects/tor/ticket/26424 ***/
+
 // TODO: Sam disable if I switch my home directory to NFS
 user_pref("network.file.disable_unc_paths", true); // [HIDDEN PREF]
 
@@ -823,7 +823,7 @@ user_pref("network.dnsCacheExpiration", 60);
 
 /** SESSIONS & SESSION RESTORE ***/
 /* 1020: exclude "Undo Closed Tabs" in Session Restore ***/
-// user_pref("browser.sessionstore.max_tabs_undo", 0);
+user_pref("browser.sessionstore.max_tabs_undo", 0);
 
 /* 1021: disable storing extra session data [SETUP-CHROME]
  * extra session data contains contents of forms, scrollbar positions, cookies and POST data
@@ -841,7 +841,7 @@ user_pref("network.dnsCacheExpiration", 60);
  * i.e. the longer the interval the more chance a quick tab open/close won't be captured.
  * This longer interval *may* affect history but we cannot replicate any history not recorded
  * [1] https://bugzilla.mozilla.org/1304389 ***/
-//user_pref("browser.sessionstore.interval", 30000);
+user_pref("browser.sessionstore.interval", 30000);
 
 /* 1024: disable automatic Firefox start and session restore after reboot [FF62+] [WINDOWS]
  * [1] https://bugzilla.mozilla.org/603903 ***/
@@ -1046,8 +1046,8 @@ user_pref("_user.js.parrot", "1400 syntax error: the parrot's bereft of life!");
 /* 1403: disable icon fonts (glyphs) and local fallback rendering
  * [1] https://bugzilla.mozilla.org/789788
  * [2] https://trac.torproject.org/projects/tor/ticket/8455 ***/
-// user_pref("gfx.downloadable_fonts.enabled", false); // [FF41+]
-// user_pref("gfx.downloadable_fonts.fallback_delay", -1);
+user_pref("gfx.downloadable_fonts.enabled", false); // [FF41+]
+user_pref("gfx.downloadable_fonts.fallback_delay", -1);
 
 /* 1404: disable rendering of SVG OpenType fonts
  * [1] https://wiki.mozilla.org/SVGOpenTypeFonts - iSECPartnersReport recommends to disable this ***/
@@ -1307,7 +1307,7 @@ user_pref("browser.link.open_newwindow.restriction", 0);
  * [NOTE] You can still manually toggle the browser's fullscreen state (F11),
  * but this pref will disable embedded video/game fullscreen controls, e.g. youtube
  * [TEST] https://developer.mozilla.org/samples/domref/fullscreen.html ***/
-// user_pref("full-screen-api.enabled", false);
+user_pref("full-screen-api.enabled", false);
 
 /* 2210: block popup windows
  * [SETTING] Privacy & Security>Permissions>Block pop-up windows ***/
@@ -1700,7 +1700,7 @@ user_pref("network.cookie.leave-secure-alone", true); // [DEFAULT: true]
  * [1] https://bugzilla.mozilla.org/795346
  * [2] https://blog.mozilla.org/security/2018/04/24/same-site-cookies-in-firefox-60/
  * [3] https://www.sjoerdlangkemper.nl/2016/04/14/preventing-csrf-with-samesite-cookie-attribute/ ***/
-// user_pref("network.cookie.same-site.enabled", true); // [DEFAULT: true]
+user_pref("network.cookie.same-site.enabled", true); // [DEFAULT: true]
 
 /* 2710: disable DOM (Document Object Model) Storage
  * [WARNING] This will break a LOT of sites' functionality AND extensions!
@@ -1902,11 +1902,15 @@ user_pref("privacy.firstparty.isolate.restrict_opener_access", true); // [DEFAUL
 ***/
 user_pref("_user.js.parrot", "4500 syntax error: the parrot's popped 'is clogs");
 
+// TODO Sam this section was disabled as it forces the timezone to be UTC which
+// combined with the other changes this does it actually makes my browser more
+// identifiable.
+
 /* 4501: enable privacy.resistFingerprinting [FF41+]
  * This pref is the master switch for all other privacy.resist* prefs unless stated
  * [SETUP-WEB] RFP is not ready for the masses, so expect some website breakage
  * [1] https://bugzilla.mozilla.org/418986 ***/
-user_pref("privacy.resistFingerprinting", true);
+// user_pref("privacy.resistFingerprinting", true);
 
 /* 4502: set new window sizes to round to hundreds [FF55+] [SETUP-CHROME]
  * Width will round down to multiples of 200s and height to 100s, to fit your screen.
@@ -1930,7 +1934,7 @@ user_pref("privacy.resistFingerprinting.block_mozAddonManager", true); // [HIDDE
  * [WARNING] The dimension pref is only meant for testing, and we recommend you DO NOT USE it
  * [1] https://bugzilla.mozilla.org/1407366 ***/
 user_pref("privacy.resistFingerprinting.letterboxing", true); // [HIDDEN PREF]
-// user_pref("privacy.resistFingerprinting.letterboxing.dimensions", ""); // [HIDDEN PREF]
+user_pref("privacy.resistFingerprinting.letterboxing.dimensions", ""); // [HIDDEN PREF]
 
 /* 4510: disable showing about:blank as soon as possible during startup [FF60+]
  * When default true (FF62+) this no longer masks the RFP chrome resizing activity
@@ -2069,6 +2073,9 @@ user_pref("_user.js.parrot", "4700 syntax error: the parrot's taken 'is last bow
 /*** [SECTION 5000]: PERSONAL
      Non-project related but useful. If any of these interest you, add them to your overrides ***/
 user_pref("_user.js.parrot", "5000 syntax error: this is an ex-parrot!");
+
+// Sam: Personal addition fuck this order
+user_pref("browser.ctrlTab.recentlyUsedOrder", false);
 
 /* WELCOME & WHAT's NEW NOTICES ***/
 user_pref("browser.startup.homepage_override.mstone", "ignore"); // master switch
