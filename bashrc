@@ -103,15 +103,9 @@ function setup_prompt {
   # Don't expose more than path through the window title...
   export PROMPT_COMMAND='echo -en "\033]0;${PWD/#$HOME/\~}\a"'
 }
+
 # Setup PS1 variable
 setup_prompt
-
-# For when I inevitable break my PS1...
-#if [[ -n "$TMUX_PANE" ]]; then
-#  export PS1="\$($HOME/.dotfiles/bin/shortdir)\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
-#else
-#  export PS1="[\u@\h \$($HOME/.dotfiles/bin/shortdir)]\[$BLUE\]\$(__git_ps1)\[$RST\] \$(exit_status) "
-#fi
 
 # If the rust toolchain in installed source it's environment
 if [ -f $HOME/.cargo/env ]; then
@@ -126,8 +120,4 @@ source $HOME/.dotfiles/helpers/gpg-agent.sh
 unset LESSOPEN
 unset SSH_ASKPASS
 
-export VAGRANT_DEFAULT_PROVIDER=libvirt
-
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+alias compose="docker run --rm -v \$(pwd):/usr/src/app -w /usr/src/app composer/composer:1.1"
