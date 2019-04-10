@@ -37,6 +37,7 @@ sudo udevadm control --reload-rules
 
 curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly -y
 
+rustup component add rustfmt
 rustup install stable
 rustup target add --toolchain stable thumbv6m-none-eabi
 rustup target add --toolchain nightly thumbv6m-none-eabi
