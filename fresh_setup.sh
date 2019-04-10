@@ -13,8 +13,12 @@ sudo dnf install arm-none-eabi-gdb awscli docker docker-compose fswebcam gdb \
   graphviz jq kicad kicad-packages3d mutt nmap openocd pcsc-lite-ccid privoxy \
   pv tcpdump tmux tor transmission-gtk v8 vim-enhanced vlc wireshark -y
 
+# Get rid of powerline but leave vim
+sudo dnf remove vim-powerline --noautoremove
+
 sudo systemctl start pcscd.service
 sudo systemctl enable pcscd.service
+
 sudo systemctl enable sshd.service
 sudo systemctl start sshd.service
 
@@ -40,8 +44,15 @@ rustup target add --toolchain nightly thumbv6m-none-eabi
 cargo install cargo-binutils itm
 rustup component add llvm-tools-preview
 
+# Install and setup GEF
+pip3 install --user unicorn capstone ropper keystone-engine
+wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+
+# RVM gpg key
 gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
 curl -sSL https://get.rvm.io | bash -s stable
+
+~/.dotfiles/install
 source ~/.bashrc
 
 sudo dnf install patch autoconf automake bison fftw-devel gcc-c++ \
