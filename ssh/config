@@ -100,12 +100,9 @@ Host vpc-tunnel-host-minim
   ProxyCommand ssh bastion.minim.co -W %h:%p
 
 Host vpc-tunnel-host-aerez
-  Hostname 54.244.67.42
+  Hostname 172.31.254.2
   IdentityFile ~/.ssh/gpg_key.pub
-
-# Needed for ansible
-Host 54.244.67.42
-  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh bastion.minim.co -W %h:%p
 
 Host aadm
   Hostname 172.16.0.113
@@ -114,5 +111,10 @@ Host aadm
 
 Host marg
   Hostname 172.16.0.211
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co
+
+Host third-party-monitor.minim.co
+  Hostname 10.0.5.26
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -W %h:%p -q bastion.minim.co
