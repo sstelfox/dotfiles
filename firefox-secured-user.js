@@ -2076,6 +2076,7 @@ user_pref("_user.js.parrot", "5000 syntax error: this is an ex-parrot!");
 
 // Sam: Personal addition fuck this order
 user_pref("browser.ctrlTab.recentlyUsedOrder", false);
+user_pref("widget.content.gtk-theme-override", "Adwaita");
 
 /* WELCOME & WHAT's NEW NOTICES ***/
 user_pref("browser.startup.homepage_override.mstone", "ignore"); // master switch
