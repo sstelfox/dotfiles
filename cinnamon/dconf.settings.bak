@@ -1,0 +1,119 @@
+[/]
+desktop-effects-unmaximize-transition='easeNone'
+desktop-effects-maximize-transition='easeInExpo'
+desktop-effects-map-effect='traditional'
+alttab-switcher-enforce-primary-monitor=true
+hotcorner-layout=['scale:true:0', 'scale:false:0', 'scale:false:0', 'desktop:false:0']
+alttab-switcher-show-all-workspaces=false
+desktop-effects-close-effect='traditional'
+desktop-effects-unmaximize-time=100
+desktop-effects-map-time=100
+panel-zone-icon-sizes='[{"panelId": 1, "left": 24, "center": 24, "right": 24}]'
+desktop-effects-minimize-effect='traditional'
+alttab-switcher-style='icons+preview'
+prevent-focus-stealing=false
+panels-height=['1:32']
+next-applet-id=13
+desktop-effects-map-transition='easeOutQuad'
+desktop-effects-maximize-time=100
+desktop-effects-unmaximize-effect='none'
+alttab-minimized-aware=true
+desktop-effects-tile-transition='easeInQuad'
+desktop-effects-maximize-effect='none'
+enabled-applets=['panel1:right:0:systray@cinnamon.org:0', 'panel1:left:1:grouped-window-list@cinnamon.org:3', 'panel1:right:1:keyboard@cinnamon.org:4', 'panel1:right:2:notifications@cinnamon.org:5', 'panel1:right:3:removable-drives@cinnamon.org:6', 'panel1:right:4:network@cinnamon.org:7', 'panel1:right:5:blueberry@cinnamon.org:8', 'panel1:right:8:power@cinnamon.org:9', 'panel1:right:9:calendar@cinnamon.org:10', 'panel1:right:7:sound@cinnamon.org:11', 'panel1:left:0:menu@cinnamon.org:12']
+desktop-effects-minimize-time=160
+alttab-switcher-delay=0
+desktop-effects-tile-effect='none'
+desktop-effects-close-transition='easeOutQuad'
+desktop-effects-minimize-transition='easeInQuad'
+panel-edit-mode=false
+desktop-effects-close-time=120
+favorite-apps=['firefox.desktop', 'org.gnome.Terminal.desktop']
+desktop-effects-tile-time=100
+startup-animation=false
+
+[settings-daemon/peripherals/keyboard]
+repeat-interval=uint32 30
+delay=uint32 500
+numlock-state='on'
+
+[sounds]
+logout-enabled=false
+map-enabled=false
+maximize-enabled=false
+login-enabled=false
+switch-enabled=false
+tile-enabled=false
+minimize-enabled=false
+close-enabled=false
+unmaximize-enabled=false
+
+[muffin]
+tile-maximize=true
+resize-threshold=24
+tile-hud-threshold=25
+
+[desktop/interface]
+cursor-blink-time=1200
+gtk-im-module='gtk-im-context-simple:xim'
+
+[desktop/keybindings]
+looking-glass-keybinding=@as []
+
+[desktop/keybindings/media-keys]
+screensaver=['<Super>l', 'XF86ScreenSaver']
+
+[desktop/keybindings/wm]
+toggle-maximized=['<Alt>F10', '<Super>Up']
+push-tile-up=@as []
+
+[desktop/media-handling]
+autorun-x-content-start-app=['x-content/bootable-media']
+autorun-never=false
+autorun-x-content-ignore=['x-content/audio-cdda', 'x-content/video-dvd', 'x-content/audio-player', 'x-content/image-dcf', 'x-content/unix-software', 'x-content/audio-dvd', 'x-content/blank-bd', 'x-content/blank-dvd', 'x-content/blank-cd', 'x-content/blank-hddvd', 'x-content/ebook-reader', 'x-content/image-picturecd', 'x-content/software', 'x-content/video-bluray', 'x-content/video-hddvd', 'x-content/video-svcd', 'x-content/video-vcd', 'x-content/win32-software', 'x-content/bootable-media']
+autorun-x-content-open-folder=@as []
+
+[desktop/screensaver]
+allow-media-control=false
+floating-widgets=false
+show-album-art=false
+allow-keyboard-shortcuts=false
+
+[desktop/applications/calculator]
+exec='gnome-calculator'
+
+[desktop/applications/terminal]
+exec='gnome-terminal'
+
+[desktop/notifications]
+bottom-notifications=false
+remove-old=true
+
+[desktop/privacy]
+recent-files-max-age=-1
+
+[desktop/wm/preferences]
+min-window-opacity=30
+action-middle-click-titlebar='toggle-maximize'
+
+[desktop/sound]
+maximum-volume=125
+event-sounds=false
+
+[desktop/background]
+picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/resist.jpg'
+primary-color='#000000000000'
+picture-options='scaled'
+
+[desktop/background/slideshow]
+image-source='directory:///home/sstelfox/Pictures/selected_wallpapers'
+random-order=true
+delay=30
+slideshow-enabled=true
+
+[theme]
+symbolic-relative-size=0.67000000000000004
+
+[cinnamon-session]
+quit-delay-toggle=false
+quit-time-delay=60
