@@ -1381,12 +1381,12 @@ user_pref("_user.js.parrot", "2400 syntax error: the parrot's kicked the bucket!
  * this applies to onCut, onCopy, onPaste events - i.e. you have to interact with
  * the website for it to look at the clipboard
  * [1] https://www.ghacks.net/2014/01/08/block-websites-reading-modifying-clipboard-contents-firefox/ ***/
-user_pref("dom.event.clipboardevents.enabled", false);
+// user_pref("dom.event.clipboardevents.enabled", false);
 
 /* 2403: disable clipboard commands (cut/copy) from "non-privileged" content [FF41+]
  * this disables document.execCommand("cut"/"copy") to protect your clipboard
  * [1] https://bugzilla.mozilla.org/1170911 ***/
-user_pref("dom.allow_cut_copy", false); // [HIDDEN PREF]
+// user_pref("dom.allow_cut_copy", false); // [HIDDEN PREF]
 
 /* 2404: disable "Confirm you want to leave" dialog on page close
  * Does not prevent JS leaks of the page close event.
