@@ -100,20 +100,6 @@ action-middle-click-titlebar='toggle-maximize'
 maximum-volume=125
 event-sounds=false
 
-[desktop/background]
-picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/resist.jpg'
-primary-color='#000000000000'
-picture-options='scaled'
-
-[desktop/background/slideshow]
-image-source='directory:///home/sstelfox/Pictures/selected_wallpapers'
-random-order=true
-delay=30
-slideshow-enabled=true
-
-[theme]
-symbolic-relative-size=0.67000000000000004
-
 [cinnamon-session]
 quit-delay-toggle=false
 quit-time-delay=60
