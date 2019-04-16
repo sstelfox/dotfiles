@@ -621,7 +621,7 @@ user_pref("_user.js.parrot", "0800 syntax error: the parrot's ceased to be!");
 
 /* 0801: disable location bar using search
  * don't leak typos to a search engine, give an error message instead ***/
-// user_pref("keyword.enabled", false);
+user_pref("keyword.enabled", false);
 
 /* 0802: disable location bar domain guessing
  * domain guessing intercepts DNS "hostname not found errors" and resends a
@@ -655,7 +655,7 @@ user_pref("browser.urlbar.filter.javascript", true); // [DEFAULT: true]
 
 /* 0807: disable search bar LIVE search suggestions
  * [SETTING] Search>Provide search suggestions ***/
-// user_pref("browser.search.suggest.enabled", false);
+user_pref("browser.search.suggest.enabled", false);
 
 /* 0808: disable location bar LIVE search suggestions (requires 0807 = true)
  * Also disable the location bar prompt to enable/disable or learn more about it.
@@ -1406,20 +1406,15 @@ user_pref("dom.vibrator.enabled", false);
  * [6] https://rh0dev.github.io/blog/2017/the-return-of-the-jit/ ***/
 user_pref("javascript.options.asmjs", false);
 
-// TODO Sam If having JS performance issues I might want to re-enable the
-// following two settings
-
 /* 2421: disable Ion and baseline JIT to help harden JS against exploits
  * [SETUP-PERF] If false, causes the odd site issue and there is also a performance loss
  * [1] https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-0817 ***/
-user_pref("javascript.options.ion", false);
-user_pref("javascript.options.baselinejit", false);
-
-// TODO Sam If I start playing with WASM I'll need to enable the following:
+// user_pref("javascript.options.ion", false);
+// user_pref("javascript.options.baselinejit", false);
 
 /* 2422: disable WebAssembly [FF52+] [SETUP-PERF]
  * [1] https://developer.mozilla.org/docs/WebAssembly ***/
-user_pref("javascript.options.wasm", false);
+// user_pref("javascript.options.wasm", false);
 
 /* 2426: disable Intersection Observer API [FF53+]
  * Almost a year to complete, three versions late to stable (as default false),
