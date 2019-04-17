@@ -1268,14 +1268,14 @@ user_pref("gfx.offscreencanvas.enabled", false); // [DEFAULT: false]
  * 0=Allowed, 1=Blocked, 2=Prompt
  * [NOTE] You can set exceptions under site permissions
  * [SETTING] Privacy & Security>Permissions>Block websites from automatically playing sound ***/
-user_pref("media.autoplay.default", 1);
+user_pref("media.autoplay.default", 2);
 
 /* 2031: disable autoplay of HTML5 media if you interacted with the site [FF66+] ***/
-user_pref("media.autoplay.enabled.user-gestures-needed", false);
+// user_pref("media.autoplay.enabled.user-gestures-needed", false);
 
 /* 2032: disable audio autoplay in non-active tabs [FF51+]
  * [1] https://www.ghacks.net/2016/11/14/firefox-51-blocks-automatic-audio-playback-in-non-active-tabs/ ***/
-user_pref("media.block-autoplay-until-in-foreground", true);
+// user_pref("media.block-autoplay-until-in-foreground", true);
 
 /*** [SECTION 2200]: WINDOW MEDDLING & LEAKS / POPUPS ***/
 user_pref("_user.js.parrot", "2200 syntax error: the parrot's 'istory!");
