@@ -2071,6 +2071,8 @@ user_pref("_user.js.parrot", "5000 syntax error: this is an ex-parrot!");
 
 // Sam: Personal addition fuck this order
 user_pref("browser.ctrlTab.recentlyUsedOrder", false);
+
+// Fix the dark input fields
 user_pref("widget.content.gtk-theme-override", "Adwaita");
 
 /* WELCOME & WHAT's NEW NOTICES ***/
@@ -2106,7 +2108,9 @@ user_pref("browser.backspace_action", 2); // 0=previous page, 1=scroll up, 2=do 
 
 /* OTHER ***/
 user_pref("browser.bookmarks.max_backups", 2);
-// user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false); // disable CFR [FF64+]
+
+// Sam: This gets rid of "personalized extension recommendations"
+user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false); // disable CFR [FF64+]
 
 // [SETTING] General>Browsing>Recommend extensions as you browse
 // [1] https://support.mozilla.org/en-US/kb/extension-recommendations
