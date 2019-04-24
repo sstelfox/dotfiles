@@ -823,7 +823,7 @@ user_pref("network.dnsCacheExpiration", 60);
 
 /** SESSIONS & SESSION RESTORE ***/
 /* 1020: exclude "Undo Closed Tabs" in Session Restore ***/
-user_pref("browser.sessionstore.max_tabs_undo", 0);
+user_pref("browser.sessionstore.max_tabs_undo", 3);
 
 /* 1021: disable storing extra session data [SETUP-CHROME]
  * extra session data contains contents of forms, scrollbar positions, cookies and POST data
@@ -888,7 +888,7 @@ user_pref("security.ssl.require_safe_negotiation", true);
  * [1] http://kb.mozillazine.org/Security.tls.version.*
  * [2] https://www.ssl.com/how-to/turn-off-ssl-3-0-and-tls-1-0-in-your-browser/
  * [2] archived: https://archive.is/hY2Mm ***/
-   // user_pref("security.tls.version.min", 3);
+user_pref("security.tls.version.min", 3);
 user_pref("security.tls.version.max", 4);
 
 /* 1203: disable SSL session tracking [FF36+]
@@ -1104,7 +1104,7 @@ user_pref("network.http.referer.trimmingPolicy", 1);
 
 /* 1603: CROSS ORIGIN: control when to send a referer [SETUP-WEB]
  * 0=always (default), 1=only if base domains match, 2=only if hosts match ***/
-user_pref("network.http.referer.XOriginPolicy", 1);
+//user_pref("network.http.referer.XOriginPolicy", 1);
 
 /* 1604: CROSS ORIGIN: control the amount of information to send [FF52+]
  * 0=send full URI (default), 1=scheme+host+port+path, 2=scheme+host+port ***/
@@ -1579,7 +1579,7 @@ user_pref("network.IDN_show_punycode", true);
  * CONS: You may prefer a different pdf reader for security reasons
  * CAVEAT: JS can still force a pdf to open in-browser by bundling its own code (rare)
  * [SETTING] General>Applications>Portable Document Format (PDF) ***/
-user_pref("pdfjs.disabled", false);
+//user_pref("pdfjs.disabled", false);
 
 /* 2621: disable links launching Windows Store on Windows 8/8.1/10 [WINDOWS]
  * [1] https://www.ghacks.net/2016/03/25/block-firefox-chrome-windows-store/ ***/
@@ -1588,11 +1588,11 @@ user_pref("network.protocol-handler.external.ms-windows-store", false);
 /** DOWNLOADS ***/
 /* 2650: discourage downloading to desktop (0=desktop 1=downloads 2=last used)
  * [SETTING] To set your default "downloads": General>Downloads>Save files to ***/
-user_pref("browser.download.folderList", 2);
+user_pref("browser.download.folderList", 1);
 
 /* 2651: enforce user interaction for security by always asking the user where to download
  * [SETTING] General>Downloads>Always ask you where to save files ***/
-user_pref("browser.download.useDownloadDir", false);
+user_pref("browser.download.useDownloadDir", true);
 
 /* 2652: disable adding downloads to the system's "recent documents" list ***/
 user_pref("browser.download.manager.addToRecentDocs", false);
@@ -1605,7 +1605,7 @@ user_pref("browser.download.hide_plugins_without_extensions", false);
  * in such a way that it is forbidden to run external applications.
  * [SETUP-CHROME] This may interfere with some users' workflow or methods
  * [1] https://bugzilla.mozilla.org/1281959 ***/
-user_pref("browser.download.forbid_open_with", true);
+//user_pref("browser.download.forbid_open_with", true);
 
 // TODO: Sam I may be able to enable the extensions limited scopes, test for my
 // standard set of extensions.
