@@ -5,6 +5,18 @@ IdentitiesOnly yes
 
 ServerAliveInterval 10
 
+Host 127.0.0.1
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host 10.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host 172.16.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
+Host 172.31.254.*
+  IdentityFile ~/.ssh/gpg_key.pub
+
 Host 192.168.122.*
   IdentityFile ~/.ssh/gpg_key.pub
   StrictHostKeyChecking no
@@ -66,12 +78,6 @@ Host *.i
 Host *.stelfox.net
   IdentityFile ~/.ssh/gpg_key.pub
 
-Host 10.*
-  IdentityFile ~/.ssh/gpg_key.pub
-
-Host 127.0.0.1
-  IdentityFile ~/.ssh/gpg_key.pub
-
 # Begin Minim
 Host *.minim.co
   IdentityFile ~/.ssh/gpg_key.pub
@@ -104,12 +110,17 @@ Host vpc-tunnel-host-aerez
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh bastion.minim.co -W %h:%p
 
-Host aadm
+Host aerez-admin
   Hostname 172.16.0.113
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -W %h:%p -q bastion.minim.co
 
-Host marg
+Host aerez-app
+  Hostname 172.16.0.176
+  IdentityFile ~/.ssh/gpg_key.pub
+  ProxyCommand ssh -W %h:%p -q bastion.minim.co
+
+Host aerez-marg
   Hostname 172.16.0.211
   IdentityFile ~/.ssh/gpg_key.pub
   ProxyCommand ssh -W %h:%p -q bastion.minim.co
