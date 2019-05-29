@@ -1579,7 +1579,7 @@ user_pref("network.IDN_show_punycode", true);
  * CONS: You may prefer a different pdf reader for security reasons
  * CAVEAT: JS can still force a pdf to open in-browser by bundling its own code (rare)
  * [SETTING] General>Applications>Portable Document Format (PDF) ***/
-//user_pref("pdfjs.disabled", false);
+user_pref("pdfjs.disabled", false);
 
 /* 2621: disable links launching Windows Store on Windows 8/8.1/10 [WINDOWS]
  * [1] https://www.ghacks.net/2016/03/25/block-firefox-chrome-windows-store/ ***/
@@ -2116,8 +2116,13 @@ user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false); /
 // [1] https://support.mozilla.org/en-US/kb/extension-recommendations
 user_pref("identity.fxaccounts.enabled", false); // disable and hide Firefox Accounts and Sync [FF60+] [RESTART]
 user_pref("network.manage-offline-status", false); // see bugzilla 620472
-user_pref("reader.parse-on-load.enabled", false); // "Reader View"
 // user_pref("xpinstall.signatures.required", false); // enforced extension signing (Nightly/ESR)
+
+// The option to ditch a large amount of garbage content on the page and get
+// something always readable is super useful. Just hit F9 on any long-form
+// content to enable reader view.
+user_pref("reader.parse-on-load.enabled", true);
+user_pref("reader.parse-on-load.force-enabled", true); // Also do this on any page that isn't perfectly ideal
 
 /* END: internal custom pref to test for syntax errors ***/
 user_pref("_user.js.parrot", "SUCCESS: No no he's not dead, he's, he's restin'!");
