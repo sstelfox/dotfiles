@@ -7,6 +7,13 @@ fi
 # Enable globstar matching
 shopt -s globstar
 
+# Ensure we append to the history file rather than replacing it
+shopt -s histappend
+
+# When a command was run that spanned multiple lines, merge that into a single
+# history entry for the purposes of looking back.
+shopt -s cmdhist
+
 # Disable the XON/XOFF flow control completely (Ctrl-Q/Ctrl-S). Damn this is an
 # annoying legacy feature...
 stty -ixon
@@ -62,6 +69,7 @@ if [ ! -d "${HOME}/.dotfiles/bash-histories" ]; then
 fi
 
 export HISTCONTROL="ignoreboth"
+export HISTIGNORE="ls:bg:fg:history"
 export HISTSIZE=-1
 export HISTTIMEFORMAT="%F %T "
 
@@ -107,6 +115,9 @@ function setup_prompt {
 
   # Don't expose more than path through the window title...
   export PROMPT_COMMAND='echo -en "\033]0;${PWD/#$HOME/\~}\a"'
+
+  # Flush our history after every command as well...
+  export PROMPT_COMMAND="${PROMPT_COMMAND}; history -a"
 }
 
 # Setup PS1 variable
