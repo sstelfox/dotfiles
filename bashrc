@@ -123,6 +123,10 @@ function setup_prompt {
 # Setup PS1 variable
 setup_prompt
 
+if which nvim &> /dev/null; then
+  alias vim=nvim
+fi
+
 # If the rust toolchain in installed source it's environment
 if [ -f $HOME/.cargo/env ]; then
   source $HOME/.cargo/env
@@ -135,5 +139,3 @@ source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 unset LESSOPEN
 unset SSH_ASKPASS
-
-alias compose="docker run --rm -v \$(pwd):/usr/src/app -w /usr/src/app composer/composer:1.1"
