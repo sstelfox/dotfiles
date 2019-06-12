@@ -54,6 +54,19 @@ if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
   fi
 fi
 
+# Generate our SSH config
+truncate -s 0 ${DOTFILE_DIR}/ssh/config
+
+for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* | sort); do
+  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
+  echo >> ${DOTFILE_DIR}/ssh/config
+done
+
+for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* | sort); do
+  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
+  echo >> ${DOTFILE_DIR}/ssh/config
+done
+
 chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
 chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/{gnupg,ssh}
 

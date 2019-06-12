@@ -6,5 +6,5 @@ id_*
 *.pem
 !gpg_key.pub
 authorized_keys
-known_hosts
+config
 environment
