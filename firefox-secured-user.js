@@ -1054,7 +1054,7 @@ user_pref("gfx.downloadable_fonts.fallback_delay", -1);
 user_pref("gfx.font_rendering.opentype_svg.enabled", false);
 
 /* 1405: disable WOFF2 (Web Open Font Format) [FF35+] ***/
-user_pref("gfx.downloadable_fonts.woff2.enabled", false);
+// user_pref("gfx.downloadable_fonts.woff2.enabled", false);
 
 /* 1406: disable CSS Font Loading API
  * [NOTE] Disabling fonts can uglify the web a fair bit. ***/
@@ -1078,7 +1078,7 @@ user_pref("gfx.font_rendering.graphite.enabled", false);
 // user_pref("font.system.whitelist", ""); // [HIDDEN PREF]
 
 /*** [SECTION 1600]: HEADERS / REFERERS
-     Only *cross domain* referers need controlling and XOriginPolicy (1603) is perfect for that. Thus we enforce
+     Only *cross domain* referers need controlling and XOriginPolicy (1604) is perfect for that. Thus we enforce
      the default values for 1601, 1602, 1605 and 1606 to minimize breakage, and only tweak 1603 and 1604.
 
      Our default settings provide the best balance between protection and amount of breakage.
