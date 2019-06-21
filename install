@@ -57,12 +57,12 @@ fi
 # Generate our SSH config
 truncate -s 0 ${DOTFILE_DIR}/ssh/config
 
-for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* | sort); do
+for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* 2>/dev/null | sort); do
   cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
   echo >> ${DOTFILE_DIR}/ssh/config
 done
 
-for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* | sort); do
+for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* 2>/dev/null | sort); do
   cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
   echo >> ${DOTFILE_DIR}/ssh/config
 done
