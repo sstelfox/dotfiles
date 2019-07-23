@@ -180,7 +180,9 @@ set smarttab
 " set textwidth=80
 
 set autoindent
-set smartindent
+" Note this is the annoying feature that would automatically remove all
+" leading whitespace whenever I started a comment.
+set nosmartindent
 set nowrap
 
 " When wrapping break on spaces rather than in the middle of a word
