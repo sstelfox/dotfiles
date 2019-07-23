@@ -315,8 +315,7 @@ user_pref("extensions.pocket.enabled", false);
  * [2] https://wiki.mozilla.org/Necko/CaptivePortal
  * [3] https://trac.torproject.org/projects/tor/ticket/21790 ***/
 
-// TODO: Sam this is super useful if I can setup this service on my own...
-user_pref("captivedetect.canonicalURL", "");
+user_pref("captivedetect.canonicalURL", "http://detectportal.stelfox.net/");
 user_pref("network.captive-portal-service.enabled", false); // [FF52+]
 
 /* 0391: disable Network Connectivity checks [FF65+]
