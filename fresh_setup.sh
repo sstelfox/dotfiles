@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o errexit
+
 sudo dnf install \
   https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
   https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
@@ -8,7 +10,8 @@ sudo dnf copr enable @kicad/kicad -y
 
 sudo dnf remove vim-powerline -y
 
-sudo dnf install arm-none-eabi-gdb awscli docker docker-compose fswebcam \
+# Apparently not available on F30: arm-none-eabi-gdb
+sudo dnf install awscli docker docker-compose fswebcam \
   httpd-tools gdb gimp gimp-lqr-plugin gimp-save-for-web git git-email \
   gnupg2-smime golang graphviz jq kicad kicad-packages3d mutt nmap openocd \
   pcsc-lite-ccid privoxy pv tcpdump tmux tor transmission-gtk v8 vim-enhanced \
