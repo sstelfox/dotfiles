@@ -932,7 +932,10 @@ user_pref("security.OCSP.enabled", 1);
  * could have been revoked) and/or you could be under attack (e.g. malicious blocking of OCSP servers)
  * [1] https://blog.mozilla.org/security/2013/07/29/ocsp-stapling-in-firefox/
  * [2] https://www.imperialviolet.org/2014/04/19/revchecking.html ***/
-user_pref("security.OCSP.require", true);
+// Sam: I wanted this but Comodo runs very shoddy infrastructure and I was
+// having to disable this too often when I encountered sites that use this
+// awful CA...
+//user_pref("security.OCSP.require", true);
 
 /** CERTS / HPKP (HTTP Public Key Pinning) ***/
 /* 1220: disable or limit SHA-1 certificates
@@ -1212,16 +1215,19 @@ user_pref("media.gmp-gmpopenh264.autoupdate", false);
 /*** [SECTION 2000]: MEDIA / CAMERA / MIC ***/
 user_pref("_user.js.parrot", "2000 syntax error: the parrot's snuffed it!");
 
+// SAM: I re-enabled the webrtc settings so I could run the snowflake extension
+// in firefox
+
 /* 2001: disable WebRTC (Web Real-Time Communication)
  * [1] https://www.privacytools.io/#webrtc ***/
-user_pref("media.peerconnection.enabled", false);
+//user_pref("media.peerconnection.enabled", false);
 
 /* 2002: limit WebRTC IP leaks if using WebRTC
  * [TEST] https://browserleaks.com/webrtc
  * [1] https://bugzilla.mozilla.org/buglist.cgi?bug_id=1189041,1297416
  * [2] https://wiki.mozilla.org/Media/WebRTC/Privacy ***/
-user_pref("media.peerconnection.ice.default_address_only", true);
-user_pref("media.peerconnection.ice.no_host", true); // [FF51+]
+//user_pref("media.peerconnection.ice.default_address_only", true);
+//user_pref("media.peerconnection.ice.no_host", true); // [FF51+]
 
 /* 2010: disable WebGL (Web Graphics Library), force bare minimum feature set if used & disable WebGL extensions
  * [1] https://www.contextis.com/resources/blog/webgl-new-dimension-browser-exploitation/
