@@ -11,7 +11,7 @@ sudo dnf copr enable @kicad/kicad -y
 sudo dnf remove vim-powerline -y
 
 # Apparently not available on F30: arm-none-eabi-gdb
-sudo dnf install awscli docker docker-compose fswebcam \
+sudo dnf install awscli cheese docker docker-compose fswebcam \
   httpd-tools gdb gimp gimp-lqr-plugin gimp-save-for-web git git-email \
   gnupg2-smime golang graphviz jq kicad kicad-packages3d mutt nmap openocd \
   pcsc-lite-ccid privoxy pv tcpdump tmux tor transmission-gtk v8 vim-enhanced \
@@ -26,7 +26,10 @@ sudo systemctl enable pcscd.service
 sudo systemctl enable sshd.service
 sudo systemctl start sshd.service
 
-sudo groupadd -r docker
+if ! grep -q docker /etc/group; then
+  sudo groupadd -r docker
+fi
+
 sudo usermod -aG dialout,docker $(whoami)
 
 cat << 'EOF' | sudo tee /etc/udev/rules.d/99-st-link.rules > /dev/null
@@ -39,7 +42,11 @@ EOF
 
 sudo udevadm control --reload-rules
 
-curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly -y
+if [ ! -f $HOME/.cargo/env ]; then
+  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly -y
+fi
+
+source $HOME/.cargo/env
 
 rustup component add rustfmt
 rustup install stable
@@ -64,7 +71,7 @@ sudo dnf install patch autoconf automake bison fftw-devel gcc-c++ \
   libcurl-devel libffi-devel libtool libyaml-devel openssl-devel patch \
   postgresql-devel readline-devel sqlite-devel zlib-devel -y
 
-rvm install ruby-2.6.2
+rvm install ruby-2.6.5
 
 echo 'You probably still need a reboot...'
 
