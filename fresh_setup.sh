@@ -14,8 +14,8 @@ sudo dnf remove vim-powerline -y
 sudo dnf install awscli cheese docker docker-compose fswebcam \
   httpd-tools gdb gimp gimp-lqr-plugin gimp-save-for-web git git-email \
   gnupg2-smime golang graphviz jq kicad kicad-packages3d mutt nmap openocd \
-  pcsc-lite-ccid privoxy pv tcpdump tmux tor transmission-gtk v8 vim-enhanced \
-  vlc wireshark -y
+  pcsc-lite-ccid pinentry-gtk privoxy pv tcpdump tmux tor transmission-gtk v8 \
+  vim-enhanced vlc wireshark -y
 
 # Get rid of powerline but leave vim
 sudo dnf remove vim-powerline --noautoremove
@@ -25,6 +25,17 @@ sudo systemctl enable pcscd.service
 
 sudo systemctl enable sshd.service
 sudo systemctl start sshd.service
+
+# Laptop specific (fix touchpad):
+#sudo grubby --update-kernel=ALL --args="psmouse.synaptics_intertouch=1"
+
+# This is needed for docker on Fedora 31+ as they've moved to cgroupv2 by
+# default... guess its time to switch to podman... Will definitely need to
+# reboot after this...
+#sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"
+
+# Note: fresh setup doesn't currently restore cinnamon settings or firefox preferences
+# Note: discard,noatime,nodiratime needs to be set in fstab filesystems
 
 if ! grep -q docker /etc/group; then
   sudo groupadd -r docker
@@ -50,19 +61,23 @@ source $HOME/.cargo/env
 
 rustup component add rustfmt
 rustup install stable
-rustup target add --toolchain stable thumbv6m-none-eabi
-rustup target add --toolchain nightly thumbv6m-none-eabi
+#rustup target add --toolchain stable thumbv6m-none-eabi
+#rustup target add --toolchain nightly thumbv6m-none-eabi
 
-cargo install cargo-binutils itm
-rustup component add llvm-tools-preview
+#cargo install cargo-binutils itm
+#rustup component add llvm-tools-preview
 
 # Install and setup GEF
-pip3 install --user unicorn capstone ropper keystone-engine
-wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+#pip3 install --user unicorn capstone ropper keystone-engine
+#wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+
 
 # RVM gpg key
 gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
 curl -sSL https://get.rvm.io | bash -s stable
+
+curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo | sudo tee /etc/yum.repos.d/yarn.repo
+sudo dnf install yarn -y
 
 ~/.dotfiles/install
 source ~/.bashrc
@@ -100,7 +115,8 @@ echo 'You probably still need a reboot...'
 #  }
 #
 #  chain forward {
-#    type filter hook forward priority 0; policy drop;
+#    # Accept is needed here as docker doesn't know how to modify nft rulesets... thank god
+#    type filter hook forward priority 0; policy accept;
 #  }
 #
 #  chain output {
@@ -112,9 +128,14 @@ echo 'You probably still need a reboot...'
 #    ip protocol icmp accept
 #    ip6 nexthdr icmpv6 accept
 #
+#    # Allow all outbound traffic to local v4 networks
+#    ip daddr 192.168.0.0/16 accept
+#    ip daddr 172.16.0.0/12 accept
+#    ip daddr 10.0.0.0/8 accept
+#
 #    tcp dport 67 tcp sport 68 accept
-#    tcp dport { 22, 53, 80, 443, 873, 2200 } accept
-#    udp dport 53 accept
+#    tcp dport { 22, 53, 80, 443, 873, 2200, 11371 } accept
+#    udp dport { 53, 123 } accept
 #
 #    ct state new log level warn prefix "egress attempt: "
 #    counter reject with icmp type admin-prohibited
