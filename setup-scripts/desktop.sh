@@ -19,3 +19,14 @@ echo
 echo "\tdiscard,noatime,nodiratime"
 echo
 echo "to the appropriate partition mount options"
+echo
+
+# Things I still need to automate...
+#
+# * Restore Cinnamon settings
+# * Create firefox profile, install the user.js, and setup my prefs and extensions
+echo "Desktop checklist:
+echo "\t* Restore Cinnamon Settings"
+echo "\t* Setup firefox user.js"
+echo "\t* Install standard firefox extensions"
+echo "\t* Switch default search engine to DuckDuckGo"
