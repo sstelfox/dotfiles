@@ -28,6 +28,11 @@ set nospell
 highlight ColorColumn ctermbg=magenta
 call matchadd('ColorColumn', '\%81v', 100)
 
+" TODO: I should autodetect my actual color scheme somehow, but dark is my
+" primary so this is as well... This fixes the annoying issue I was having in
+" tmux with muted colors
+set background=dark
+
 " When encrypting any file, use the much stronger blowfish algorithm
 set cryptmethod=blowfish
 
