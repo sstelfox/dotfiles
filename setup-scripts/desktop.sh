@@ -35,3 +35,6 @@ echo "Desktop checklist:"
 echo "\t* Setup firefox user.js"
 echo "\t* Install standard firefox extensions"
 echo "\t* Switch default search engine to DuckDuckGo"
+
+# Current list of firefox extensions: HTTPS Everywhere, Privacy Badger, Reddit
+# Enhancement Suite, Snowflake, and uBlock Origin
