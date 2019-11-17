@@ -126,7 +126,7 @@ if ask_default_no 'Are you ready to do this?'; then
   # Build a singular root script so we don't have to worry about sudo timing out half way through
   echo -e '#!/bin/bash\n\n' > /tmp/setup_script.sh
   for script in ${ROOT_SCRIPTS[*]}; do
-    cat setup-scripts/${script} > /tmp/setup_script.sh
+    cat ~/.dotfiles/setup-scripts/${script} > /tmp/setup_script.sh
   done
 
   # Have the script clean itself up
@@ -138,6 +138,6 @@ if ask_default_no 'Are you ready to do this?'; then
 
   # For user scripts we can just run them directly as we don't have to worry about timeouts
   for script in ${USER_SCRIPTS[*]}; do
-    ./setup-scripts/${script}
+    ~/.dotfiles/setup-scripts/${script}
   done
 fi
