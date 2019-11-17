@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install lutris steam -y
+dnf install discord lutris steam -y
