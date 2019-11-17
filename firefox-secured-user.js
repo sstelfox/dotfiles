@@ -1312,7 +1312,7 @@ user_pref("browser.link.open_newwindow.restriction", 0);
  * [NOTE] You can still manually toggle the browser's fullscreen state (F11),
  * but this pref will disable embedded video/game fullscreen controls, e.g. youtube
  * [TEST] https://developer.mozilla.org/samples/domref/fullscreen.html ***/
-user_pref("full-screen-api.enabled", false);
+//user_pref("full-screen-api.enabled", false);
 
 /* 2210: block popup windows
  * [SETTING] Privacy & Security>Permissions>Block pop-up windows ***/
@@ -1933,8 +1933,8 @@ user_pref("privacy.resistFingerprinting.block_mozAddonManager", true); // [HIDDE
  * [NOTE] This does NOT require RFP (see 4501) **for now**
  * [WARNING] The dimension pref is only meant for testing, and we recommend you DO NOT USE it
  * [1] https://bugzilla.mozilla.org/1407366 ***/
-user_pref("privacy.resistFingerprinting.letterboxing", true); // [HIDDEN PREF]
-user_pref("privacy.resistFingerprinting.letterboxing.dimensions", ""); // [HIDDEN PREF]
+//user_pref("privacy.resistFingerprinting.letterboxing", true); // [HIDDEN PREF]
+//user_pref("privacy.resistFingerprinting.letterboxing.dimensions", ""); // [HIDDEN PREF]
 
 /* 4510: disable showing about:blank as soon as possible during startup [FF60+]
  * When default true (FF62+) this no longer masks the RFP chrome resizing activity

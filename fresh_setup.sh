@@ -2,125 +2,148 @@
 
 set -o errexit
 
-sudo dnf install \
-  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
-
-sudo dnf copr enable @kicad/kicad -y
-
-sudo dnf remove vim-powerline -y
-
-# Apparently not available on F30: arm-none-eabi-gdb
-sudo dnf install awscli cheese docker docker-compose fswebcam \
-  httpd-tools gdb gimp gimp-lqr-plugin gimp-save-for-web git git-email \
-  gnupg2-smime golang graphviz jq kicad kicad-packages3d mutt nmap openocd \
-  pcsc-lite-ccid privoxy pv tcpdump tmux tor transmission-gtk v8 vim-enhanced \
-  vlc wireshark -y
-
-# Get rid of powerline but leave vim
-sudo dnf remove vim-powerline --noautoremove
-
-sudo systemctl start pcscd.service
-sudo systemctl enable pcscd.service
-
-sudo systemctl enable sshd.service
-sudo systemctl start sshd.service
-
-if ! grep -q docker /etc/group; then
-  sudo groupadd -r docker
+if [ ${EUID} = 0 ]; then
+  echo "This setup script should only be run in the context of the primary user."
+  exit 1
 fi
 
-sudo usermod -aG dialout,docker $(whoami)
+source /etc/os-release
 
-cat << 'EOF' | sudo tee /etc/udev/rules.d/99-st-link.rules > /dev/null
-# ST-LINK/V2
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", MODE:="0660", OWNER="root", GROUP="dialout"
-
-# ST-LINK/V2.1
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", MODE:="0660", OWNER="root", GROUP="dialout"
-EOF
-
-sudo udevadm control --reload-rules
-
-if [ ! -f $HOME/.cargo/env ]; then
-  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly -y
+if [ "${NAME}" != "Fedora" ]; then
+  echo "These setup scripts are only targetting Fedora. It looks like you're trying to run this on another distro."
+  exit 1
 fi
 
-source $HOME/.cargo/env
+ROOT_SCRIPTS=('base_setup.sh')
+USER_SCRIPTS=()
 
-rustup component add rustfmt
-rustup install stable
-rustup target add --toolchain stable thumbv6m-none-eabi
-rustup target add --toolchain nightly thumbv6m-none-eabi
+function ask_default_no() {
+  local prompt="${1}"
 
-cargo install cargo-binutils itm
-rustup component add llvm-tools-preview
+  read -p "${prompt} [N/y] " response
+  case "${response}" in
+    [nN])
+      return 1
+      ;;
+    [yY])
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
 
-# Install and setup GEF
-pip3 install --user unicorn capstone ropper keystone-engine
-wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+function ask_default_yes() {
+  local prompt="${1}"
 
-# RVM gpg key
-gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
-curl -sSL https://get.rvm.io | bash -s stable
+  read -p "${prompt} [n/Y] " response
+  case "${response}" in
+    [nN])
+      return 1
+      ;;
+    [yY])
+      return 0
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
 
-~/.dotfiles/install
-source ~/.bashrc
+if ask_default_yes 'Would you like to setup the system to be a desktop?'; then
+  ROOT_SCRIPTS+=('desktop.sh')
+  export DESKTOP_ENABLED="y"
+fi
 
-sudo dnf install patch autoconf automake bison fftw-devel gcc-c++ \
-  libcurl-devel libffi-devel libtool libyaml-devel openssl-devel patch \
-  postgresql-devel readline-devel sqlite-devel zlib-devel -y
+if ask_default_yes 'Would you like to setup nftables as the firewall?'; then
+  ROOT_SCRIPTS+=('nftables.sh')
+fi
 
-rvm install ruby-2.6.5
+if ask_default_yes 'Would you like to setup Rust?'; then
+  ROOT_SCRIPTS+=('rust.sh')
+fi
 
-echo 'You probably still need a reboot...'
+if ask_default_yes 'Would you like to setup Ruby?'; then
+  ROOT_SCRIPTS+=('ruby_dependencies.sh')
+  USER_SCRIPTS+=('ruby.sh')
+fi
 
-#sudo systemctl disable firewalld.service
-#sudo systemctl mask firewalld.service
-#
-#cat << 'EOF' | sudo tee /etc/sysconfig/nftables.conf
-#flush ruleset
-#
-#table inet filter {
-#  chain input {
-#    type filter hook input priority 0; policy drop;
-#
-#    ct state invalid drop
-#    ct state established,related accept
-#    iif "lo" accept
-#
-#    ip protocol icmp accept
-#    ip6 nexthdr icmpv6 accept
-#
-#    tcp dport 22 accept
-#
-#    ip protocol tcp tcp dport 67 tcp sport 68 accept
-#
-#    counter
-#  }
-#
-#  chain forward {
-#    type filter hook forward priority 0; policy drop;
-#  }
-#
-#  chain output {
-#    type filter hook output priority 0; policy drop;
-#
-#    ct state established,related accept
-#    oif "lo" accept
-#
-#    ip protocol icmp accept
-#    ip6 nexthdr icmpv6 accept
-#
-#    tcp dport 67 tcp sport 68 accept
-#    tcp dport { 22, 53, 80, 443, 873, 2200 } accept
-#    udp dport 53 accept
-#
-#    ct state new log level warn prefix "egress attempt: "
-#    counter reject with icmp type admin-prohibited
-#  }
-#}
-#EOF
-#
-#sudo systemctl enable nftables.service
-#sudo systemctl start nftables.service
+if ask_default_yes 'Would you like to install Yarn?'; then
+  ROOT_SCRIPTS+=('yarn.sh')
+fi
+
+if ask_default_no 'Would you like to setup Golang?'; then
+  ROOT_SCRIPTS+=('golang.sh')
+fi
+
+if ask_default_no 'Would you like to install the embedded/electronic design tools?'; then
+  ROOT_SCRIPTS+=('embedded_development.sh')
+  # This is used by the rust script to determine whether to install the embedded rust tooling
+  export EMBEDDED_DEVELOPMENT="y"
+fi
+
+if ask_default_yes 'Would you like to install podman?'; then
+  ROOT_SCRIPTS+=('podman.sh')
+fi
+
+if ask_default_no 'Would you like to install and setup Docker (deprecated)?'; then
+  echo 'You idiot...'
+  ROOT_SCRIPTS+=('docker.sh')
+fi
+
+# These questions only make sense if I enabled the desktop questions
+if [ "${DESKTOP_ENABLED}" = "y" ]; then
+  if ask_default_no 'Would you like to perform the laptop fixes?'; then
+    ROOT_SCRIPTS+=('laptop_fixes.sh')
+  fi
+
+  if ask_default_no 'Would you like to install the art packages?'; then
+    ROOT_SCRIPTS+=('art_packages.sh')
+  fi
+
+  if ask_default_no 'Would you like to install the gaming packages?'; then
+    ROOT_SCRIPTS+=('gaming.sh')
+  fi
+
+  if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then
+    ROOT_SCRIPTS+=('nvidia_drivers.sh')
+  fi
+fi
+
+echo
+
+echo "I'm going to run the following root scripts:"
+for script in ${ROOT_SCRIPTS[*]}; do
+  echo -e "\t* ${script}"
+done
+echo
+
+if [ ${#USER_SCRIPTS[@]} -gt 0 ]; then
+  echo "...and the following user scripts: ${USER_SCRIPTS[*]}"
+  for script in ${USER_SCRIPTS[*]}; do
+    echo -e "\t* ${script}"
+  done
+  echo
+fi
+
+if ask_default_no 'Are you ready to do this?'; then
+  # Start by testing / prompting for root permissions, will abort if the user Ctrl-C's out of this request
+  sudo echo -n
+
+  # Build a singular root script so we don't have to worry about sudo timing out half way through
+  echo -e '#!/bin/bash\n\n' > /tmp/setup_script.sh
+  for script in ${ROOT_SCRIPTS[*]}; do
+    cat ~/.dotfiles/setup-scripts/${script} >> /tmp/setup_script.sh
+  done
+
+  # Have the script clean itself up
+  echo -e '\nrm ${0}' >> /tmp/setup_script.sh
+
+  sudo /bin/bash /tmp/setup_script.sh
+
+  # For user scripts we can just run them directly as we don't have to worry about timeouts
+  for script in ${USER_SCRIPTS[*]}; do
+    ~/.dotfiles/setup-scripts/${script}
+  done
+fi
