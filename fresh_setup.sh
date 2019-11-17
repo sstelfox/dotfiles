@@ -105,6 +105,10 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
   if ask_default_no 'Would you like to install the gaming packages?'; then
     ROOT_SCRIPTS+=('gaming.sh')
   fi
+
+  if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then
+    ROOT_SCRIPTS+=('nvidia_drivers.sh')
+  fi
 fi
 
 echo
