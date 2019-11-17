@@ -8,5 +8,5 @@ if [ ${EUID} != 0 ]; then
 fi
 
 dnf install patch autoconf automake bison fftw-devel gcc-c++ libcurl-devel libffi-devel \
-  libtool libyaml-devel openssl-devel patch postgresql-devel readline-devel sqlite-devel \
-  zlib-devel -y
+  libtool libyaml-devel openssl-devel patch postgresql postgresql-devel readline-devel \
+  sqlite-devel zlib-devel -y
