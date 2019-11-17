@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install podman -y
+dnf install buildah podman -y
