@@ -11,7 +11,7 @@ fi
 # installed and add the appropriate toolchains.
 
 dnf copr enable @kicad/kicad -y
-dnf install arm-none-eabi-cs arm-none-eabi-gcc-cs-c++ arm-non-eabi-binutils-cs gdb kicad kicad-packages3d openocd -y
+dnf install arm-none-eabi-gcc-cs arm-none-eabi-gcc-cs-c++ arm-none-eabi-binutils-cs gdb kicad kicad-packages3d openocd -y
 
 if ! groups | grep -q dialout; then
   usermod -aG dialout sstelfox
