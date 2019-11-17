@@ -7,6 +7,8 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
+~/.dotfiles/install
+
 dnf remove firewalld -y
 
 dnf install bind-utils git git-email gnupg2-smime graphviz httpd-tools ipset jq mutt \

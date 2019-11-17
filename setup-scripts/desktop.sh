@@ -18,6 +18,10 @@ dnf install awscli cheese fswebcam pcsc-lite-ccid pinentry-gtk privoxy tor trans
 systemctl enable pcscd.service
 systemctl start pcscd.service
 
+if [ "${DESKTOP_SESSION}" = "cinnamon" ]; then
+  ~/.dotfiles/restore_cinnamon_settings.sh
+fi
+
 echo "I haven't yet automated this or know if I should, but if this machine has an"
 echo "SSD installed as it's primary hard drive I should review /etc/fstab and add:"
 echo
@@ -27,11 +31,7 @@ echo "to the appropriate partition mount options"
 echo
 
 # Things I still need to automate...
-#
-# * Restore Cinnamon settings
-# * Create firefox profile, install the user.js, and setup my prefs and extensions
 echo "Desktop checklist:"
-echo "\t* Restore Cinnamon Settings"
 echo "\t* Setup firefox user.js"
 echo "\t* Install standard firefox extensions"
 echo "\t* Switch default search engine to DuckDuckGo"
