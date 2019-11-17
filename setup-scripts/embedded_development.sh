@@ -1,6 +1,11 @@
 #!/bin/bash
 
-source setup-setups/_root_prelude.sh
+set -o errexit
+
+if [ ${EUID} != 0 ]; then
+  echo "This setup script is expecting to run as root."
+  exit 1
+fi
 
 # Note this embedded profile should be run after rust so I can detect if its
 # installed and add the appropriate toolchains.
@@ -22,15 +27,7 @@ EOF
 
 udevadm control --reload-rules
 
-# This doesn't seem to be working right now...
+# TODO: This doesn't seem to be working right now... keystone-engine isn't happy on F30+...
 # Install and setup GEF
 #pip3 install --user unicorn capstone ropper keystone-engine
 #wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
-
-if which rustup > /dev/null; then
-  rustup target add --toolchain stable thumbv6m-none-eabi
-  rustup target add --toolchain nightly thumbv6m-none-eabi
-
-  cargo install cargo-binutils itm
-  rustup component add llvm-tools-preview
-fi

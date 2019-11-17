@@ -1,6 +1,11 @@
 #!/bin/bash
 
-source _root_prelude.sh
+set -o errexit
+
+if [ ${EUID} != 0 ]; then
+  echo "This setup script is expecting to run as root."
+  exit 1
+fi
 
 # A lot of my desktop specific software requires repos outside of the core, the
 # RPM fusion repos handle that for me

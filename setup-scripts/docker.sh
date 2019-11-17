@@ -1,6 +1,11 @@
 #!/bin/bash
 
-source _root_prelude.sh
+set -o errexit
+
+if [ ${EUID} != 0 ]; then
+  echo "This setup script is expecting to run as root."
+  exit 1
+fi
 
 echo "WARNING: You should have switched to podman by now... You're being lazy"
 echo "and not fixing something if you're running this script..."

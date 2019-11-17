@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install blender gimp gimp-lqr-plugin gimp-save-for-web inkscape inkscape-psd inkscape-view -y
+dnf install podman -y

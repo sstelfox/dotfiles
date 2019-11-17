@@ -1,6 +1,18 @@
 #!/bin/bash
 
-source setup-scripts/_user_prelude.sh
+set -o errexit
+
+if [ ${EUID} = 0 ]; then
+  echo "This setup script should only be run in the context of the primary user."
+  exit 1
+fi
+
+source /etc/os-release
+
+if [ "${NAME}" != "Fedora" ]; then
+  echo "These setup scripts are only targetting Fedora. It looks like you're trying to run this on another distro."
+  exit 1
+fi
 
 ROOT_SCRIPTS=('base_setup.sh')
 USER_SCRIPTS=()
@@ -41,9 +53,7 @@ function ask_default_yes() {
 
 if ask_default_yes 'Would you like to setup the system to be a desktop?'; then
   ROOT_SCRIPTS+=('desktop.sh')
-  DESKTOP_ENABLED="y"
-else
-  DESKTOP_ENABLED="n"
+  export DESKTOP_ENABLED="y"
 fi
 
 if ask_default_yes 'Would you like to setup nftables as the firewall?'; then
@@ -67,9 +77,14 @@ if ask_default_no 'Would you like to setup Golang?'; then
   ROOT_SCRIPTS+=('golang.sh')
 fi
 
-# Note to self, this should appear later in the array than Rust
 if ask_default_no 'Would you like to install the embedded/electronic design tools?'; then
   ROOT_SCRIPTS+=('embedded_development.sh')
+  # This is used by the rust script to determine whether to install the embedded rust tooling
+  export EMBEDDED_DEVELOPMENT="y"
+fi
+
+if ask_default_yes 'Would you like to install podman?'; then
+  ROOT_SCRIPTS+=('podman.sh')
 fi
 
 if ask_default_no 'Would you like to install and setup Docker (deprecated)?'; then
@@ -88,9 +103,37 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
   fi
 fi
 
-echo "I'm going to run the following root scripts: ${ROOT_SCRIPTS[*]}"
-echo "  ... and the following user scripts: ${USER_SCRIPTS[*]}"
+echo
+
+echo "I'm going to run the following root scripts:"
+for script in ${ROOT_SCRIPTS[*]}; do
+  echo -e "\t* ${script}"
+done
+echo
+
+if [ ${#USER_SCRIPTS[@]} -gt 0 ]; then
+  echo "...and the following user scripts: ${USER_SCRIPTS[*]}"
+  for script in ${USER_SCRIPTS[*]}; do
+    echo -e "\t* ${script}"
+  done
+fi
 
 if ask_default_no 'Are you ready to do this?'; then
-  echo 'DOING THE THINGS...'
+  # Start by testing / prompting for root permissions, will abort if the user Ctrl-C's out of this request
+  sudo echo
+
+  # Build a singular root script so we don't have to worry about sudo timing out half way through
+  echo -e '#!/bin/bash\n\n' | sudo tee /tmp/setup_script.sh > /dev/null
+  for script in ${ROOT_SCRIPTS[*]}; do
+    cat setup-scripts/${script} | sudo tee -a /tmp/setup_script.sh > /dev/null
+  done
+
+  sudo chmod +x /tmp/setup_script.sh
+  #sudo /tmp/setup_script.sh
+  #sudo rm -f /tmp/setup_script.sh
+
+  # For user scripts we can just run them directly as we don't have to worry about timeouts
+  #for script in ${USER_SCRIPTS[*]}; do
+  #  ./setup-scripts/${script}
+  #done
 fi
