@@ -116,6 +116,7 @@ if [ ${#USER_SCRIPTS[@]} -gt 0 ]; then
   for script in ${USER_SCRIPTS[*]}; do
     echo -e "\t* ${script}"
   done
+  echo
 fi
 
 if ask_default_no 'Are you ready to do this?'; then
