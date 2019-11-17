@@ -120,20 +120,23 @@ fi
 
 if ask_default_no 'Are you ready to do this?'; then
   # Start by testing / prompting for root permissions, will abort if the user Ctrl-C's out of this request
-  sudo echo
+  sudo echo -n
 
   # Build a singular root script so we don't have to worry about sudo timing out half way through
-  echo -e '#!/bin/bash\n\n' | sudo tee /tmp/setup_script.sh > /dev/null
+  echo -e '#!/bin/bash\n\n' > /tmp/setup_script.sh
   for script in ${ROOT_SCRIPTS[*]}; do
-    cat setup-scripts/${script} | sudo tee -a /tmp/setup_script.sh > /dev/null
+    cat setup-scripts/${script} > /tmp/setup_script.sh
   done
 
-  sudo chmod +x /tmp/setup_script.sh
-  #sudo /tmp/setup_script.sh
-  #sudo rm -f /tmp/setup_script.sh
+  # Have the script clean itself up
+  echo -e '\nrm ${0}' > /tmp/setup_script.sh
+
+  chmod +x /tmp/setup_script.sh
+
+  sudo /tmp/setup_script.sh
 
   # For user scripts we can just run them directly as we don't have to worry about timeouts
-  #for script in ${USER_SCRIPTS[*]}; do
-  #  ./setup-scripts/${script}
-  #done
+  for script in ${USER_SCRIPTS[*]}; do
+    ./setup-scripts/${script}
+  done
 fi
