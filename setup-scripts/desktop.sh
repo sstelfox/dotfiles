@@ -13,7 +13,8 @@ dnf install \
   https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
   https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
 
-dnf install awscli cheese fswebcam pcsc-lite-ccid pinentry-gtk privoxy tor transmission-gtk vlc wireshark -y
+dnf install aircrack-ng awscli cheese fswebcam pcsc-lite-ccid pinentry-gtk \
+  privoxy tor transmission-gtk vlc wireshark -y
 
 systemctl enable pcscd.service
 systemctl start pcscd.service
@@ -35,3 +36,6 @@ echo "Desktop checklist:"
 echo "\t* Setup firefox user.js"
 echo "\t* Install standard firefox extensions"
 echo "\t* Switch default search engine to DuckDuckGo"
+
+# Current list of firefox extensions: HTTPS Everywhere, Privacy Badger, Reddit
+# Enhancement Suite, Snowflake, and uBlock Origin

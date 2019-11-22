@@ -74,8 +74,10 @@ echo "Installing fonts and updating font cache..."
 fc-cache > /dev/null
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over
-# the public HTTPS endpoint to get these here.
+# the public HTTPS endpoint to get these here. Leave a noauth version in case I
+# want to update without creds available...
 (cd ~/.dotfiles/; git remote set-url origin git@github.com:sstelfox/dotfiles.git)
+(cd ~/.dotfiles/; git remote | grep -q noauth || git remote add noauth https://github.com/sstelfox/dotfiles.git)
 
 # Install the git hooks
 echo "Installing git hooks..."
