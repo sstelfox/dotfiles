@@ -61,7 +61,7 @@ if ask_default_yes 'Would you like to setup nftables as the firewall?'; then
 fi
 
 if ask_default_yes 'Would you like to setup Rust?'; then
-  ROOT_SCRIPTS+=('rust.sh')
+  USER_SCRIPTS+=('rust.sh')
 fi
 
 if ask_default_yes 'Would you like to setup Ruby?'; then
