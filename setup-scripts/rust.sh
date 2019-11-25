@@ -16,6 +16,8 @@ source $HOME/.cargo/env
 rustup component add rustfmt
 rustup install stable
 
+cargo install cargo-audit
+
 if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
   rustup target add --toolchain stable thumbv6m-none-eabi
   rustup target add --toolchain nightly thumbv6m-none-eabi
