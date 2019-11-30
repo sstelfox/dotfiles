@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -o errexit
+
+if [ -n "$(podman ps -q --filter name=simple_dir_server)" ]; then
+  echo "Stopping existing directory server..."
+  podman stop $(podman ps -q --filter name=simple_dir_server) &> /dev/null
+fi
+
+echo "Serving $(pwd)..."
+podman run -d --rm --security-opt label=disable -p 8080:80 \
+  --name simple_dir_server -v $(pwd):/usr/share/nginx/html:ro nginx:alpine
+
+xdg-open http://127.0.0.1:8080
