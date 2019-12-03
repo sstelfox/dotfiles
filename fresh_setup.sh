@@ -87,6 +87,10 @@ if ask_default_yes 'Would you like to install podman?'; then
   ROOT_SCRIPTS+=('podman.sh')
 fi
 
+if ask_default_yes 'Would you like to install kubernetes tooling?'; then
+  ROOT_SCRIPTS+=('k8s.sh')
+fi
+
 if ask_default_no 'Would you like to install and setup Docker (deprecated)?'; then
   echo 'You idiot...'
   ROOT_SCRIPTS+=('docker.sh')
