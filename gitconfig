@@ -38,6 +38,7 @@
 
 [receive]
   fsckobjects = true
+
 [filter "lfs"]
 	required = true
 	clean = git-lfs clean -- %f

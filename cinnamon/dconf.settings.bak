@@ -1,61 +1,72 @@
 [/]
-desktop-effects-unmaximize-transition='easeNone'
-desktop-effects-maximize-transition='easeInExpo'
-desktop-effects-map-effect='traditional'
-alttab-switcher-enforce-primary-monitor=true
-hotcorner-layout=['scale:true:0', 'scale:false:0', 'scale:false:0', 'desktop:false:0']
-alttab-switcher-show-all-workspaces=false
-desktop-effects-close-effect='traditional'
-desktop-effects-unmaximize-time=100
-desktop-effects-map-time=100
-panel-zone-icon-sizes='[{"panelId": 1, "left": 24, "center": 24, "right": 24}]'
-desktop-effects-minimize-effect='traditional'
-alttab-switcher-style='icons+preview'
-prevent-focus-stealing=false
-panels-height=['1:32']
-next-applet-id=13
-desktop-effects-map-transition='easeOutQuad'
-desktop-effects-maximize-time=100
-desktop-effects-unmaximize-effect='none'
 alttab-minimized-aware=true
-desktop-effects-tile-transition='easeInQuad'
-desktop-effects-maximize-effect='none'
-enabled-applets=['panel1:right:0:systray@cinnamon.org:0', 'panel1:left:1:grouped-window-list@cinnamon.org:3', 'panel1:right:1:keyboard@cinnamon.org:4', 'panel1:right:2:notifications@cinnamon.org:5', 'panel1:right:3:removable-drives@cinnamon.org:6', 'panel1:right:4:network@cinnamon.org:7', 'panel1:right:5:blueberry@cinnamon.org:8', 'panel1:right:8:power@cinnamon.org:9', 'panel1:right:9:calendar@cinnamon.org:10', 'panel1:right:7:sound@cinnamon.org:11', 'panel1:left:0:menu@cinnamon.org:12']
-desktop-effects-minimize-time=160
 alttab-switcher-delay=0
-desktop-effects-tile-effect='none'
-desktop-effects-close-transition='easeOutQuad'
-desktop-effects-minimize-transition='easeInQuad'
-panel-edit-mode=false
+alttab-switcher-enforce-primary-monitor=true
+alttab-switcher-show-all-workspaces=false
+alttab-switcher-style='icons+preview'
+desktop-effects-close-effect='traditional'
 desktop-effects-close-time=120
-favorite-apps=['firefox.desktop', 'org.gnome.Terminal.desktop']
+desktop-effects-close-transition='easeOutQuad'
+desktop-effects-map-effect='traditional'
+desktop-effects-map-time=100
+desktop-effects-map-transition='easeOutQuad'
+desktop-effects-maximize-effect='none'
+desktop-effects-maximize-time=100
+desktop-effects-maximize-transition='easeInExpo'
+desktop-effects-minimize-effect='traditional'
+desktop-effects-minimize-time=160
+desktop-effects-minimize-transition='easeInQuad'
+desktop-effects-tile-effect='none'
 desktop-effects-tile-time=100
+desktop-effects-tile-transition='easeInQuad'
+desktop-effects-unmaximize-effect='none'
+desktop-effects-unmaximize-time=100
+desktop-effects-unmaximize-transition='easeNone'
+device-aliases=['/org/freedesktop/UPower/devices/battery_BAT0:=LGC 01AV494']
+enabled-applets=['panel1:right:0:systray@cinnamon.org:0', 'panel1:left:1:grouped-window-list@cinnamon.org:3', 'panel1:right:1:keyboard@cinnamon.org:4', 'panel1:right:2:notifications@cinnamon.org:5', 'panel1:right:3:removable-drives@cinnamon.org:6', 'panel1:right:4:network@cinnamon.org:7', 'panel1:right:5:blueberry@cinnamon.org:8', 'panel1:right:8:power@cinnamon.org:9', 'panel1:right:9:calendar@cinnamon.org:10', 'panel1:right:7:sound@cinnamon.org:11', 'panel1:left:0:menu@cinnamon.org:12']
+enabled-desklets=@as []
+favorite-apps=['firefox.desktop', 'org.gnome.Terminal.desktop']
+hotcorner-layout=['scale:true:0', 'scale:false:0', 'scale:false:0', 'desktop:false:0']
+next-applet-id=13
+panel-edit-mode=false
+panel-zone-icon-sizes='[{"panelId": 1, "left": 24, "center": 24, "right": 24}]'
+panels-height=['1:32']
+prevent-focus-stealing=false
 startup-animation=false
 
-[settings-daemon/peripherals/keyboard]
-repeat-interval=uint32 30
-delay=uint32 500
-numlock-state='on'
+[cinnamon-session]
+quit-delay-toggle=false
+quit-time-delay=60
 
-[sounds]
-logout-enabled=false
-map-enabled=false
-maximize-enabled=false
-login-enabled=false
-switch-enabled=false
-tile-enabled=false
-minimize-enabled=false
-close-enabled=false
-unmaximize-enabled=false
+[desktop/a11y/applications]
+screen-keyboard-enabled=false
+screen-reader-enabled=false
 
-[muffin]
-tile-maximize=true
-resize-threshold=24
-tile-hud-threshold=25
+[desktop/a11y/keyboard]
+bouncekeys-delay=300
+mousekeys-accel-time=300
+mousekeys-init-delay=300
+mousekeys-max-speed=10
+slowkeys-delay=300
+
+[desktop/a11y/mouse]
+dwell-click-enabled=false
+dwell-threshold=10
+dwell-time=1.2
+secondary-click-enabled=false
+secondary-click-time=1.2
+
+[desktop/applications/calculator]
+exec='gnome-calculator'
+
+[desktop/applications/terminal]
+exec='gnome-terminal'
 
 [desktop/interface]
 cursor-blink-time=1200
+cursor-size=24
 gtk-im-module='gtk-im-context-simple:xim'
+toolkit-accessibility=false
 
 [desktop/keybindings]
 looking-glass-keybinding=@as []
@@ -64,26 +75,14 @@ looking-glass-keybinding=@as []
 screensaver=['<Super>l', 'XF86ScreenSaver']
 
 [desktop/keybindings/wm]
-toggle-maximized=['<Alt>F10', '<Super>Up']
 push-tile-up=@as []
+toggle-maximized=['<Alt>F10', '<Super>Up']
 
 [desktop/media-handling]
-autorun-x-content-start-app=['x-content/bootable-media']
 autorun-never=false
 autorun-x-content-ignore=['x-content/audio-cdda', 'x-content/video-dvd', 'x-content/audio-player', 'x-content/image-dcf', 'x-content/unix-software', 'x-content/audio-dvd', 'x-content/blank-bd', 'x-content/blank-dvd', 'x-content/blank-cd', 'x-content/blank-hddvd', 'x-content/ebook-reader', 'x-content/image-picturecd', 'x-content/software', 'x-content/video-bluray', 'x-content/video-hddvd', 'x-content/video-svcd', 'x-content/video-vcd', 'x-content/win32-software', 'x-content/bootable-media']
 autorun-x-content-open-folder=@as []
-
-[desktop/screensaver]
-allow-media-control=false
-floating-widgets=false
-show-album-art=false
-allow-keyboard-shortcuts=false
-
-[desktop/applications/calculator]
-exec='gnome-calculator'
-
-[desktop/applications/terminal]
-exec='gnome-terminal'
+autorun-x-content-start-app=['x-content/bootable-media']
 
 [desktop/notifications]
 bottom-notifications=false
@@ -92,14 +91,58 @@ remove-old=true
 [desktop/privacy]
 recent-files-max-age=-1
 
-[desktop/wm/preferences]
-min-window-opacity=30
-action-middle-click-titlebar='toggle-maximize'
+[desktop/screensaver]
+allow-keyboard-shortcuts=false
+allow-media-control=false
+floating-widgets=false
+show-album-art=false
 
 [desktop/sound]
-maximum-volume=125
 event-sounds=false
+maximum-volume=150
 
-[cinnamon-session]
-quit-delay-toggle=false
-quit-time-delay=60
+[desktop/wm/preferences]
+action-middle-click-titlebar='toggle-maximize'
+min-window-opacity=30
+mouse-button-modifier=''
+
+[muffin]
+resize-threshold=24
+tile-hud-threshold=25
+tile-maximize=true
+
+[settings-daemon/peripherals/keyboard]
+delay=uint32 500
+numlock-state='on'
+repeat-interval=uint32 30
+
+[settings-daemon/peripherals/mouse]
+double-click=400
+drag-threshold=8
+motion-threshold=1
+
+[settings-daemon/peripherals/touchpad]
+custom-acceleration=true
+motion-acceleration=8.9085487077534786
+motion-threshold=1
+natural-scroll=false
+
+[settings-daemon/plugins/power]
+button-power='interactive'
+lid-close-ac-action='suspend'
+lid-close-battery-action='suspend'
+sleep-display-ac=1800
+sleep-display-battery=1800
+sleep-inactive-ac-timeout=0
+sleep-inactive-battery-timeout=0
+
+[sounds]
+close-enabled=false
+login-enabled=false
+logout-enabled=false
+map-enabled=false
+maximize-enabled=false
+minimize-enabled=false
+switch-enabled=false
+tile-enabled=false
+unmaximize-enabled=false
