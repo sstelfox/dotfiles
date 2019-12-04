@@ -14,6 +14,7 @@ fi
 source $HOME/.cargo/env
 
 rustup component add rustfmt
+rustup component add clippy
 rustup install stable
 
 cargo install cargo-audit
