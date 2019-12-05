@@ -77,12 +77,6 @@ if ask_default_no 'Would you like to setup Golang?'; then
   ROOT_SCRIPTS+=('golang.sh')
 fi
 
-if ask_default_no 'Would you like to install the embedded/electronic design tools?'; then
-  ROOT_SCRIPTS+=('embedded_development.sh')
-  # This is used by the rust script to determine whether to install the embedded rust tooling
-  export EMBEDDED_DEVELOPMENT="y"
-fi
-
 if ask_default_yes 'Would you like to install podman?'; then
   ROOT_SCRIPTS+=('podman.sh')
 fi
@@ -106,8 +100,18 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
     ROOT_SCRIPTS+=('art_packages.sh')
   fi
 
+  if ask_default_no 'Would you like to install the embedded/electronic design tools?'; then
+    ROOT_SCRIPTS+=('embedded_development.sh')
+    # This is used by the rust script to determine whether to install the embedded rust tooling
+    export EMBEDDED_DEVELOPMENT="y"
+  fi
+
   if ask_default_no 'Would you like to install the gaming packages?'; then
     ROOT_SCRIPTS+=('gaming.sh')
+  fi
+
+  if ask_default_no 'Would you like to install the streaming packages?'; then
+    ROOT_SCRIPTS+=('streaming.sh')
   fi
 
   if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then

@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install kubernetes-client -y
+dnf install obs-studio -y
