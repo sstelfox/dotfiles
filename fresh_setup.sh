@@ -14,8 +14,8 @@ if [ "${NAME}" != "Fedora" ]; then
   exit 1
 fi
 
-ROOT_SCRIPTS=('base_setup.sh')
-USER_SCRIPTS=()
+ROOT_SCRIPTS=('base_root_setup.sh')
+USER_SCRIPTS=('base_user_setup.sh')
 
 function ask_default_no() {
   local prompt="${1}"
