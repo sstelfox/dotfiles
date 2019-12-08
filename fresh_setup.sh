@@ -52,7 +52,8 @@ function ask_default_yes() {
 }
 
 if ask_default_yes 'Would you like to setup the system to be a desktop?'; then
-  ROOT_SCRIPTS+=('desktop.sh')
+  ROOT_SCRIPTS+=('desktop_root.sh')
+  USER_SCRIPTS+=('desktop_user.sh')
   export DESKTOP_ENABLED="y"
 fi
 
