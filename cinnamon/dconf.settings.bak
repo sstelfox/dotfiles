@@ -68,9 +68,15 @@ exec='gnome-calculator'
 [desktop/applications/terminal]
 exec='gnome-terminal'
 
+[desktop/background]
+picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/antelope_canyon_nevada.jpg'
+primary-color='#000000000000'
+
 [desktop/background/slideshow]
 delay=15
-image-source='xml:///usr/share/cinnamon-background-properties/adwaita.xml'
+image-source='directory:///home/sstelfox/Pictures/selected_wallpapers'
+random-order=true
+slideshow-enabled=true
 
 [desktop/interface]
 cursor-blink-time=1200
