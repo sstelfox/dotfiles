@@ -4,6 +4,7 @@ alttab-switcher-delay=0
 alttab-switcher-enforce-primary-monitor=true
 alttab-switcher-show-all-workspaces=false
 alttab-switcher-style='icons+preview'
+desklet-snap-interval=25
 desktop-effects-close-effect='traditional'
 desktop-effects-close-time=120
 desktop-effects-close-transition='easeOutQuad'
@@ -23,18 +24,23 @@ desktop-effects-unmaximize-effect='none'
 desktop-effects-unmaximize-time=100
 desktop-effects-unmaximize-transition='easeNone'
 device-aliases=['/org/freedesktop/UPower/devices/battery_BAT0:=LGC 01AV494']
-enabled-applets=['panel1:right:0:systray@cinnamon.org:0', 'panel1:left:1:grouped-window-list@cinnamon.org:3', 'panel1:right:1:keyboard@cinnamon.org:4', 'panel1:right:2:notifications@cinnamon.org:5', 'panel1:right:3:removable-drives@cinnamon.org:6', 'panel1:right:4:network@cinnamon.org:7', 'panel1:right:5:blueberry@cinnamon.org:8', 'panel1:right:8:power@cinnamon.org:9', 'panel1:right:9:calendar@cinnamon.org:10', 'panel1:right:7:sound@cinnamon.org:11', 'panel1:left:0:menu@cinnamon.org:12']
+enabled-applets=['panel1:right:1:systray@cinnamon.org:0', 'panel1:left:1:grouped-window-list@cinnamon.org:3', 'panel1:right:2:keyboard@cinnamon.org:4', 'panel1:right:3:notifications@cinnamon.org:5', 'panel1:right:4:removable-drives@cinnamon.org:6', 'panel1:right:5:network@cinnamon.org:7', 'panel1:right:9:power@cinnamon.org:9', 'panel1:right:8:sound@cinnamon.org:11', 'panel1:left:0:menu@cinnamon.org:12', 'panel1:right:0:calendar@cinnamon.org:13']
 enabled-desklets=@as []
 favorite-apps=['firefox.desktop', 'org.gnome.Terminal.desktop']
-hotcorner-layout=['scale:true:0', 'scale:false:0', 'scale:false:0', 'desktop:false:0']
-next-applet-id=13
+hotcorner-layout=['scale:false:0', 'scale:false:0', 'scale:false:0', 'desktop:false:0']
+next-applet-id=14
 panel-edit-mode=false
 panel-zone-icon-sizes='[{"panelId": 1, "left": 24, "center": 24, "right": 24}]'
+panel-zone-symbolic-icon-sizes='[{"panelId": 1, "left": 28, "center": 28, "right": 16}]'
 panels-height=['1:32']
 prevent-focus-stealing=false
 startup-animation=false
+workspace-osd-duration=400
+workspace-osd-x=50
+workspace-osd-y=50
 
 [cinnamon-session]
+prefer-hybrid-sleep=false
 quit-delay-toggle=false
 quit-time-delay=60
 
@@ -62,10 +68,15 @@ exec='gnome-calculator'
 [desktop/applications/terminal]
 exec='gnome-terminal'
 
+[desktop/background/slideshow]
+delay=15
+image-source='xml:///usr/share/cinnamon-background-properties/adwaita.xml'
+
 [desktop/interface]
 cursor-blink-time=1200
 cursor-size=24
 gtk-im-module='gtk-im-context-simple:xim'
+text-scaling-factor=1.0
 toolkit-accessibility=false
 
 [desktop/keybindings]
@@ -89,7 +100,8 @@ bottom-notifications=false
 remove-old=true
 
 [desktop/privacy]
-recent-files-max-age=-1
+recent-files-max-age=1
+remember-recent-files=false
 
 [desktop/screensaver]
 allow-keyboard-shortcuts=false
@@ -110,6 +122,7 @@ mouse-button-modifier=''
 resize-threshold=24
 tile-hud-threshold=25
 tile-maximize=true
+unredirect-fullscreen-windows=true
 
 [settings-daemon/peripherals/keyboard]
 delay=uint32 500
@@ -129,6 +142,7 @@ natural-scroll=false
 
 [settings-daemon/plugins/power]
 button-power='interactive'
+critical-battery-action='nothing'
 lid-close-ac-action='suspend'
 lid-close-battery-action='suspend'
 sleep-display-ac=1800
