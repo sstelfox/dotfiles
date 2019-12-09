@@ -14,7 +14,7 @@ dnf install \
   https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
 
 dnf install aircrack-ng awscli cheese fswebcam libreoffice pcsc-lite-ccid \
-  pinentry-gtk privoxy tor transmission-gtk vlc wireshark youtube-dl -y
+  pinentry-gtk privoxy tor transmission-gtk vlc wireshark xclip youtube-dl -y
 
 systemctl enable pcscd.service
 systemctl start pcscd.service
