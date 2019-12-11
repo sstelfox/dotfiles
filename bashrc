@@ -129,7 +129,7 @@ if [ -f $HOME/.cargo/env ]; then
 fi
 
 # Bump up our file descriptor count from the default
-ulimit -n 8192
+ulimit -n 65536
 
 # Source the file that gives us our prompt function
 source $HOME/.dotfiles/helpers/git-prompt.sh

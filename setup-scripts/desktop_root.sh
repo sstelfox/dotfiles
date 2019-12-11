@@ -18,3 +18,8 @@ dnf install aircrack-ng awscli cheese fswebcam libreoffice pcsc-lite-ccid \
 
 systemctl enable pcscd.service
 systemctl start pcscd.service
+
+cat << EOF >> /etc/security/limits.conf
+*               soft    nofile          65536
+*               hard    nofile          65536
+EOF
