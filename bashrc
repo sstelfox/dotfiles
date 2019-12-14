@@ -128,8 +128,10 @@ if [ -f $HOME/.cargo/env ]; then
   source $HOME/.cargo/env
 fi
 
-# Bump up our file descriptor count from the default
-ulimit -n 524288
+if [ -n "${DESKTOP_SESSION}" ]; then
+  # Bump up our file descriptor count from the default, only in the desktop environments thogh
+  ulimit -n 524288
+fi
 
 # Source the file that gives us our prompt function
 source $HOME/.dotfiles/helpers/git-prompt.sh
