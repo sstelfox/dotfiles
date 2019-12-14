@@ -69,7 +69,7 @@ exec='gnome-calculator'
 exec='gnome-terminal'
 
 [desktop/background]
-picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/antelope_canyon_nevada.jpg'
+picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/great_ocean_road_australia.jpg'
 primary-color='#000000000000'
 
 [desktop/background/slideshow]

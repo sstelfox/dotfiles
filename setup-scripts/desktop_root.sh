@@ -19,7 +19,9 @@ dnf install aircrack-ng awscli cheese fswebcam libreoffice pcsc-lite-ccid \
 systemctl enable pcscd.service
 systemctl start pcscd.service
 
+# Lutris wants an absure number of file descriptors, elasticsearch also needs a
+# bunch
 cat << EOF >> /etc/security/limits.conf
-*               soft    nofile          65536
-*               hard    nofile          65536
+*               soft    nofile          524288
+*               hard    nofile          524288
 EOF

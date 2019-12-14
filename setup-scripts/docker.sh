@@ -18,7 +18,9 @@ if ! groups | grep -q docker; then
   usermod -aG docker sstelfox
 fi
 
-dnf install docker -y
+dnf install docker docker-compose -y
+
+source /etc/os-release
 
 if [ "${VERSION_ID}" -ge 31 ]; then
   echo "Fedora 31 and later are using the unified cgroup hierarchy which isn't supported by docker."

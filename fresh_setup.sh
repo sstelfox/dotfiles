@@ -97,6 +97,10 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
     ROOT_SCRIPTS+=('laptop_fixes.sh')
   fi
 
+  if ask_default_no 'Would you like to perform the desktop tower fixes?'; then
+    ROOT_SCRIPTS+=('tower_fixes.sh')
+  fi
+
   if ask_default_no 'Would you like to install the art packages?'; then
     ROOT_SCRIPTS+=('art_packages.sh')
   fi
