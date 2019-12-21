@@ -12,3 +12,5 @@ dnf install libvirt -y
 if [ "${DESKTOP_ENABLED}" = "y" ]; then
   dnf install virt-manager -y
 fi
+
+systemctl enable libvirtd.service

@@ -59,6 +59,7 @@ fi
 
 if ask_default_yes 'Would you like to setup nftables as the firewall?'; then
   ROOT_SCRIPTS+=('nftables.sh')
+  export NFTABLES_ENABLED="y"
 fi
 
 if ask_default_yes 'Would you like to setup Rust?'; then
@@ -88,7 +89,20 @@ fi
 
 if ask_default_no 'Would you like to install and setup Docker (deprecated)?'; then
   echo 'You idiot...'
+
+  if [ "${NFTABLES_ENABLED}" = "y" ]; then
+    echo "WARNING: NFTables may break docker configuration"
+  fi
+
   ROOT_SCRIPTS+=('docker.sh')
+fi
+
+if ask_default_no 'Would you like to support running hardware virtual machines?'; then
+  if [ "${NFTABLES_ENABLED}" = "y" ]; then
+    echo "WARNING: NFTables may break virtualization guests"
+  fi
+
+  ROOT_SCRIPTS+=('virtualization.sh')
 fi
 
 # These questions only make sense if I enabled the desktop questions
@@ -121,10 +135,6 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
 
   if ask_default_no 'Would you like to install the streaming packages?'; then
     ROOT_SCRIPTS+=('streaming.sh')
-  fi
-
-  if ask_default_no 'Would you like to support running hardware virtual machines?'; then
-    ROOT_SCRIPTS+=('virtualization.sh')
   fi
 
   if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then
