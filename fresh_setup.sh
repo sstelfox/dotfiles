@@ -103,6 +103,10 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
 
   if ask_default_no 'Would you like to install the art packages?'; then
     ROOT_SCRIPTS+=('art_packages.sh')
+
+    if ask_default_no 'Would you also like to install the game development packages?'; then
+      ROOT_SCRIPTS+=('game_development.sh')
+    fi
   fi
 
   if ask_default_no 'Would you like to install the embedded/electronic design tools?'; then
