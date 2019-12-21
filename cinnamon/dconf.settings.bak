@@ -69,7 +69,8 @@ exec='gnome-calculator'
 exec='gnome-terminal'
 
 [desktop/background]
-picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/great_ocean_road_australia.jpg'
+picture-options='scaled'
+picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/heist_apartment.jpg'
 primary-color='#000000000000'
 
 [desktop/background/slideshow]
@@ -96,6 +97,8 @@ push-tile-up=@as []
 toggle-maximized=['<Alt>F10', '<Super>Up']
 
 [desktop/media-handling]
+automount=false
+automount-open=false
 autorun-never=false
 autorun-x-content-ignore=['x-content/audio-cdda', 'x-content/video-dvd', 'x-content/audio-player', 'x-content/image-dcf', 'x-content/unix-software', 'x-content/audio-dvd', 'x-content/blank-bd', 'x-content/blank-dvd', 'x-content/blank-cd', 'x-content/blank-hddvd', 'x-content/ebook-reader', 'x-content/image-picturecd', 'x-content/software', 'x-content/video-bluray', 'x-content/video-hddvd', 'x-content/video-svcd', 'x-content/video-vcd', 'x-content/win32-software', 'x-content/bootable-media']
 autorun-x-content-open-folder=@as []
