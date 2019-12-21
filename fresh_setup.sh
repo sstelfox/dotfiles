@@ -123,6 +123,10 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
     ROOT_SCRIPTS+=('streaming.sh')
   fi
 
+  if ask_default_no 'Would you like to support running hardware virtual machines?'; then
+    ROOT_SCRIPTS+=('virtualization.sh')
+  fi
+
   if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then
     ROOT_SCRIPTS+=('nvidia_drivers.sh')
   fi
