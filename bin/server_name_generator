@@ -59,8 +59,8 @@ module Descriptor
   def list
     @list ||= %w{
 
-      abandoned able abolished abrupt absolute aching aged ancient anxious
-      apetalous askew auspicious balanced bare bashful bawdy bewildered
+      abandoned able abolished abrupt absolute acerbic aching aged ancient
+      anxious apetalous askew auspicious balanced bare bashful bawdy bewildered
       billowing biting bitter blazing blocked bloody bold bound brash brave
       breathless briefest bright bristling bubbling burning burnished cackling
       calibrated calming carnal cerulean changing chaotic charred chilling
