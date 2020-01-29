@@ -9,4 +9,4 @@ fi
 
 dnf install discord lutris steam -y
 
-# xdg-open lutris:magic-the-gathering-arena-latest
+# xdg-open lutris:magic-the-gathering-arena-latest-self-updating
