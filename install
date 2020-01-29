@@ -55,7 +55,7 @@ if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
 fi
 
 # Generate our SSH config
-truncate -s 0 ${DOTFILE_DIR}/ssh/config
+${DOTFILE_DIR}/ssh/build_config.sh
 
 for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* 2>/dev/null | sort); do
   cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
