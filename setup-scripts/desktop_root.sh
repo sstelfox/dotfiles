@@ -13,13 +13,13 @@ dnf install \
   https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
   https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
 
-dnf install aircrack-ng awscli cheese fswebcam libreoffice pcsc-lite-ccid \
+dnf install aircrack-ng ansible awscli cheese fswebcam libreoffice pcsc-lite-ccid \
   pinentry-gtk privoxy tor transmission-gtk vlc wireshark xclip youtube-dl -y
 
 systemctl enable pcscd.service
 systemctl start pcscd.service
 
-# Lutris wants an absure number of file descriptors, elasticsearch also needs a
+# Lutris wants an absured number of file descriptors, elasticsearch also needs a
 # bunch
 cat << EOF >> /etc/security/limits.conf
 *               soft    nofile          524288

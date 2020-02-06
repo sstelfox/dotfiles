@@ -25,8 +25,8 @@ set spellfile=$HOME/.dotfiles/vim-spellfile.add
 " This is really annoying in files that primarily don't contain prose
 set nospell
 
-highlight ColorColumn ctermbg=magenta
-call matchadd('ColorColumn', '\%81v', 100)
+" highlight ColorColumn ctermbg=magenta
+" call matchadd('ColorColumn', '\%81v', 100)
 
 " TODO: I should autodetect my actual color scheme somehow, but dark is my
 " primary so this is as well... This fixes the annoying issue I was having in

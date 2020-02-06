@@ -7,6 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install discord lutris steam -y
-
-# xdg-open lutris:magic-the-gathering-arena-latest-self-updating
+dnf install godot -y

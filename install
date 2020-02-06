@@ -55,7 +55,7 @@ if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
 fi
 
 # Generate our SSH config
-truncate -s 0 ${DOTFILE_DIR}/ssh/config
+${DOTFILE_DIR}/ssh/build_config.sh
 
 for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* 2>/dev/null | sort); do
   cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
@@ -70,8 +70,10 @@ done
 chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
 chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/{gnupg,ssh}
 
-echo "Installing fonts and updating font cache..."
-fc-cache > /dev/null
+if which fc-cache &> /dev/null; then
+  echo "Installing fonts and updating font cache..."
+  fc-cache &> /dev/null
+fi
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over
 # the public HTTPS endpoint to get these here. Leave a noauth version in case I
