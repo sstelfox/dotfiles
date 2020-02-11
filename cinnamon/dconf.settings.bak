@@ -45,7 +45,7 @@ quit-delay-toggle=false
 quit-time-delay=60
 
 [desktop/a11y/applications]
-screen-keyboard-enabled=false
+screen-keyboard-enabled=true
 screen-reader-enabled=false
 
 [desktop/a11y/keyboard]
@@ -70,7 +70,7 @@ exec='gnome-terminal'
 
 [desktop/background]
 picture-options='scaled'
-picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/heist_apartment.jpg'
+picture-uri='file:///home/sstelfox/Pictures/selected_wallpapers/fog_roof_pool.jpg'
 primary-color='#000000000000'
 
 [desktop/background/slideshow]
@@ -84,7 +84,7 @@ cursor-blink-time=1200
 cursor-size=24
 gtk-im-module='gtk-im-context-simple:xim'
 text-scaling-factor=1.0
-toolkit-accessibility=false
+toolkit-accessibility=true
 
 [desktop/keybindings]
 looking-glass-keybinding=@as []

@@ -11,7 +11,8 @@
             "type": "page",
             "title": "General",
             "sections": [
-                "generalSection"
+                "generalSection",
+                "hotKeysSection"
             ]
         },
         "panelPage": {
@@ -56,6 +57,15 @@
                 "number-display",
                 "pinned-apps",
                 "enable-app-button-dragging"
+            ]
+        },
+        "hotKeysSection": {
+            "type": "section",
+            "title": "Hot Keys",
+            "keys": [
+                "cycleMenusHotkey",
+                "show-apps-order-hotkey",
+                "show-apps-order-timeout"
             ]
         },
         "thumbnailsSection": {
@@ -188,6 +198,28 @@
             "Scale": 3
         },
         "value": 1
+    },
+    "cycleMenusHotkey": {
+        "type": "keybinding",
+        "default": "<Super>space",
+        "description": "Global hotkey for cycling through thumbnail menus",
+        "value": "<Super>space"
+    },
+    "show-apps-order-hotkey": {
+        "type": "keybinding",
+        "default": "<Super>grave",
+        "description": "Global hotkey to show the order of apps",
+        "value": "<Super>grave"
+    },
+    "show-apps-order-timeout": {
+        "type": "spinbutton",
+        "default": 2500,
+        "min": 100,
+        "max": 10000,
+        "step": 10,
+        "units": "milliseconds",
+        "description": "Duration of the apps order display on hotkey press",
+        "value": 2500
     },
     "thumbnail-timeout": {
         "dependency": "!onclick-thumbnails",
@@ -323,5 +355,5 @@
         "description": "Window opacity",
         "value": 100
     },
-    "__md5__": "d4505e84c79b4b4070631aecd44062e9"
+    "__md5__": "76d69b74b6ee5aed0f852beb73c8ae45"
 }
