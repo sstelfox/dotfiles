@@ -1,0 +1,3 @@
+#!/bin/bash
+
+curl -s https://wttr.in/moon | head -n -3
