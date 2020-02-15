@@ -7,10 +7,12 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install libvirt swtpm swtpm-tools virt-install -y
+dnf install libvirt swtpm swtpm-tools qemu-kvm virt-install -y
 
 if [ "${DESKTOP_ENABLED}" = "y" ]; then
   dnf install virt-manager -y
 fi
+
+rm /etc/libvirt/qemu/networks/autostart/default.xml
 
 systemctl enable libvirtd.service
