@@ -9,7 +9,7 @@ if [ -n "$(podman ps -q --filter name=simple_dir_server)" ]; then
   podman stop $(podman ps -q --filter name=simple_dir_server) &> /dev/null
 fi
 
-if [ "$1" = "-q" ]; then
+if [ "${1:-}" = "-q" ]; then
   # If the argument is to just quit, the above handle would take care of it
   exit 0
 fi
