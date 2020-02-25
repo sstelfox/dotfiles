@@ -32,7 +32,7 @@ if [ -z "${HOST_IP}" ]; then
   exit 0
 fi
 
-if /usr/sbin/ss -nt | grep ESTAB | grep -q ${HOST_IP}:${REMOTE_TUNNEL_HOST_PORT}; then
+if /usr/sbin/ss -nt | grep ESTAB | grep -q ${HOST_IP}:${REMOTE_TUNNEL_HOST_PORT:-2200}; then
   # Shell very well could be established... Lets double check using process
   # inspection to double check...
   if ps aux | grep "127.0.0.1:${REMOTE_TUNNEL_LOOPBACK_PORT}:127.0.0.1:22" | grep -vq grep; then
