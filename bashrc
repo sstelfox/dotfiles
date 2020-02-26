@@ -16,7 +16,9 @@ shopt -s cmdhist
 
 # Disable the XON/XOFF flow control completely (Ctrl-Q/Ctrl-S). Damn this is an
 # annoying legacy feature...
-stty -ixon
+if [ -t 0 ]; then
+  stty -ixon
+fi
 
 # If we're running interactively (such as through rsync, sftp etc) don't execute the following code
 if [[ $- != *i* ]]; then
