@@ -79,6 +79,10 @@ if ask_default_no 'Would you like to setup Golang?'; then
   ROOT_SCRIPTS+=('golang.sh')
 fi
 
+if ask_default_yes 'Would you like to install ansible?'; then
+  ROOT_SCRIPTS+=('ansible.sh')
+fi
+
 if ask_default_yes 'Would you like to install podman?'; then
   ROOT_SCRIPTS+=('podman.sh')
 fi
