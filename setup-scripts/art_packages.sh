@@ -7,4 +7,6 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install blender gimp gimp-lqr-plugin gimp-save-for-web inkscape inkscape-psd inkscape-view -y
+# zopfli is included for the `zopflipng` utility for image optimization
+dnf install blender gimp gimp-lqr-plugin gimp-save-for-web inkscape inkscape-psd \
+  inkscape-view zopfli -y
