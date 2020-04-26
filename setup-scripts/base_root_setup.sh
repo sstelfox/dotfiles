@@ -15,6 +15,10 @@ dnf remove vim-powerline --noautoremove -y
 
 dnf update -y
 
+if [ -n "${SETUP_USER}" ]; then
+  usermod -a -G wireshark ${SETUP_USER}
+fi
+
 # Rediculous there is no default for maximum log size in journalctl, systemd is such trash software
 mkdir -p /etc/systemd/journald.conf.d/
 cat << 'EOF' > /etc/systemd/journald.conf.d/00_log_limits.conf

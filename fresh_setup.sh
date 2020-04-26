@@ -166,6 +166,8 @@ if ask_default_no 'Are you ready to do this?'; then
   # Start by testing / prompting for root permissions, will abort if the user Ctrl-C's out of this request
   sudo echo -n
 
+  export SETUP_USER=$(whoami)
+
   # Build a singular root script so we don't have to worry about sudo timing out half way through
   echo -e '#!/bin/bash\n\n' > /tmp/setup_script.sh
   for script in ${ROOT_SCRIPTS[*]}; do

@@ -16,6 +16,10 @@ dnf install \
 dnf install aircrack-ng ansible awscli cheese fswebcam libreoffice pcsc-lite-ccid \
   pinentry-gtk privoxy tor transmission-gtk vlc wireshark xclip youtube-dl -y
 
+if [ -n "${SETUP_USER}" ]; then
+  usermod -a -G wireshark ${SETUP_USER}
+fi
+
 systemctl enable pcscd.service
 systemctl start pcscd.service
 
