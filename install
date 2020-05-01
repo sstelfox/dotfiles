@@ -102,7 +102,7 @@ vim +PlugInstall +PlugUpdate +CocInstall coc-rust-analyzer +qa
 
 echo "Installing rust-analyzer..."
 curl -sS -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o $HOME/.dotfiles/bin/rust-analyzer
-
+chmod +x $HOME/.dotfiles/bin/rust-analyzer
 
 echo "Sourcing new bash profile..."
 # Start using the new profile :)
