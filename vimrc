@@ -73,6 +73,33 @@ autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= noba
 "Bundle 'sstelfox/vim-markdown'
 "Bundle 'Lokaltog/vim-powerline'
 
+" vim-plug setup
+call plug#begin('~/.dotfiles/vim-plugins')
+
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+Plug 'godlygeek/tabular'
+Plug 'plasticboy/vim-markdown'
+
+Plug 'vim-ruby/vim-ruby'
+Plug 'tpope/vim-rails'
+
+Plug 'ctrlpvim/ctrlp'
+
+call plug#end()
+
+" A plugin free version of NERDtree
+" https://shapeshed.com/vim-netrw/
+let g:netrw_banner = 0
+let g:netrw_liststyle = 3
+let g:netrw_browse_split = 4
+let g:netrw_altv = 1
+let g:netrw_winsize = 25
+augroup ProjectDrawer
+  autocmd!
+  autocmd VimEnter * :Vexplore
+augroup END
+
 " Enable filetype plugin
 "filetype indent plugin on
 
