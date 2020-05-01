@@ -44,35 +44,6 @@ autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= noba
 " PLUGINS SETUP
 """""""""""""""""""""""""""""""""""""""""""""""""
 
-" Apparently required for the vundle setup
-"filetype off
-"
-"" Require and initialize vundle
-"set rtp+=~/.vim/bundle/vundle/
-"call vundle#rc()
-"
-"" Let Vundle manage itself so it can get updated with
-"" all the rest
-"Bundle 'gmarik/vundle'
-"
-"" The bundles I want to use, these are git repositories and can take three
-"" forms:
-""   * Bundle 'name'       => Installs plugin 'name' from the vim-scripts github
-""   repo (https://github.com/vim-scripts)
-""   * Bundle 'user/name'  => Installs plugin 'name' from the 'user' github
-""   repo (https://github.com/<user>
-""   * Bundle 'git://git.example.com/plugin.git'  => Installs plugin from a git
-""   repository that isn't located on git hub (The same can be done with an
-""   http path)
-"
-"Bundle 'godlygeek/tabular'
-"Bundle 'kchmck/vim-coffee-script'
-"Bundle 'tpope/vim-fugitive'
-"Bundle 'tpope/vim-git'
-"Bundle 'tpope/vim-rails'
-"Bundle 'sstelfox/vim-markdown'
-"Bundle 'Lokaltog/vim-powerline'
-
 " vim-plug setup
 call plug#begin('~/.dotfiles/vim-plugins')
 
@@ -95,10 +66,11 @@ let g:netrw_liststyle = 3
 let g:netrw_browse_split = 4
 let g:netrw_altv = 1
 let g:netrw_winsize = 25
-augroup ProjectDrawer
-  autocmd!
-  autocmd VimEnter * :Vexplore
-augroup END
+
+"augroup ProjectDrawer
+"  autocmd!
+"  autocmd VimEnter * :Vexplore
+"augroup END
 
 " Enable filetype plugin
 "filetype indent plugin on
@@ -280,6 +252,7 @@ endfunction
 " Mapped triggers
 """""""""""""""""""""""""""""""""""""""""""""""""
 map \t :w\|!bundle exec rspec %<cr>
+map \e :Vexplore<cr>
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 
