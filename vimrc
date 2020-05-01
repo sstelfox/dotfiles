@@ -81,7 +81,14 @@ Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'godlygeek/tabular'
 Plug 'plasticboy/vim-markdown'
 
+Plug 'vim-ruby/vim-ruby'
+Plug 'tpope/vim-rails'
+
+Plug 'ctrlpvim/ctrlp'
+
 call plug#end()
+
+"let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files -co --exclude-standard']
 
 " Enable filetype plugin
 "filetype indent plugin on
