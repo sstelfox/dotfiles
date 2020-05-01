@@ -97,8 +97,12 @@ git update-index --assume-unchanged system-specific/git-user-info.sh
 popd > /dev/null
 
 # Don't believe this is necessary anymore
-#echo "Installing VIM plugins..."
-#vim +BundleInstall! +BundleClean +qa!
+echo "Installing VIM plugins..."
+vim +PlugInstall +PlugUpdate +CocInstall coc-rust-analyzer +qa
+
+echo "Installing rust-analyzer..."
+curl -sS -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o $HOME/.dotfiles/bin/rust-analyzer
+
 
 echo "Sourcing new bash profile..."
 # Start using the new profile :)

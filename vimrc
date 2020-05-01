@@ -73,6 +73,13 @@ autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= noba
 "Bundle 'sstelfox/vim-markdown'
 "Bundle 'Lokaltog/vim-powerline'
 
+" vim-plug setup
+call plug#begin('~/.dotfiles/vim-plugins')
+
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+call plug#end()
+
 " Enable filetype plugin
 "filetype indent plugin on
 
