@@ -14,10 +14,6 @@
   editor   = vim
   filemode = true
 
-  # Use aggressive compression. All my computers have the CPU cycles to spare.
-  # This can slow things down though.
-  compression = 9
-
 [gpg]
   program = gpg2
 
@@ -47,3 +43,9 @@
 
 [user]
   useConfigOnly = true
+
+[init]
+  templatedir = /home/sstelfox/.dotfiles/git-template
+
+[alias]
+  ctags = !.git/hooks/ctags

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -o errexit
+
+trap 'rm -f "$$.tags"' EXIT
+
+git ls-files | ctags --tag-relative -L - -f $$.tags --languages=-javascript
+mv $$.tags tags

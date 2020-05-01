@@ -81,9 +81,10 @@ fi
 (cd ~/.dotfiles/; git remote set-url origin git@github.com:sstelfox/dotfiles.git)
 (cd ~/.dotfiles/; git remote | grep -q noauth || git remote add noauth https://github.com/sstelfox/dotfiles.git)
 
-# Install the git hooks
+# Installing the git hooks just requires git to be reinitialized after we have
+# our global config
 echo "Installing git hooks..."
-$DOTFILE_DIR/bin/dotfile-hook-setup
+git --git-dir=$HOME/.dotfiles init
 
 pushd $DOTFILE_DIR > /dev/null
 
