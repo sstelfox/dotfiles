@@ -55,7 +55,11 @@ Plug 'plasticboy/vim-markdown'
 Plug 'vim-ruby/vim-ruby'
 Plug 'tpope/vim-rails'
 
+" CTags
 Plug 'ctrlpvim/ctrlp'
+
+" Rust Object Notation
+Plug 'ron-rs/ron.vim'
 
 call plug#end()
 
