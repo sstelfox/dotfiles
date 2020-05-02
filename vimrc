@@ -63,6 +63,10 @@ Plug 'ron-rs/ron.vim'
 
 call plug#end()
 
+" vim-markdown configuration
+let g:vim_markdown_folding_disabled = 1
+let g:vim_markdown_no_default_key_mappings = 1
+
 " A plugin free version of NERDtree
 " https://shapeshed.com/vim-netrw/
 let g:netrw_banner = 0
