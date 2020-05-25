@@ -17,7 +17,8 @@ rustup component add rustfmt
 rustup component add clippy
 rustup install stable
 
-cargo install cargo-audit
+# Viu is a sweet terminal image viewer that is super handy
+cargo install cargo-audit viu
 
 if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
   rustup target add --toolchain stable thumbv6m-none-eabi
