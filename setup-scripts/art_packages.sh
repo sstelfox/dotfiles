@@ -9,4 +9,4 @@ fi
 
 # zopfli is included for the `zopflipng` utility for image optimization
 dnf install blender gimp gimp-lqr-plugin gimp-save-for-web inkscape inkscape-psd \
-  inkscape-view zopfli -y
+  inkscape-view krita zopfli -y
