@@ -58,6 +58,15 @@ alias gdb='gdb -q'
 # Shortcut for generating a QR code in the command line
 alias qr='echo "$@" | qrencode -m 3 -t UTF8 -o -'
 
+#if [ ! -d "${HOME}/.azure" ]; then
+#  mkdir "${HOME}/.azure"
+#  chmod 0750 "${HOME}/.azure"
+#fi
+#alias az='podman run -it --rm --security-opt label=disable -v "${HOME}/.azure:/root/.azure" --entrypoint /usr/local/bin/az mcr.microsoft.com/azure-cli:latest'
+
+#[ -f "${HOME}/.terraform_env" ] || touch "${HOME}/.terraform_env"
+#alias terraform='podman run -it --rm --env-file "${HOME}/.terraform_env" --security-opt label=disable -v $(pwd):/run/current -w /run/current docker.io/hashicorp/terraform:light'
+
 export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usrc/local/bin:$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/bin:$HOME/.gem/ruby/2.4.0/bin:$HOME/.cargo/bin:$HOME/node_modules/yarn/bin"
 
 if [ -d "$HOME/go_install/go" ]; then
