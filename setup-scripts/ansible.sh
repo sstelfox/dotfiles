@@ -2,8 +2,8 @@
 
 set -o errexit
 
-if [ ${EUID} = 0 ]; then
-  echo "This setup script should only be run in the context of the primary user."
+if [ ${EUID} != 0 ]; then
+  echo "This setup script should only be run by root."
   exit 1
 fi
 
