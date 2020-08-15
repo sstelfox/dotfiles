@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install obs-studio -y
+dnf install obs-studio v4l2ucp -y
