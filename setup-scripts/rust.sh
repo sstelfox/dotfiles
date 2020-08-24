@@ -8,7 +8,7 @@ if [ ${EUID} = 0 ]; then
 fi
 
 if [ ! -f $HOME/.cargo/env ]; then
-  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly -y
+  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly --profile complete -y
 fi
 
 source $HOME/.cargo/env
