@@ -67,7 +67,7 @@ alias qr='echo "$@" | qrencode -m 3 -t UTF8 -o -'
 #[ -f "${HOME}/.terraform_env" ] || touch "${HOME}/.terraform_env"
 #alias terraform='podman run -it --rm --env-file "${HOME}/.terraform_env" --security-opt label=disable -v $(pwd):/run/current -w /run/current docker.io/hashicorp/terraform:light'
 
-export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/go_install/go/bin:$HOME/bin:/home/sstelfox/.rvm/gems/ruby-2.7.0/bin:$HOME/.cargo/bin:$HOME/node_modules/yarn/bin"
+export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/.local/bin/:$HOME/go_install/go/bin:$HOME/bin:/home/sstelfox/.rvm/gems/ruby-2.7.0/bin:$HOME/.cargo/bin:$HOME/node_modules/yarn/bin"
 
 if [ -d "$HOME/go_install/go" ]; then
   export GOROOT="$HOME/go_install/go"
