@@ -151,3 +151,9 @@ source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 unset LESSOPEN
 unset SSH_ASKPASS
+
+# minim ops related settings
+export TF_VAR_custom_bastion_user=$(whoami)
+export TF_VAR_custom_bastion_private_key=~/.ssh/provisioning.pub
+export TF_VAR_chr_provisioning_password=dootdootdootnotreal
+export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
