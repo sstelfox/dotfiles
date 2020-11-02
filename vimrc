@@ -133,8 +133,8 @@ set notimeout ttimeout ttimeoutlen=200
 " Display any incomplete commands in the status bar
 set showcmd
 
-" Don't display line numbers
-set nonumber
+" Display line numbers
+set number
 
 " When opening files automatically background the active buffer rather than
 " closing it
