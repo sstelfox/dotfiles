@@ -108,9 +108,9 @@ module Descriptor
       threatening tinkling tiny tired toasted toppled tumescent tremulant
       triumphant troublesome truculent trusted tyrannical unassuming unbroken
       uncertain uncommon underground unholy unexpected unique unkind unknown
-      unseen unthinkable unwashed upsetting urgent vain vile vicious volatile
-      wanton wary wasteful whispering weathered wicked wild wintry wise
-      withered wondrous young
+      unseen unthinkable unwashed upsetting urgent vain variegated vile vicious
+      volatile wanton wary wasteful whispering weathered wicked wild wintry
+      wise withered wondrous young
 
     }.sort
   end
