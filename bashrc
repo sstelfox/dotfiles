@@ -40,6 +40,7 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
+alias gb='git branch --sort=-committerdate'
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
 alias glroot='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc --first-parent'
 alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
