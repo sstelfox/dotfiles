@@ -40,7 +40,7 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
-alias gb='git branch --sort=-committerdate'
+alias gb='git branch --sort=-committerdate | head -n 20'
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
 alias glroot='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc --first-parent'
 alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
@@ -159,3 +159,7 @@ export TF_VAR_custom_bastion_user=$(whoami)
 export TF_VAR_custom_bastion_private_key=~/.ssh/provisioning.pub
 export TF_VAR_chr_provisioning_password=dootdootdootnotreal
 export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
+
+# NetworkManager is absolute trash and doesn't allow you to set these, so we
+# have to fallback on env variables
+export RES_OPTIONS="edns0 trust-ad"

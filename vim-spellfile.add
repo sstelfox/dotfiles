@@ -321,3 +321,10 @@ rgb
 colinear
 MindShark
 timestamp
+passthrough
+TinyFPGA
+VM
+iCE40LP8K
+combinational
+tristate
+Bitwise

@@ -96,12 +96,6 @@ set wildmenu
 " Always show the current position
 set ruler
 
-" The command bar height
-set cmdheight=2
-
-" Change buffer without saving
-set hid
-
 " How backspace behaves
 set backspace=indent,eol,start
 
@@ -122,7 +116,7 @@ set magic
 set showmatch
 
 " How many tenths of a second to blink
-set mat=2
+set matchtime=2
 
 " No sound on errors, but flash the screen
 set noerrorbells
@@ -198,7 +192,7 @@ set nosmartindent
 set nowrap
 
 " When wrapping break on spaces rather than in the middle of a word
-set lbr
+set linebreak
 
 " Highlight tabs and trailing spaces
 set listchars=tab:>-,trail:-

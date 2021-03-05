@@ -2,7 +2,8 @@
 
 set -o errexit
 
-# Require xawtv package
+# Requires xawtv package
+# GUI for tweaking settings is gtk-v4l
 
 /usr/bin/v4lctl bright 23%
 /usr/bin/v4lctl contrast 50%
