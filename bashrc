@@ -40,7 +40,9 @@ for FILE in $HOME/.dotfiles/system-specific/*; do
   fi
 done
 
+alias gb='git branch --sort=-committerdate | head -n 20'
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
+alias glroot='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc --first-parent'
 alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
 
 # Fuck this command search bull shit
@@ -67,7 +69,7 @@ alias qr='echo "$@" | qrencode -m 3 -t UTF8 -o -'
 #[ -f "${HOME}/.terraform_env" ] || touch "${HOME}/.terraform_env"
 #alias terraform='podman run -it --rm --env-file "${HOME}/.terraform_env" --security-opt label=disable -v $(pwd):/run/current -w /run/current docker.io/hashicorp/terraform:light'
 
-export PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usrc/local/bin:$HOME/.dotfiles/bin:$HOME/go_install/go/bin:$HOME/bin:$HOME/.gem/ruby/2.4.0/bin:$HOME/.cargo/bin:$HOME/node_modules/yarn/bin"
+export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/.local/bin/:$HOME/go_install/go/bin:$HOME/bin:/home/sstelfox/.rvm/gems/ruby-2.7.0/bin:$HOME/.cargo/bin:$HOME/node_modules/yarn/bin"
 
 if [ -d "$HOME/go_install/go" ]; then
   export GOROOT="$HOME/go_install/go"
@@ -151,3 +153,13 @@ source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 unset LESSOPEN
 unset SSH_ASKPASS
+
+# minim ops related settings
+export TF_VAR_custom_bastion_user=$(whoami)
+export TF_VAR_custom_bastion_private_key=~/.ssh/provisioning.pub
+export TF_VAR_chr_provisioning_password=dootdootdootnotreal
+export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
+
+# NetworkManager is absolute trash and doesn't allow you to set these, so we
+# have to fallback on env variables
+export RES_OPTIONS="edns0 trust-ad"

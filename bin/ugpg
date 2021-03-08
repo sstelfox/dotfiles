@@ -1,3 +1,4 @@
 #!/bin/bash
 
+echo 'KILLAGENT' | gpg-connect-agent
 echo 'UPDATESTARTUPTTY' | gpg-connect-agent

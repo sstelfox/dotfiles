@@ -65,18 +65,18 @@ module Descriptor
       breathless briefest bright bristling bubbling burning burnished cackling
       calibrated calming carnal cerulean changing chaotic charred chilling
       civilized clean cleftal clever clinging closed coarse collapsed
-      comforting complacent condescending congealing cool cosmic corndusted
-      corrosive coruscant courteous coy cracked crescent crimson crushed
+      comforting complacent condescending congealing cool coquettish corndusted
+      corrosive coruscant cosmic courteous coy cracked crescent crimson crushed
       crystal curious daft dainty dangerous deep desperate delicate demonic
       diligent dim distant divine dreadful dripping drunken dull dusty dying
       echoing effortless effulgent elaborate elemental eloquent elusive
       embarrassed emergent empty endless energized engraved enlightened envied
-      etched even exasperated exciting exiled explored faceted faint familiar
-      fancy faraway fast fathomless fearsome feathered feigned fierce finished
-      fizzing flagrant flickering floating flooded fond foolish foreign
-      forgotten frail frantic frayed free friendly frightened frosty fulsome
-      furious furrowed gasping gathered gentle giggling gilded gleaming glib
-      glistening gloating glorious glowing graceful grating graven greedy
+      ersatz etched even exasperated exciting exiled explored faceted faint
+      familiar fancy faraway fast fathomless fearsome feathered feigned fierce
+      finished fizzing flagrant flickering floating flooded fond foolish
+      foreign forgotten frail frantic frayed free friendly frightened frosty
+      fulsome furious furrowed gasping gathered gentle giggling gilded gleaming
+      glib glistening gloating glorious glowing graceful grating graven greedy
       grubby guarded guilty halfseen healthy heaving heavy hidden hoisted
       hollow hopeful horrid howling humming hurried hushed icy idle immortal
       impious important improper indecent infernal innocent intent intoxicating
@@ -108,9 +108,9 @@ module Descriptor
       threatening tinkling tiny tired toasted toppled tumescent tremulant
       triumphant troublesome truculent trusted tyrannical unassuming unbroken
       uncertain uncommon underground unholy unexpected unique unkind unknown
-      unseen unthinkable unwashed upsetting urgent vain vile vicious volatile
-      wanton wary wasteful whispering weathered wicked wild wintry wise
-      withered wondrous young
+      unseen unthinkable unwashed upsetting urgent vain variegated vile vicious
+      volatile wanton wary wasteful whispering weathered wicked wild wintry
+      wise withered wondrous young
 
     }.sort
   end
@@ -128,17 +128,18 @@ module Target
 
       abyss accord ancients ambrosia annulet apocalypse battle bedrock bordello
       bottle breeze brooch brook bush cloud clover corruption cavern chasm
-      chronicle cloud cobweb creek cult dasein debris dew doom dream dust eddy
-      edge ember emblem experiment faerie field figurine fire firefly fireplace
-      fissure flower fog forest fountain frog frost funeral gift glade grass
-      heart herbs hill home horizon imprecation jar karma knell knight lake
-      laurel leaf luster marble meadow moon mountain moss necropolis oubliette
-      overwatch paper passage peak picture pine poet pond poignard portent
-      praxis quest rain remnant resonance river road sacrifice scent sea seed
-      shadow shaft shelter shield silence spirit sky smoke snow soldier sorrow
-      sound star staircase sun surf surface tempest thought threshold thunder
-      torment tower treasure tree triptych trove tunnel vacuum valediction
-      vengeance voice water waterfall wave wind wood world zombie
+      chronicle cloud cobweb colloquy creek cult dasein debris dew doom dream
+      dust eddy edge ember emblem experiment faerie field figurine fire firefly
+      fireplace fissure flower fog forest fountain frog frost funeral gift
+      glade grass heart herbs hill home horizon imprecation jar karma knell
+      knight lake laurel leaf locus luster marble meadow moon mountain moss
+      necropolis oubliette overwatch paper passage peak phyle picture pine
+      plenum poet pond poignard portent praxis quest rain redoubt remnant
+      resonance river road sacrifice scent sea seed shadow shaft shelter shield
+      silence spirit sky smoke snow soldier sorrow sound star staircase sun
+      surf surface tempest thought threshold thunder torment tower treasure
+      tree triptych trove tunnel vacuum valediction vengeance voice water
+      waterfall wave wind wood world zombie
 
     }.sort
   end

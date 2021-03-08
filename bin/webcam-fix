@@ -2,12 +2,18 @@
 
 set -o errexit
 
-# Require xawtv package
+# GUI for tweaking settings is gtk-v4l
+#
+# v4l2-ctl --list-devices
+# v4l2-ctl -d /dev/video0 --list-ctrls
 
-/usr/bin/v4lctl bright 23%
-/usr/bin/v4lctl contrast 50%
-/usr/bin/v4lctl color 50%
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl brightness=80
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl contrast=5
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl saturation=100
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl sharpness=25
 
-/usr/bin/v4lctl setattr "Sharpness" 50%
-/usr/bin/v4lctl setattr "White Balance Temperature, Auto" false
-/usr/bin/v4lctl setattr "White Balance Temperature" 37%
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl focus_auto=0
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl focus_absolute=12
+
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl white_balance_temperature_auto=0
+/usr/bin/v4l2-ctl -d /dev/video0 --set-ctrl white_balance_temperature=5000

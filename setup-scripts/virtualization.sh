@@ -13,6 +13,6 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
   dnf install virt-manager -y
 fi
 
-rm /etc/libvirt/qemu/networks/autostart/default.xml
+#rm -f /etc/libvirt/qemu/networks/autostart/default.xml
 
 systemctl enable libvirtd.service
