@@ -9,6 +9,7 @@ fi
 
 if [ "${DESKTOP_SESSION}" = "cinnamon" ]; then
   ~/.dotfiles/restore_cinnamon_settings.sh
+  dconf write /org/cinnamon/prevent-focus-stealing true
 fi
 
 echo "I haven't yet automated this or know if I should, but if this machine has an"
