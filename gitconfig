@@ -45,7 +45,7 @@
   useConfigOnly = true
 
 [init]
-  templatedir = /home/sstelfox/.dotfiles/git-template
+  defaultBranch = main
 
 [alias]
   ctags = !.git/hooks/ctags
