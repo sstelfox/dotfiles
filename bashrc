@@ -52,7 +52,7 @@ alias gs='git status'
 alias gr='git fetch && git rebase origin/master'
 alias db_prep='rm db/*.sqlite3; rm db/*.db; rake db:migrate && rake db:seed && rake db:test:prepare'
 alias octal='stat -c "%A %a %n"'
-#alias dig='dig +nocmd +noall +answer'
+alias dig='dig +nocmd +noall +answer'
 
 alias vi='vim'
 alias gdb='gdb -q'
