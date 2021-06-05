@@ -11,7 +11,6 @@ dnf remove firewalld -y
 
 dnf install bind-utils git git-email git-lfs gnupg2-smime graphviz httpd-tools iotop ipset jq mutt \
   nftables nmap pv ranger tcpdump tmux vim-enhanced wireshark-cli -y
-dnf remove vim-powerline --noautoremove -y
 
 dnf update -y
 
