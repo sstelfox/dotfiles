@@ -47,8 +47,6 @@ autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= noba
 " vim-plug setup
 call plug#begin('~/.dotfiles/vim-plugins')
 
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
-
 Plug 'godlygeek/tabular'
 Plug 'plasticboy/vim-markdown'
 

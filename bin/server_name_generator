@@ -1,217 +1,84 @@
-#!/usr/bin/env ruby
+#!/bin/bash
 
-require 'securerandom'
+declare -a DESCRIPTOR=(
+  abandoned able abolished abrupt absolute acerbic aching aged ancient anxious
+  apetalous askew auspicious balanced bare bashful bawdy bewildered billowing
+  biting bitter blazing blocked bloody bold bound brash brave breathless
+  briefest bright bristling bubbling burning burnished cackling calibrated
+  calming carnal cerulean changing chaotic charred chilling civilized clean
+  cleftal clever clinging closed coarse collapsed comforting complacent
+  condescending congealing cool coquettish corndusted corrosive coruscant
+  cosmic courteous coy cracked crescent crimson crushed crystal curious daft
+  dainty dangerous deep desperate delicate demonic diligent dim distant divine
+  dreadful dripping drunken dull dusty dying echoing effortless effulgent
+  elaborate elemental eloquent elusive embarrassed emergent empty endless
+  energized engraved enlightened envied ersatz etched even exasperated exciting
+  exiled explored faceted faint familiar fancy faraway fast fathomless fearsome
+  feathered feigned fierce finished fizzing flagrant flickering floating
+  flooded fond foolish foreign forgotten frail frantic frayed free friendly
+  frightened frosty fulsome furious furrowed gasping gathered gentle giggling
+  gilded gleaming glib glistening gloating glorious glowing graceful grating
+  graven greedy grubby guarded guilty halfseen healthy heaving heavy hidden
+  hoisted hollow hopeful horrid howling humming hurried hushed icy idle
+  immortal impious important improper indecent infernal innocent intent
+  intoxicating intractable inviolate invisible irritated isolated ivory jagged
+  jittery jostled joyful just keening kindled kindly kinked knowing lacking
+  laden lank laughing lavender leathery level light liminal lingible lithe
+  lively loathe lonely looming lost loved lovely lurching luxurious mad managed
+  marvelous massive mauled meddling melting mended metal mewling mighty
+  mirrored missing misty moaning modest moonswept mortal motherly moving
+  muffled murmuring mysterious nameless narrow natural neat nefarious nervous
+  nestled newfound nonchalant normal numb obscured obvious odd offended ominous
+  oily oozing ordinary ornate overgrown padded painted pale panicked passionate
+  patient penultimate perfect perfumed pithy poisoned poor polished plain
+  planned playful pleasant pleased polished precious precise preserved prickly
+  prideful private prized profane proper proud pure puzzling quick quiet
+  quivering quotidian radiant ragged rakish rare rarified reasonable recovered
+  reflected refused relaxed reluctant replaced resting rediculous restless
+  ringing rippled rising roasted roiling rough rude ruined safe sanguine
+  satisfied scarce scarred scattered scintillant scraped screaming sealed
+  seasoned secret seemly seething selfish sensible shallow sharp shattered
+  shimmering shining shivering shuffling shy silent simple singing sinister
+  skewed slanting sleeping slick slow small smoky smooth smudged snarling
+  soaked soft solitary sooty sound sparkling spattered spiraling spiteful
+  splintered sprawling squeeking squirming staggering startled stately steaming
+  steep stiff still stirring stolid stormy strange striking strong stubborn
+  sublime sufficient suitable sullen sure supicious sweet swollen tangled
+  tarnished tattered tawdry tempered tender tenebrific terrible thieving
+  threatening tinkling tiny tired toasted toppled tumescent tremulant
+  triumphant troublesome truculent trusted tyrannical unassuming unbroken
+  uncertain uncommon underground unholy unexpected unique unkind unknown unseen
+  unthinkable unwashed upsetting urgent vain variegated vile vicious volatile
+  wanton wary wasteful whispering weathered wicked wild wintry wise withered
+  wondrous young
+)
 
-module NumericSyllable
-  def consonents
-    %w[ b d g h j k m n p r s t z ]
-  end
+declare -a TARGET=(
+  abyss accord ancients ambrosia annulet apocalypse basin battle beach bedrock
+  bluff bog bordello bottle breeze brooch brook bush bute cave channel cliff
+  cloud clover corruption cavern chasm chronicle cloud cobweb colloquy cove
+  creek cult dasein debris dew dome doom dream dust eddy edge ember emblem
+  experiment faerie fen field figurine fire firefly fireplace fissure flower
+  fog forest fountain frog frost funeral gestalt geyser gift glacier glade glen
+  gorge grass heart herbs hill home horizon imprecation inlet isle isthmus jar
+  karma knell knight lake laurel leaf locus luster marble marsh meadow mesa
+  mire moon mountain moss necropolis oasis ocean oubliette overwatch palimpsest
+  paper passage peak phyle picture pine plenum poet pond poignard portent
+  praxis quest rain redoubt reef remnant resonance river road sacrifice scent
+  sea seed shadow shaft shelter shield silence spirit sky smoke snow soldier
+  sorrow sound star staircase sun surf surface swamp tempest thought threshold
+  thunder torment tower treasure tree triptych trove tunnel vacuum valediction
+  vengeance voice volcano water waterfall wave wind wood world zombie
+)
 
-  def inverse
-    "wi"
-  end
+declare -a TIME_NAME=(
+  afterlight afternoon autumn dawn dusk evening eventide gloaming midday
+  midnight morning night noon spring summer sunrise sunset twilight winter
+)
 
-  def syllables
-    consonents.product(vowels).map(&:join)
-  end
+function randomArraySelect() {
+  arr=("${!1}")
+  echo -n ${arr["$[RANDOM % ${#arr[@]}]"]}
+}
 
-  def vowels
-    %w[ a e i o u ]
-  end
-
-  def break_up_num(num)
-    modulus = num % syllables.count
-    remainder = num / syllables.count
-
-    (num == 0) ? "" : "#{syllables[modulus]}#{break_up_num(remainder)}"
-  end
-
-  def from_int(num)
-    raise ArgumentError unless num.kind_of?(Integer)
-    prefix = (num < 0) ? inverse : ""
-    "#{prefix}#{break_up_num(num.abs)}"
-  end
-
-  def to_int(str)
-    string_to_int(str)
-  end
-
-  def string_to_int(str)
-    return 0 if str.length == 0
-    return (-1 * string_to_int(str[2..-1])) if str.match(/^#{inverse}/)
-    return syl_to_num(str[0...2]) + (syllables.count * string_to_int(str[2..-1]))
-  end
-
-  def syl_to_num(str)
-    raise ArgumentError unless str.empty? || syllables.include?(str)
-    str.empty? ? 0 : syllables.index(str)
-  end
-
-  module_function :consonents, :inverse, :syllables, :vowels, :break_up_num,
-    :from_int, :to_int, :string_to_int, :syl_to_num
-end
-
-module Descriptor
-  def get
-    list.sample
-  end
-
-  def list
-    @list ||= %w{
-
-      abandoned able abolished abrupt absolute acerbic aching aged ancient
-      anxious apetalous askew auspicious balanced bare bashful bawdy bewildered
-      billowing biting bitter blazing blocked bloody bold bound brash brave
-      breathless briefest bright bristling bubbling burning burnished cackling
-      calibrated calming carnal cerulean changing chaotic charred chilling
-      civilized clean cleftal clever clinging closed coarse collapsed
-      comforting complacent condescending congealing cool coquettish corndusted
-      corrosive coruscant cosmic courteous coy cracked crescent crimson crushed
-      crystal curious daft dainty dangerous deep desperate delicate demonic
-      diligent dim distant divine dreadful dripping drunken dull dusty dying
-      echoing effortless effulgent elaborate elemental eloquent elusive
-      embarrassed emergent empty endless energized engraved enlightened envied
-      ersatz etched even exasperated exciting exiled explored faceted faint
-      familiar fancy faraway fast fathomless fearsome feathered feigned fierce
-      finished fizzing flagrant flickering floating flooded fond foolish
-      foreign forgotten frail frantic frayed free friendly frightened frosty
-      fulsome furious furrowed gasping gathered gentle giggling gilded gleaming
-      glib glistening gloating glorious glowing graceful grating graven greedy
-      grubby guarded guilty halfseen healthy heaving heavy hidden hoisted
-      hollow hopeful horrid howling humming hurried hushed icy idle immortal
-      impious important improper indecent infernal innocent intent intoxicating
-      intractable inviolate invisible irritated isolated ivory jagged jittery
-      jostled joyful just keening kindled kindly kinked knowing lacking laden
-      lank laughing lavender leathery level light liminal lingible lithe lively
-      loathe lonely looming lost loved lovely lurching luxurious mad managed
-      marvelous massive mauled meddling melting mended metal mewling mighty
-      mirrored missing misty moaning modest moonswept mortal motherly moving
-      muffled murmuring mysterious nameless narrow natural neat nefarious
-      nervous nestled newfound nonchalant normal numb obscured obvious odd
-      offended ominous oily oozing ordinary ornate overgrown padded painted
-      pale panicked passionate patient penultimate perfect perfumed pithy
-      poisoned poor polished plain planned playful pleasant pleased polished
-      precious precise preserved prickly prideful private prized profane proper
-      proud pure puzzling quick quiet quivering quotidian radiant ragged rakish
-      rare rarified reasonable recovered reflected refused relaxed reluctant
-      replaced resting rediculous restless ringing rippled rising roasted
-      roiling rough rude ruined safe sanguine satisfied scarce scarred
-      scattered scintillant scraped screaming sealed seasoned secret seemly
-      seething selfish sensible shallow sharp shattered shimmering shining
-      shivering shuffling shy silent simple singing sinister skewed slanting
-      sleeping slick slow small smoky smooth smudged snarling soaked soft
-      solitary sooty sound sparkling spattered spiraling spiteful splintered
-      sprawling squeeking squirming staggering startled stately steaming steep
-      stiff still stirring stolid stormy strange striking strong stubborn
-      sublime sufficient suitable sullen sure supicious sweet swollen tangled
-      tarnished tattered tawdry tempered tender tenebrific terrible thieving
-      threatening tinkling tiny tired toasted toppled tumescent tremulant
-      triumphant troublesome truculent trusted tyrannical unassuming unbroken
-      uncertain uncommon underground unholy unexpected unique unkind unknown
-      unseen unthinkable unwashed upsetting urgent vain variegated vile vicious
-      volatile wanton wary wasteful whispering weathered wicked wild wintry
-      wise withered wondrous young
-
-    }.sort
-  end
-
-  module_function :get, :list
-end
-
-module Target
-  def get
-    list.sample
-  end
-
-  def list
-    @list ||= %w{
-
-      abyss accord ancients ambrosia annulet apocalypse basin battle beach
-      bedrock bluff bog bordello bottle breeze brooch brook bush bute cave
-      channel cliff cloud clover corruption cavern chasm chronicle cloud cobweb
-      colloquy cove creek cult dasein debris dew dome doom dream dust eddy edge
-      ember emblem experiment faerie fen field figurine fire firefly fireplace
-      fissure flower fog forest fountain frog frost funeral gestalt geyser gift
-      glacier glade glen gorge grass heart herbs hill home horizon imprecation
-      inlet isle isthmus jar karma knell knight lake laurel leaf locus luster
-      marble marsh meadow mesa mire moon mountain moss necropolis oasis ocean
-      oubliette overwatch palimpsest paper passage peak phyle picture pine
-      plenum poet pond poignard portent praxis quest rain redoubt reef remnant
-      resonance river road sacrifice scent sea seed shadow shaft shelter shield
-      silence spirit sky smoke snow soldier sorrow sound star staircase sun
-      surf surface swamp tempest thought threshold thunder torment tower
-      treasure tree triptych trove tunnel vacuum valediction vengeance voice
-      volcano water waterfall wave wind wood world zombie
-
-    }.sort
-  end
-
-  module_function :get, :list
-end
-
-module TimeName
-  def get
-    list.sample
-  end
-
-  def list
-    @list ||= %w{
-
-      afterlight afternoon autumn dawn dusk evening eventide gloaming midday
-      midnight morning night noon spring summer sunrise sunset twilight winter
-
-    }.sort
-  end
-
-  module_function :get, :list
-end
-
-def generate_name
-  chunks = [Descriptor.get, TimeName.get, Target.get]
-  #chunks << NumericSyllable.from_int(name_index(*chunks))
-
-  # Build the final name
-  chunks.join('-')
-end
-
-def name_index(desc, time, target)
-  Descriptor.list.index(desc) +
-    (Descriptor.list.count * TimeName.list.index(time)) +
-    (Descriptor.list.count * TimeName.list.count * Target.list.index(target))
-end
-
-def index_name(abs_index)
-  target_index = (abs_index / (Descriptor.list.count * TimeName.list.count))
-  abs_index -= target_index * (Descriptor.list.count * TimeName.list.count)
-
-  time_name_index = (abs_index / Descriptor.list.count)
-  abs_index -= time_name_index * Descriptor.list.count
-
-  descriptor_index = abs_index
-
-  [Descriptor.list[descriptor_index], TimeName.list[time_name_index], Target.list[target_index]]
-end
-
-def validate_name(name)
-  # Split apart the built name into it's components
-  desc, time, target, checksum = name.split('-')
-  return false if checksum.nil?
-
-  # Retrieve the numeric checksum and convert it back into a number
-  chk = NumericSyllable.to_int(checksum)
-  desc2, time2, target2 = index_name(chk)
-
-  (desc == desc2 && time == time2 && target == target2)
-end
-
-possible_outcomes = Descriptor.list.size * TimeName.list.size * Target.list.size
-repetition_chance = Rational(1, possible_outcomes)
-puts "Repetition chance: #{repetition_chance}\n"
-puts "Bits represented: #{Math.log(possible_outcomes, 2)}\n\n"
-
-count = ARGV.empty? ? 3 : ARGV.first.to_i
-count.times do
-  #printf "%-40s ", name = generate_name
-  #puts "Checksum valid? #{(validate_name(name)) ? 'Yes' : 'No'}"
-  puts generate_name
-end
+echo "$(randomArraySelect "DESCRIPTOR[@]")-$(randomArraySelect "TIME_NAME[@]")-$(randomArraySelect "TARGET[@]")"

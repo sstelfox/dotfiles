@@ -8,7 +8,7 @@
 # if they existed for reference. This folder is not included in the
 # repository and as such will not migrate between machines
 
-FILES=( bashrc bash_profile ctags fonts gitconfig gnupg muttrc pryrb sqliterc ssh tmux.conf toprc vim vimrc )
+FILES=( bashrc bash_profile ctags gitconfig gnupg muttrc sqliterc ssh tmux.conf toprc vim vimrc )
 
 DOTFILE_DIR="$HOME/.dotfiles"
 
@@ -83,13 +83,10 @@ fi
 
 # Installing the git hooks just requires git to be reinitialized after we have
 # our global config
-echo "Installing git hooks..."
-git --git-dir=$HOME/.dotfiles init
+#echo "Installing git hooks..."
+#git --git-dir=$HOME/.dotfiles init
 
 pushd $DOTFILE_DIR > /dev/null
-
-# Update the all the submodules in the dotfile directory
-$DOTFILE_DIR/bin/update-submodules
 
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
@@ -99,13 +96,7 @@ popd > /dev/null
 
 # Don't believe this is necessary anymore
 echo "Installing VIM plugins..."
-vim +PlugInstall +PlugUpdate +CocInstall coc-rust-analyzer +qa
-
-if [ ! -f $HOME/.dotfiles/bin/rust-analyzer ]; then
-  echo "Installing rust-analyzer..."
-  curl -sS -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o $HOME/.dotfiles/bin/rust-analyzer
-  chmod +x $HOME/.dotfiles/bin/rust-analyzer
-fi
+vim +PlugInstall +PlugUpdate +qa
 
 echo "Sourcing new bash profile..."
 # Start using the new profile :)
