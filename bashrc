@@ -47,7 +47,7 @@ unset command_not_found_handle
 alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
-export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
+export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/.cargo/bin"
 
 export HISTCONTROL="ignoreboth"
 export HISTIGNORE="ls:bg:fg:history"
@@ -84,11 +84,13 @@ setup_prompt
 unset LESSOPEN
 unset SSH_ASKPASS
 
+source ${DOTFILES_DIR}/scripts/gpg-agent.sh
+
 # minim ops related settings
-#export TF_VAR_custom_bastion_user=$(whoami)
-#export TF_VAR_custom_bastion_private_key=~/.ssh/provisioning.pub
-#export TF_VAR_chr_provisioning_password=dootdootdootnotreal
-#export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
+export TF_VAR_custom_bastion_user=$(whoami)
+export TF_VAR_custom_bastion_private_key=~/.ssh/provisioning.pub
+export TF_VAR_chr_provisioning_password=dootdootdootnotreal
+export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
 
 # NetworkManager is absolute trash and doesn't allow you to set these, so we
 # have to fallback on env variables

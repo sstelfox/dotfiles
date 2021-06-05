@@ -9,5 +9,7 @@ fi
 
 curl --silent --location https://dl.yarnpkg.com/rpm/yarn.repo | sudo tee /etc/yum.repos.d/yarn.repo > /dev/null
 
-# Chromium is unfortunately needed for selenium
-dnf install chromedriver chromium v8 yarn -y
+# Chromium is unfortunately needed for selenium, but I don't always need that...
+#dnf install chromedriver chromium -y
+
+dnf install v8 yarn -y

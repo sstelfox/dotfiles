@@ -26,8 +26,3 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", MODE:="0660", OWNER="root", G
 EOF
 
 udevadm control --reload-rules
-
-# TODO: This doesn't seem to be working right now... keystone-engine isn't happy on F30+...
-# Install and setup GEF
-#pip3 install --user unicorn capstone ropper keystone-engine
-#wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh

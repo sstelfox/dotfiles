@@ -75,10 +75,6 @@ if ask_default_yes 'Would you like to install Yarn?'; then
   ROOT_SCRIPTS+=('yarn.sh')
 fi
 
-if ask_default_no 'Would you like to setup Golang?'; then
-  ROOT_SCRIPTS+=('golang.sh')
-fi
-
 if ask_default_yes 'Would you like to install ansible?'; then
   ROOT_SCRIPTS+=('ansible.sh')
 fi
@@ -89,16 +85,6 @@ fi
 
 if ask_default_yes 'Would you like to install kubernetes tooling?'; then
   ROOT_SCRIPTS+=('k8s.sh')
-fi
-
-if ask_default_no 'Would you like to install and setup Docker (deprecated)?'; then
-  echo 'You idiot...'
-
-  if [ "${NFTABLES_ENABLED}" = "y" ]; then
-    echo "WARNING: NFTables may break docker configuration"
-  fi
-
-  ROOT_SCRIPTS+=('docker.sh')
 fi
 
 if ask_default_no 'Would you like to support running hardware virtual machines?'; then
@@ -139,10 +125,6 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
 
   if ask_default_no 'Would you like to install the streaming packages?'; then
     ROOT_SCRIPTS+=('streaming.sh')
-  fi
-
-  if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then
-    ROOT_SCRIPTS+=('nvidia_drivers.sh')
   fi
 fi
 

@@ -8,22 +8,22 @@ if [ ${EUID} = 0 ]; then
 fi
 
 if [ ! -f $HOME/.cargo/env ]; then
-  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly --profile complete -y
+  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --default-toolchain nightly --profile minimal -y
 fi
 
 source $HOME/.cargo/env
 
-rustup component add rustfmt || true
-rustup component add clippy
+#rustup component add rustfmt || true
+#rustup component add clippy
 rustup install stable
 
 # Viu is a sweet terminal image viewer that is super handy
-cargo install cargo-audit viu
+#cargo install cargo-audit viu
 
-if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
-  rustup target add --toolchain stable thumbv6m-none-eabi
-  rustup target add --toolchain nightly thumbv6m-none-eabi
-
-  cargo install cargo-binutils itm
-  rustup component add llvm-tools-preview
-fi
+#if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
+#  rustup target add --toolchain stable thumbv6m-none-eabi
+#  rustup target add --toolchain nightly thumbv6m-none-eabi
+#
+#  cargo install cargo-binutils itm
+#  rustup component add llvm-tools-preview
+#fi
