@@ -47,7 +47,7 @@ unset command_not_found_handle
 alias octal='stat -c "%A %a %n"'
 alias dig='dig +nocmd +noall +answer'
 
-export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/.cargo/bin"
+export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/.cargo/bin:$HOME/.rvm/bin"
 
 export HISTCONTROL="ignoreboth"
 export HISTIGNORE="ls:bg:fg:history"
