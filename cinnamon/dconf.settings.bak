@@ -26,6 +26,7 @@ enabled-applets=['panel1:left:0:menu@cinnamon.org:0', 'panel1:left:1:show-deskto
 enabled-desklets=@as []
 hotcorner-layout=['expo:false:0', 'scale:false:0', 'scale:false:0', 'desktop:false:0']
 next-applet-id=13
+prevent-focus-stealing=true
 show-media-keys-osd='medium'
 startup-animation=false
 
@@ -44,10 +45,26 @@ delay=15
 image-source='xml:///usr/share/cinnamon-background-properties/desktop-backgrounds-basic.xml'
 
 [desktop/interface]
+cursor-blink-time=1200
 cursor-size=24
 gtk-im-module='gtk-im-context-simple:xim'
 scaling-factor=uint32 0
 text-scaling-factor=1.0
+toolkit-accessibility=false
+
+[desktop/keybindings]
+custom-list=['custom1', 'custom0', '__dummy__']
+looking-glass-keybinding=@as []
+
+[desktop/keybindings/custom-keybindings/custom0]
+binding=['<Super>l']
+command='/bin/xdg-screensaver lock'
+name='Lock Screen'
+
+[desktop/keybindings/custom-keybindings/custom1]
+binding=['<Super>t']
+command='/bin/gnome-terminal'
+name='Start Terminal'
 
 [desktop/media-handling]
 autorun-never=true
@@ -79,6 +96,10 @@ attach-modal-dialogs=true
 resize-threshold=24
 tile-hud-threshold=25
 tile-maximize=true
+
+[settings-daemon/peripherals/keyboard]
+delay=uint32 500
+repeat-interval=uint32 30
 
 [settings-daemon/peripherals/mouse]
 double-click=400
