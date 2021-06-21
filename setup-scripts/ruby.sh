@@ -15,4 +15,4 @@ curl -sSL https://get.rvm.io | bash -s stable --ruby
 source ~/.bashrc
 
 # Install the globally available gems
-gem install pry
+gem install pry rotp
