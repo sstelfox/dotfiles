@@ -21,7 +21,6 @@
 
 [user]
   useConfigOnly = true
-[pull]
-	ff = only
+
 [push]
-	default = current
+  default = current

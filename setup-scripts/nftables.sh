@@ -51,9 +51,9 @@ table inet filter {
     tcp dport 67 tcp sport 68 accept
 
     # SSH, DNS, HTTP, HTTPS, git, my SSH alt port, DNS alt port, and GPG keyserver port
-    tcp dport { 22, 53, 80, 443, 873, 2200, 5353, 11371 } accept
+    tcp dport { 22, 53, 80, 443, 873, 2200, 5053, 5353, 11371 } accept
     # DNS and NTP
-    udp dport { 53, 123, 5353 } accept
+    udp dport { 53, 123, 5053, 5353 } accept
 
     ct state new log level warn prefix "egress attempt: "
     counter reject with icmp type admin-prohibited
