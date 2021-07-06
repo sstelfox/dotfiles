@@ -163,3 +163,10 @@ export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
 # NetworkManager is absolute trash and doesn't allow you to set these, so we
 # have to fallback on env variables
 export RES_OPTIONS="edns0 trust-ad"
+
+# Hidden environment variable to disable telemetry tracking in the Azure CLI
+export AZURE_CORE_COLLECT_TELEMETRY=0
+
+# Likely not adopted by anyone, but for the apps that do I definitely want to opt-out
+# https://consoledonottrack.com/
+export DO_NOT_TRACK=1
