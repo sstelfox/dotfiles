@@ -79,6 +79,10 @@ if ask_default_no 'Would you like to setup Golang?'; then
   ROOT_SCRIPTS+=('golang.sh')
 fi
 
+if ask_default_no 'Would you like to setup Nix?'; then
+  USER_SCRIPTS+=('nix.sh')
+fi
+
 if ask_default_yes 'Would you like to install ansible?'; then
   ROOT_SCRIPTS+=('ansible.sh')
 fi
