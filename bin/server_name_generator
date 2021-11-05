@@ -54,21 +54,22 @@ declare -a DESCRIPTOR=(
 )
 
 declare -a TARGET=(
-  abyss accord ancients ambrosia annulet apocalypse basin battle beach bedrock
-  bluff bog bordello bottle breeze brooch brook bush bute cave channel cliff
-  cloud clover corruption cavern chasm chronicle cloud cobweb colloquy cove
-  creek cult dasein debris dew dome doom dream dust eddy edge ember emblem
-  experiment faerie fen field figurine fire firefly fireplace fissure flower
-  fog forest fountain frog frost funeral gestalt geyser gift glacier glade glen
-  gorge grass heart herbs hill home horizon imprecation inlet isle isthmus jar
-  karma knell knight lake laurel leaf locus luster marble marsh meadow mesa
-  mire moon mountain moss necropolis oasis ocean oubliette overwatch palimpsest
-  paper passage peak phyle picture pine plenum poet pond poignard portent
-  praxis quest rain redoubt reef remnant resonance river road sacrifice scent
-  sea seed shadow shaft shelter shield silence spirit sky smoke snow soldier
-  sorrow sound star staircase sun surf surface swamp tempest thought threshold
-  thunder torment tower treasure tree triptych trove tunnel vacuum valediction
-  vengeance voice volcano water waterfall wave wind wood world zombie
+  abyss accord acolytes ancients ambrosia annulet apocalypse basin battle beach
+  bedrock bluff bog bordello bottle breeze brooch brook bush bute cave channel
+  cliff cloud clover corruption cavern chasm chronicle cloud cobweb colloquy
+  coterie cove creek cult dasein debris dew dome doom dream dust eddy edge
+  ember emblem experiment faerie fen field figurine fire firefly fireplace
+  fissure flower fog forest fountain frog frost funeral gestalt geyser gift
+  glacier glade glen gorge grass heart herbs hill home horizon imprecation
+  inlet isle isthmus jar karma knell knight lake laurel leaf locus luster
+  marble marsh meadow mesa mire moon mountain moss necropolis oasis ocean
+  oubliette overwatch palimpsest paper passage peak phyle picture pine plenum
+  poet pond poignard portent praxis quest rain redoubt reef remnant resonance
+  river road sacrifice scent sea seed shadow shaft shelter shield silence
+  spirit sky smoke snow soldier sorrow sound star staircase sun surf surface
+  swamp tempest thought threshold thunder torment tower treasure tree triptych
+  trove tunnel vacuum valediction vengeance voice volcano water waterfall wave
+  wind wood world zombie
 )
 
 declare -a TIME_NAME=(
@@ -76,9 +77,18 @@ declare -a TIME_NAME=(
   midnight morning night noon spring summer sunrise sunset twilight winter
 )
 
-function randomArraySelect() {
+function generate_name() {
+  echo "$(random_array_select "DESCRIPTOR[@]")-$(random_array_select "TIME_NAME[@]")-$(random_array_select "TARGET[@]")"
+}
+
+function random_array_select() {
   arr=("${!1}")
   echo -n ${arr["$[RANDOM % ${#arr[@]}]"]}
 }
 
-echo "$(randomArraySelect "DESCRIPTOR[@]")-$(randomArraySelect "TIME_NAME[@]")-$(randomArraySelect "TARGET[@]")"
+echo "Possible combinations: $(( ${#DESCRIPTOR[@]} * ${#TIME_NAME[@]} * ${#TARGET[@]} ))"
+echo
+
+for i in $(seq 3); do
+  generate_name
+done
