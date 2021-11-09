@@ -26,8 +26,8 @@ if [[ $- != *i* ]]; then
 fi
 
 # Encoding help?
-export LC_ALL=en_US.utf-8
-export LANG="$LC_ALL"
+#export LC_ALL=en_US.utf-8
+#export LANG="$LC_ALL"
 export TZ="America/Chicago"
 
 # Big surprise? I think not
