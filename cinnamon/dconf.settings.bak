@@ -1,0 +1,169 @@
+[org/cinnamon]
+alttab-switcher-delay=100
+alttab-switcher-style='preview'
+desklet-snap-interval=25
+enabled-applets=['panel1:left:0:menu@cinnamon.org:0', 'panel1:right:4:systray@cinnamon.org:4', 'panel1:right:5:xapp-status@cinnamon.org:5', 'panel1:right:6:notifications@cinnamon.org:6', 'panel1:right:8:removable-drives@cinnamon.org:8', 'panel1:right:9:network@cinnamon.org:9', 'panel1:right:10:power@cinnamon.org:10', 'panel1:right:12:sound@cinnamon.org:12', 'panel1:right:2:xrandr@cinnamon.org:13', 'panel1:right:0:calendar@cinnamon.org:15']
+enabled-desklets=@as []
+next-applet-id=16
+panel-zone-icon-sizes='[{"panelId": 1, "left": 0, "center": 0, "right": 0}]'
+panel-zone-symbolic-icon-sizes='[{"panelId": 1, "left": 28, "center": 28, "right": 24}]'
+panels-height=['1:40']
+startup-animation=false
+
+[org/cinnamon/cinnamon-session]
+quit-time-delay=60
+
+[org/cinnamon/desktop/applications/calculator]
+exec='gnome-calculator'
+
+[org/cinnamon/desktop/applications/terminal]
+exec='gnome-terminal'
+
+[org/cinnamon/desktop/background]
+picture-options='stretched'
+picture-uri='file:///usr/share/backgrounds/images/earth_from_space.jpg'
+
+[org/cinnamon/desktop/background/slideshow]
+delay=15
+image-source='xml:///usr/share/cinnamon-background-properties/desktop-backgrounds-basic.xml'
+
+[org/cinnamon/desktop/interface]
+clock-show-date=true
+cursor-blink-time=1200
+cursor-size=24
+gtk-im-module='gtk-im-context-simple:xim'
+scaling-factor=uint32 1
+text-scaling-factor=1.0
+
+[org/cinnamon/desktop/keybindings/media-keys]
+terminal=['<Super>t']
+
+[org/cinnamon/desktop/keybindings/wm]
+panel-run-dialog=['<Alt>F2', '<Super>r']
+push-tile-up=@as []
+switch-group=['<Alt>grave']
+switch-group-backward=['<Shift><Alt>asciitilde']
+switch-windows-backward=['<Shift><Alt>Tab']
+toggle-maximized=['<Alt>F10', '<Super>Up']
+
+[org/cinnamon/desktop/media-handling]
+autorun-never=false
+
+[org/cinnamon/desktop/notifications]
+remove-old=true
+
+[org/cinnamon/desktop/privacy]
+remember-recent-files=false
+
+[org/cinnamon/desktop/screensaver]
+lock-delay=uint32 30
+
+[org/cinnamon/desktop/sound]
+event-sounds=false
+maximum-volume=150
+
+[org/cinnamon/desktop/wm/preferences]
+min-window-opacity=30
+
+[org/cinnamon/launcher]
+check-frequency=300
+memory-limit=2048
+
+[org/cinnamon/muffin]
+resize-threshold=24
+tile-hud-threshold=25
+
+[org/cinnamon/settings-daemon/peripherals/keyboard]
+delay=uint32 500
+repeat-interval=uint32 30
+
+[org/cinnamon/settings-daemon/peripherals/mouse]
+custom-acceleration=false
+custom-threshold=false
+double-click=400
+drag-threshold=8
+left-handed=false
+motion-acceleration=5.9040816326530612
+motion-threshold=1
+natural-scroll=false
+
+[org/cinnamon/settings-daemon/peripherals/touchpad]
+custom-acceleration=true
+custom-threshold=false
+motion-acceleration=9.0516898608349905
+motion-threshold=1
+natural-scroll=false
+tap-to-click=false
+
+[org/cinnamon/settings-daemon/plugins/power]
+critical-battery-action='shutdown'
+lid-close-ac-action='suspend'
+lid-close-battery-action='suspend'
+sleep-display-ac=1800
+sleep-display-battery=1800
+sleep-inactive-ac-timeout=0
+sleep-inactive-battery-timeout=0
+
+[org/cinnamon/sounds]
+close-enabled=false
+login-enabled=false
+logout-enabled=false
+map-enabled=false
+maximize-enabled=false
+minimize-enabled=false
+switch-enabled=false
+tile-enabled=false
+unmaximize-enabled=false
+
+[org/fedoraproject/FirewallConfig]
+show-active-bindings=true
+show-ipsets=true
+
+[org/gnome/desktop/a11y/applications]
+screen-keyboard-enabled=false
+screen-reader-enabled=false
+
+[org/gnome/desktop/a11y/mouse]
+dwell-click-enabled=false
+dwell-threshold=10
+dwell-time=1.2
+secondary-click-enabled=false
+secondary-click-time=1.2
+
+[org/gnome/desktop/interface]
+clock-format='24h'
+toolkit-accessibility=false
+
+[org/gnome/evolution-data-server]
+migrated=true
+network-monitor-gio-name=''
+
+[org/gnome/login-screen]
+enable-fingerprint-authentication=true
+enable-password-authentication=true
+enable-smartcard-authentication=false
+
+[org/gnome/terminal/legacy/profiles:]
+list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', '6edcf515-1b36-44b5-8320-774989e8ec9a']
+
+[org/gnome/terminal/legacy/profiles:/:6edcf515-1b36-44b5-8320-774989e8ec9a]
+audible-bell=false
+background-color='rgb(253,246,227)'
+default-size-columns=120
+font='DejaVu Sans Mono 14'
+foreground-color='rgb(101,123,131)'
+palette=['rgb(7,54,66)', 'rgb(220,50,47)', 'rgb(133,153,0)', 'rgb(181,137,0)', 'rgb(38,139,210)', 'rgb(211,54,130)', 'rgb(42,161,152)', 'rgb(238,232,213)', 'rgb(0,43,54)', 'rgb(203,75,22)', 'rgb(88,110,117)', 'rgb(101,123,131)', 'rgb(131,148,150)', 'rgb(108,113,196)', 'rgb(147,161,161)', 'rgb(253,246,227)']
+use-system-font=false
+use-theme-colors=false
+visible-name='Light'
+
+[org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
+audible-bell=false
+background-color='rgb(0,43,54)'
+default-size-columns=120
+font='DejaVu Sans Mono 14'
+foreground-color='rgb(131,148,150)'
+palette=['rgb(7,54,66)', 'rgb(220,50,47)', 'rgb(133,153,0)', 'rgb(181,137,0)', 'rgb(38,139,210)', 'rgb(211,54,130)', 'rgb(42,161,152)', 'rgb(238,232,213)', 'rgb(0,43,54)', 'rgb(203,75,22)', 'rgb(88,110,117)', 'rgb(101,123,131)', 'rgb(131,148,150)', 'rgb(108,113,196)', 'rgb(147,161,161)', 'rgb(253,246,227)']
+use-system-font=false
+use-theme-colors=false
+visible-name='Dark'
