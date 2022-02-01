@@ -26,6 +26,7 @@ echo "\t* Install standard firefox extensions"
 echo "\t* Switch default search engine to DuckDuckGo"
 
 # Current list of firefox extensions:
+#
 #   - Decentraleyes
 #   - HTTPS Everywhere
 #   - Privacy Badger
@@ -33,3 +34,11 @@ echo "\t* Switch default search engine to DuckDuckGo"
 #   - Redirect AMP to HTML
 #   - Snowflake
 #   - uBlock Origin
+#
+# Potential additions:
+#
+#   - AdNauseam
+#   - CanvasBlocker
+#   - ClearURLs
+#   - Privacy Possum
+#   - Random User-Agent

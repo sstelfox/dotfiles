@@ -9,7 +9,7 @@ fi
 
 source /etc/os-release
 
-if [ "${NAME}" != "Fedora" ]; then
+if [ "${NAME}" != "Fedora" -a "${NAME}" != "Fedora Linux" ]; then
   echo "These setup scripts are only targetting Fedora. It looks like you're trying to run this on another distro."
   exit 1
 fi

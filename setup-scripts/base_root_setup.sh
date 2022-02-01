@@ -45,3 +45,6 @@ systemctl mask systemd-resolved.service
 # to generate a valid one.
 rm -f /etc/resolv.conf
 systemctl restart NetworkManager.service
+
+# Give it a few seconds to fix itself, poor dumb thing
+sleep 5
