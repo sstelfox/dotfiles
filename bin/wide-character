@@ -5,4 +5,3 @@
 input = $stdin.read.chomp.bytes
 wide_bytes = input.map { |i| i -= 32; (i > 0) ? (i | 0xFF00) : 0x3000 }
 p wide_bytes.pack("U*")
-

@@ -1,3 +1,6 @@
+[apply]
+  whitespace = nowarn
+
 [color]
   branch      = auto
   interactive = auto
@@ -5,8 +8,8 @@
   status      = auto
   ui          = auto
 
-[apply]
-  whitespace = nowarn
+[commit]
+  gpgsign = true
 
 [core]
   autocrlf = input
@@ -14,11 +17,14 @@
   editor   = vim
   filemode = true
 
+[fetch]
+  fsckobjects = true
+
 [gpg]
   program = gpg2
 
-[commit]
-  gpgsign = true
+[init]
+  defaultBranch = main
 
 [pull]
   default = current
@@ -26,26 +32,11 @@
 [push]
   default = current
 
-[transfer]
-  fsckobjects = true
-
-[fetch]
-  fsckobjects = true
-
 [receive]
   fsckobjects = true
 
-[filter "lfs"]
-  required = true
-  clean = git-lfs clean -- %f
-  smudge = git-lfs smudge -- %f
-  process = git-lfs filter-process
+[transfer]
+  fsckobjects = true
 
 [user]
   useConfigOnly = true
-
-[init]
-  defaultBranch = main
-
-[alias]
-  ctags = !.git/hooks/ctags
