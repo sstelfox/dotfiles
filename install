@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# This file replaces various dotfiles in the user's home directory
-# it makes some assumptions about what's installed such as vim, bash,
-# git, bash-completion, and tmux.
+# This file replaces various dotfiles in the user's home directory it makes
+# some assumptions about what's installed such as vim, bash, git,
+# bash-completion, and tmux.
 #
-# The original files are stored in $HOME/.dotfiles/system-originals/
-# if they existed for reference. This folder is not included in the
-# repository and as such will not migrate between machines
+# The original files are stored in $HOME/.dotfiles/system-originals/ if they
+# existed for reference. This folder is not included in the repository and as
+# such will not migrate between machines
+#FILES=( bashrc bash_profile ctags fonts gitconfig gnupg muttrc pryrb sqliterc ssh tmux.conf toprc vim vimrc )
+FILES=( bashrc bash_profile ctags fonts gitconfig pryrb sqliterc tmux.conf toprc )
 
-FILES=( bashrc bash_profile ctags fonts gitconfig gnupg muttrc pryrb sqliterc ssh tmux.conf toprc vim vimrc )
+DOTFILE_DIR="${HOME}/.dotfiles"
 
-DOTFILE_DIR="$HOME/.dotfiles"
-
-# This function takes a filename (without the preceding .) and backs
-# it up before installing a symbolic link to the repository version
+# This function takes a filename (without the preceding .) and backs it up
+# before installing a symbolic link to the repository version
 function backup_and_install {
   echo "Installing $1..."
 
@@ -36,39 +36,39 @@ for DOTFILE in ${FILES[@]}; do
   backup_and_install $DOTFILE
 done
 
-# Check to see if we need to move SSH keys back
-if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
-  if [ -f "$DOTFILE_DIR/system-originals/ssh/id_rsa" -a -f "$DOTFILE_DIR/system-originals/ssh/id_rsa.pub" ]; then
-    echo "Found SSH keys. Bringing them into the dotfiles..."
-    mv $DOTFILE_DIR/system-originals/ssh/id_rsa* $DOTFILE_DIR/ssh/
-  fi
+## Check to see if we need to move SSH keys back
+#if [ -d "$DOTFILE_DIR/system-originals/ssh" ]; then
+#  if [ -f "$DOTFILE_DIR/system-originals/ssh/id_rsa" -a -f "$DOTFILE_DIR/system-originals/ssh/id_rsa.pub" ]; then
+#    echo "Found SSH keys. Bringing them into the dotfiles..."
+#    mv $DOTFILE_DIR/system-originals/ssh/id_rsa* $DOTFILE_DIR/ssh/
+#  fi
+#
+#  if [ -f "$DOTFILE_DIR/system-originals/ssh/known_hosts" ]; then
+#    echo "Found existing known host file. Bringing into the dotfiles..."
+#    mv $DOTFILE_DIR/system-originals/ssh/known_hosts $DOTFILE_DIR/ssh/
+#  fi
+#
+#  if [ -f "$DOTFILE_DIR/system-originals/ssh/authorized_keys" ]; then
+#    echo "Found existing authorized keys file. Bringing into the dotfiles..."
+#    mv $DOTFILE_DIR/system-originals/ssh/authorized_keys $DOTFILE_DIR/ssh/
+#  fi
+#fi
 
-  if [ -f "$DOTFILE_DIR/system-originals/ssh/known_hosts" ]; then
-    echo "Found existing known host file. Bringing into the dotfiles..."
-    mv $DOTFILE_DIR/system-originals/ssh/known_hosts $DOTFILE_DIR/ssh/
-  fi
-
-  if [ -f "$DOTFILE_DIR/system-originals/ssh/authorized_keys" ]; then
-    echo "Found existing authorized keys file. Bringing into the dotfiles..."
-    mv $DOTFILE_DIR/system-originals/ssh/authorized_keys $DOTFILE_DIR/ssh/
-  fi
-fi
-
-# Generate our SSH config
-${DOTFILE_DIR}/ssh/build_config.sh
-
-for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* 2>/dev/null | sort); do
-  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
-  echo >> ${DOTFILE_DIR}/ssh/config
-done
-
-for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* 2>/dev/null | sort); do
-  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
-  echo >> ${DOTFILE_DIR}/ssh/config
-done
-
-chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
-chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/{gnupg,ssh}
+## Generate our SSH config
+#${DOTFILE_DIR}/ssh/build_config.sh
+#
+#for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* 2>/dev/null | sort); do
+#  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
+#  echo >> ${DOTFILE_DIR}/ssh/config
+#done
+#
+#for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* 2>/dev/null | sort); do
+#  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
+#  echo >> ${DOTFILE_DIR}/ssh/config
+#done
+#
+#chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
+#chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/{gnupg,ssh}
 
 if which fc-cache &> /dev/null; then
   echo "Installing fonts and updating font cache..."
@@ -81,34 +81,22 @@ fi
 (cd ~/.dotfiles/; git remote set-url origin git@github.com:sstelfox/dotfiles.git)
 (cd ~/.dotfiles/; git remote | grep -q noauth || git remote add noauth https://github.com/sstelfox/dotfiles.git)
 
-# Installing the git hooks just requires git to be reinitialized after we have
-# our global config
-echo "Installing git hooks..."
-git --git-dir=$HOME/.dotfiles init
+## Installing the git hooks just requires git to be reinitialized after we have
+## our global config
+#echo "Installing git hooks..."
+#git --git-dir=$HOME/.dotfiles init
 
-pushd $DOTFILE_DIR > /dev/null
-
-# Update the all the submodules in the dotfile directory
-$DOTFILE_DIR/bin/update-submodules
+## Update the all the submodules in the dotfile directory
+#pushd $DOTFILE_DIR > /dev/null
+#$DOTFILE_DIR/bin/update-submodules
+#popd > /dev/null
 
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
-git update-index --assume-unchanged system-specific/git-user-info.sh
+(cd ~/.dotfiles; git update-index --assume-unchanged system-specific/git-user-info.sh)
 
-popd > /dev/null
-
-# Don't believe this is necessary anymore
-echo "Installing VIM plugins..."
-vim +PlugInstall +PlugUpdate +CocInstall coc-rust-analyzer +qa
-
-if [ ! -f $HOME/.dotfiles/bin/rust-analyzer ]; then
-  echo "Installing rust-analyzer..."
-  curl -sS -L https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-linux -o $HOME/.dotfiles/bin/rust-analyzer
-  chmod +x $HOME/.dotfiles/bin/rust-analyzer
-fi
-
-echo "Sourcing new bash profile..."
-# Start using the new profile :)
-source $HOME/.bash_profile
+## Don't believe this is necessary anymore
+#echo "Installing VIM plugins..."
+#vim +PlugInstall +PlugUpdate +CocInstall coc-rust-analyzer +qa
 
 echo "Done."
