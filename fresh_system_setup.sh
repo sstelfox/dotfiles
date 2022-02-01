@@ -75,14 +75,6 @@ if ask_default_yes 'Would you like to install Yarn?'; then
   ROOT_SCRIPTS+=('yarn.sh')
 fi
 
-if ask_default_no 'Would you like to setup Golang?'; then
-  ROOT_SCRIPTS+=('golang.sh')
-fi
-
-if ask_default_no 'Would you like to setup Nix?'; then
-  USER_SCRIPTS+=('nix.sh')
-fi
-
 if ask_default_yes 'Would you like to install ansible?'; then
   ROOT_SCRIPTS+=('ansible.sh')
 fi
@@ -93,16 +85,6 @@ fi
 
 if ask_default_yes 'Would you like to install kubernetes tooling?'; then
   ROOT_SCRIPTS+=('k8s.sh')
-fi
-
-if ask_default_no 'Would you like to install and setup Docker (deprecated)?'; then
-  echo 'You idiot...'
-
-  if [ "${NFTABLES_ENABLED}" = "y" ]; then
-    echo "WARNING: NFTables may break docker configuration"
-  fi
-
-  ROOT_SCRIPTS+=('docker.sh')
 fi
 
 if ask_default_no 'Would you like to support running hardware virtual machines?'; then
@@ -144,10 +126,6 @@ if [ "${DESKTOP_ENABLED}" = "y" ]; then
   if ask_default_no 'Would you like to install the streaming packages?'; then
     ROOT_SCRIPTS+=('streaming.sh')
   fi
-
-  if ask_default_no 'Would you like to install the proprietary Nvidia drivers?'; then
-    ROOT_SCRIPTS+=('nvidia_drivers.sh')
-  fi
 fi
 
 echo
@@ -167,12 +145,14 @@ if [ ${#USER_SCRIPTS[@]} -gt 0 ]; then
 fi
 
 if ask_default_no 'Are you ready to do this?'; then
-  # Start by testing / prompting for root permissions, will abort if the user Ctrl-C's out of this request
+  # Start by testing / prompting for root permissions, will abort if the user
+  # Ctrl-C's out of this request
   sudo echo -n
 
   export SETUP_USER=$(whoami)
 
-  # Build a singular root script so we don't have to worry about sudo timing out half way through
+  # Build a singular root script so we don't have to worry about sudo timing
+  # out half way through
   echo -e '#!/bin/bash\n\n' > /tmp/setup_script.sh
   for script in ${ROOT_SCRIPTS[*]}; do
     cat ~/.dotfiles/setup-scripts/${script} >> /tmp/setup_script.sh
@@ -183,7 +163,8 @@ if ask_default_no 'Are you ready to do this?'; then
 
   sudo /bin/bash /tmp/setup_script.sh
 
-  # For user scripts we can just run them directly as we don't have to worry about timeouts
+  # For user scripts we can just run them directly as we don't have to worry
+  # about timeouts on sudo sessions.
   for script in ${USER_SCRIPTS[*]}; do
     ~/.dotfiles/setup-scripts/${script}
   done
