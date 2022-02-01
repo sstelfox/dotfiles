@@ -8,8 +8,7 @@ if [ ${EUID} = 0 ]; then
 fi
 
 if [ "${DESKTOP_SESSION}" = "cinnamon" ]; then
-  ~/.dotfiles/restore_cinnamon_settings.sh
-  dconf write /org/cinnamon/prevent-focus-stealing true
+  ~/.dotfiles/scripts/restore_cinnamon_settings.sh
 fi
 
 echo "I haven't yet automated this or know if I should, but if this machine has an"
@@ -26,5 +25,11 @@ echo "\t* Setup firefox user.js"
 echo "\t* Install standard firefox extensions"
 echo "\t* Switch default search engine to DuckDuckGo"
 
-# Current list of firefox extensions: HTTPS Everywhere, Privacy Badger, Reddit
-# Enhancement Suite, Snowflake, and uBlock Origin
+# Current list of firefox extensions:
+#   - Decentraleyes
+#   - HTTPS Everywhere
+#   - Privacy Badger
+#   - Reddit Enhancement Suite
+#   - Redirect AMP to HTML
+#   - Snowflake
+#   - uBlock Origin

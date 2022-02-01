@@ -7,11 +7,13 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-# Note this embedded profile should be run after rust so I can detect if its
-# installed and add the appropriate toolchains.
+# Don't need this anymore, its not making Kicad 6 available and the standard
+# kicad has caught up and will be more stable. I'll keep this around if I need
+# it in the future...
+#dnf copr enable @kicad/kicad -y
 
-dnf copr enable @kicad/kicad -y
-dnf install arm-none-eabi-gcc-cs arm-none-eabi-gcc-cs-c++ arm-none-eabi-binutils-cs gdb kicad kicad-packages3d openocd -y
+dnf install arm-none-eabi-gcc-cs arm-none-eabi-gcc-cs-c++ \
+  arm-none-eabi-binutils-cs gdb kicad kicad-packages3d openocd -y
 
 if ! groups | grep -q dialout; then
   usermod -aG dialout sstelfox

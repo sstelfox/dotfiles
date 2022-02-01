@@ -29,7 +29,6 @@ table inet filter {
   }
 
   chain forward {
-    # Accept is needed here as docker doesn't know how to modify nft rulesets... thank god
     type filter hook forward priority 0; policy accept;
   }
 
@@ -42,18 +41,20 @@ table inet filter {
     ip protocol icmp accept
     ip6 nexthdr icmpv6 accept
 
-    # Allow all outbound traffic to local v4 networks
-    #ip daddr 192.168.0.0/16 accept
-    #ip daddr 172.16.0.0/12 accept
-    #ip daddr 10.0.0.0/8 accept
+    # Allow all outbound traffic to local networks
+    ip daddr fe80::/16 accept
+    ip daddr 192.168.0.0/16 accept
+    ip daddr 172.16.0.0/12 accept
+    ip daddr 10.0.0.0/8 accept
 
     # DHCPv4
     tcp dport 67 tcp sport 68 accept
 
     # SSH, DNS, HTTP, HTTPS, git, my SSH alt port, DNS alt port, and GPG keyserver port
-    tcp dport { 22, 53, 80, 443, 873, 2200, 5353, 11371 } accept
-    # DNS and NTP
-    udp dport { 53, 123, 5353 } accept
+    tcp dport { 22, 53, 80, 443, 873, 2200, 5353, 7053, 11371 } accept
+
+    # DNS, NTP, and the alt DNS ports used for testing
+    udp dport { 53, 123, 5353, 7053 } accept
 
     ct state new log level warn prefix "egress attempt: "
     counter reject with icmp type admin-prohibited

@@ -7,6 +7,4 @@ if [ ${EUID} = 0 ]; then
   exit 1
 fi
 
-~/.dotfiles/install
-
 run_keybase
