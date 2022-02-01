@@ -20,12 +20,15 @@ exec='gnome-calculator'
 exec='gnome-terminal'
 
 [org/cinnamon/desktop/background]
-picture-options='stretched'
-picture-uri='file:///usr/share/backgrounds/images/earth_from_space.jpg'
+picture-options='zoom'
+picture-uri='file:///home/sstelfox/.dotfiles/backgrounds/breather_girl.jpg'
+primary-color='#000000000000'
 
 [org/cinnamon/desktop/background/slideshow]
 delay=15
-image-source='xml:///usr/share/cinnamon-background-properties/desktop-backgrounds-basic.xml'
+image-source='directory:///home/sstelfox/.dotfiles/backgrounds'
+random-order=true
+slideshow-enabled=true
 
 [org/cinnamon/desktop/interface]
 clock-show-date=true
@@ -170,3 +173,21 @@ preserve-working-directory='never'
 use-system-font=false
 use-theme-colors=false
 visible-name='Dark'
+
+[org/gtk/settings/color-chooser]
+custom-colors=[(0.0078431372549019607, 0.23529411764705882, 0.53333333333333333, 1.0)]
+selected-color=(true, 0.0, 0.0, 0.0, 1.0)
+
+[org/gtk/settings/file-chooser]
+date-format='regular'
+location-mode='filename-entry'
+show-hidden=false
+show-size-column=true
+show-type-column=true
+sidebar-width=148
+sort-column='name'
+sort-directories-first=false
+sort-order='ascending'
+type-format='category'
+window-position=(784, 319)
+window-size=(990, 742)
