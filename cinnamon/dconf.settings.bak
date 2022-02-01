@@ -21,7 +21,7 @@ exec='gnome-terminal'
 
 [org/cinnamon/desktop/background]
 picture-options='zoom'
-picture-uri='file:///home/sstelfox/.dotfiles/backgrounds/breather_girl.jpg'
+picture-uri='file:///home/sstelfox/.dotfiles/backgrounds/wholesome_ivy_bridge.jpg'
 primary-color='#000000000000'
 
 [org/cinnamon/desktop/background/slideshow]
@@ -38,7 +38,11 @@ gtk-im-module='gtk-im-context-simple:xim'
 scaling-factor=uint32 1
 text-scaling-factor=1.0
 
+[org/cinnamon/desktop/keybindings]
+looking-glass-keybinding=@as []
+
 [org/cinnamon/desktop/keybindings/media-keys]
+screensaver=['<Super>l', 'XF86ScreenSaver']
 terminal=['<Super>t']
 
 [org/cinnamon/desktop/keybindings/wm]
