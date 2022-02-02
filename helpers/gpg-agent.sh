@@ -2,13 +2,12 @@
 
 # Only attempt to setup the gpg-agent if we're not on an SSH connection
 if [ -z "${SSH_CONNECTION}" ]; then
-  # Set GPG TTY
-  export GPG_TTY=$(tty)
-
-  # Start the gpg-agent if not already running
-  gpg-connect-agent /bye >/dev/null 3>&1
-
-  # Set SSH to use gpg-agent
   unset SSH_AGENT_PID
-  export SSH_AUTH_SOCK="/run/user/$(id -u)/gnupg/S.gpg-agent.ssh"
+
+  if [ "${gnupg_SSH_AUTH_SOCK_by:-0}" -ne $$ ]; then
+    export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+  fi
+
+  export GPG_TTY=$(tty)
+  gpg-connect-agent updatestartuptty /bye >/dev/null 3>&1
 fi
