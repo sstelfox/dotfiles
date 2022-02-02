@@ -11,3 +11,7 @@ get my extra addons in there.
 
 I might be able to make this 'complete' at some point but it wasn't worth the
 time for me right now.
+
+Other changes I've made:
+
+* `dom.storage_access.enabled` -> true
