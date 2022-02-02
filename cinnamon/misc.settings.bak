@@ -1,0 +1,21 @@
+[org/fedoraproject/FirewallConfig]
+show-active-bindings=true
+show-ipsets=true
+
+[org/gtk/settings/color-chooser]
+custom-colors=[(0.0078431372549019607, 0.23529411764705882, 0.53333333333333333, 1.0)]
+selected-color=(true, 0.0, 0.0, 0.0, 1.0)
+
+[org/gtk/settings/file-chooser]
+date-format='regular'
+location-mode='filename-entry'
+show-hidden=false
+show-size-column=true
+show-type-column=true
+sidebar-width=148
+sort-column='name'
+sort-directories-first=false
+sort-order='ascending'
+type-format='category'
+window-position=(784, 319)
+window-size=(990, 742)

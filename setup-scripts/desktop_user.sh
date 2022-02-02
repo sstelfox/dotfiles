@@ -8,7 +8,7 @@ if [ ${EUID} = 0 ]; then
 fi
 
 if [ "${DESKTOP_SESSION}" = "cinnamon" ]; then
-  ~/.dotfiles/scripts/restore_cinnamon_settings.sh
+  ~/.dotfiles/scripts/restore_desktop_settings.sh
 fi
 
 echo "I haven't yet automated this or know if I should, but if this machine has an"
