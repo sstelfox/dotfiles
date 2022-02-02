@@ -54,7 +54,7 @@ table inet filter {
     tcp dport { 22, 53, 80, 443, 873, 2200, 5353, 7053, 11371 } accept
 
     # DNS, NTP, and the alt DNS ports used for testing
-    udp dport { 53, 123, 5353, 7053 } accept
+    udp dport { 53, 123, 443, 5353, 7053 } accept
 
     ct state new log level warn prefix "egress attempt: "
     counter reject with icmp type admin-prohibited

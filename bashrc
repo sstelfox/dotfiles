@@ -108,16 +108,13 @@ function setup_prompt {
 
 setup_prompt
 
+source $HOME/.dotfiles/helpers/gpg-agent.sh
+source $HOME/.cargo/env
+source $HOME/.rvm/scripts/rvm
+
 # TODO: All this still needs review and possibly updating:
 
-#export PATH="$PATH:$HOME/.rvm/bin"
-#[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" &> /dev/null
-#if declare -F rvm &> /dev/null; then
-#  rvm use default &> /dev/null
-#fi
-
 #source $HOME/.dotfiles/helpers/sagent.sh
-source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 # minim ops related settings
 #export TF_VAR_custom_bastion_user=$(whoami)
