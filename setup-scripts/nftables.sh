@@ -42,7 +42,7 @@ table inet filter {
     ip6 nexthdr icmpv6 accept
 
     # Allow all outbound traffic to local networks
-    ip daddr fe80::/16 accept
+    ip6 daddr fe80::/16 accept
     ip daddr 192.168.0.0/16 accept
     ip daddr 172.16.0.0/12 accept
     ip daddr 10.0.0.0/8 accept
