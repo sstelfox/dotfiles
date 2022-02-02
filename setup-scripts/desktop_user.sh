@@ -27,18 +27,15 @@ echo "\t* Switch default search engine to DuckDuckGo"
 
 # Current list of firefox extensions:
 #
+#   - ClearURLs
 #   - Decentraleyes
 #   - HTTPS Everywhere
 #   - Privacy Badger
+#   - Privacy Possum
 #   - Reddit Enhancement Suite
-#   - Redirect AMP to HTML
-#   - Snowflake
+#   - Snowflake (on desktops)
 #   - uBlock Origin
 #
 # Potential additions:
 #
 #   - AdNauseam
-#   - CanvasBlocker
-#   - ClearURLs
-#   - Privacy Possum
-#   - Random User-Agent

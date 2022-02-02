@@ -117,7 +117,7 @@ setup_prompt
 #fi
 
 #source $HOME/.dotfiles/helpers/sagent.sh
-#source $HOME/.dotfiles/helpers/gpg-agent.sh
+source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 # minim ops related settings
 #export TF_VAR_custom_bastion_user=$(whoami)
