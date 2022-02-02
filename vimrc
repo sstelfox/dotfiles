@@ -45,35 +45,35 @@ autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= noba
 """""""""""""""""""""""""""""""""""""""""""""""""
 
 " vim-plug setup
-call plug#begin('~/.dotfiles/vim-plugins')
-
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
-
-Plug 'godlygeek/tabular'
-Plug 'plasticboy/vim-markdown'
-
-Plug 'vim-ruby/vim-ruby'
-Plug 'tpope/vim-rails'
-
-" CTags
-Plug 'ctrlpvim/ctrlp'
-
-" Rust Object Notation
-Plug 'ron-rs/ron.vim'
-
-call plug#end()
+"call plug#begin('~/.dotfiles/vim-plugins')
+"
+"Plug 'neoclide/coc.nvim', {'branch': 'release'}
+"
+"Plug 'godlygeek/tabular'
+"Plug 'plasticboy/vim-markdown'
+"
+"Plug 'vim-ruby/vim-ruby'
+"Plug 'tpope/vim-rails'
+"
+"" CTags
+"Plug 'ctrlpvim/ctrlp'
+"
+"" Rust Object Notation
+"Plug 'ron-rs/ron.vim'
+"
+"call plug#end()
 
 " vim-markdown configuration
-let g:vim_markdown_folding_disabled = 1
-let g:vim_markdown_no_default_key_mappings = 1
-
-" A plugin free version of NERDtree
-" https://shapeshed.com/vim-netrw/
-let g:netrw_banner = 0
-let g:netrw_liststyle = 3
-let g:netrw_browse_split = 4
-let g:netrw_altv = 1
-let g:netrw_winsize = 25
+"let g:vim_markdown_folding_disabled = 1
+"let g:vim_markdown_no_default_key_mappings = 1
+"
+"" A plugin free version of NERDtree
+"" https://shapeshed.com/vim-netrw/
+"let g:netrw_banner = 0
+"let g:netrw_liststyle = 3
+"let g:netrw_browse_split = 4
+"let g:netrw_altv = 1
+"let g:netrw_winsize = 25
 
 "augroup ProjectDrawer
 "  autocmd!
@@ -143,15 +143,15 @@ set confirm
 set pastetoggle=<F11>
 nnoremap <C-L> :nohl<CR><C-L>
 
-" Disable the arrow keys... yeah I'm a bit of a masochist
-"inoremap  <Up>     <NOP>
-"inoremap  <Down>   <NOP>
-"inoremap  <Left>   <NOP>
-"inoremap  <Right>  <NOP>
-"noremap   <Up>     <NOP>
-"noremap   <Down>   <NOP>
-"noremap   <Left>   <NOP>
-"noremap   <Right>  <NOP>
+" Disable the arrow keys...
+inoremap  <Up>     <NOP>
+inoremap  <Down>   <NOP>
+inoremap  <Left>   <NOP>
+inoremap  <Right>  <NOP>
+noremap   <Up>     <NOP>
+noremap   <Down>   <NOP>
+noremap   <Left>   <NOP>
+noremap   <Right>  <NOP>
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " COLORS AND FONTS
@@ -181,9 +181,7 @@ set expandtab
 set shiftwidth=2 tabstop=2
 set smarttab
 
-" What can I say? I'm old school who needs lines longer than 80 characters?
-" NEVER MIND - pain in my ass...
-" set textwidth=80
+"set textwidth=120
 
 set autoindent
 " Note this is the annoying feature that would automatically remove all
@@ -253,8 +251,8 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""
 " Mapped triggers
 """""""""""""""""""""""""""""""""""""""""""""""""
-map \t :w\|!bundle exec rspec %<cr>
-map \e :Vexplore<cr>
+"map \t :w\|!bundle exec rspec %<cr>
+"map \e :Vexplore<cr>
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 
