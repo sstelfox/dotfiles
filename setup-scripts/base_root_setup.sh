@@ -9,8 +9,8 @@ fi
 
 dnf remove firewalld -y
 
-dnf install bind-utils git graphviz httpd-tools iotop ipset jq mutt pv ranger \
-  tcpdump tmux vim-enhanced -y
+dnf install bind-utils git git-crypt graphviz httpd-tools iotop ipset jq mutt \
+  pv ranger tcpdump tmux vim-enhanced -y
 
 dnf remove vim-powerline --noautoremove -y
 
