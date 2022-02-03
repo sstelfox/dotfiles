@@ -11,4 +11,5 @@ fi
 #  libtool libyaml-devel openssl-devel patch postgresql postgresql-devel readline-devel \
 #  sqlite-devel zlib-devel -y
 
-dnf install autoconf automake libffi-devel libtool libyaml-devel readline-devel sqlite-devel -y
+dnf install autoconf automake libffi-devel libpq-devel libtool libyaml-devel \
+  readline-devel sqlite-devel -y
