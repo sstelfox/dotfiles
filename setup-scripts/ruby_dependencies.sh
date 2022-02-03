@@ -11,5 +11,8 @@ fi
 #  libtool libyaml-devel openssl-devel patch postgresql postgresql-devel readline-devel \
 #  sqlite-devel zlib-devel -y
 
+# Note: some tests and environments I have require the redis client which is
+# available in the redis package.
+
 dnf install autoconf automake libffi-devel libpq-devel libtool libyaml-devel \
   readline-devel sqlite-devel -y
