@@ -1,5 +1,6 @@
 /bin/rust-analyzer
 /fonts/.uuid
 /fonts/.uuid
+/ssh/known_hosts
 /tags
 /vim/.netrwhist
