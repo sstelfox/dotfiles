@@ -7,5 +7,8 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
+# TODO: firmware fixes, power optimization, automatic firmware updating
+#sudo dnf install acpica-tools tlp fwupd -y
+
 # Touchpad fix
-grubby --update-kernel=ALL --args="psmouse.synaptics_intertouch=1"
+#grubby --update-kernel=ALL --args="psmouse.synaptics_intertouch=1"

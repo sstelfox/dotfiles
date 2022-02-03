@@ -47,8 +47,9 @@ table inet filter {
     ip daddr 172.16.0.0/12 accept
     ip daddr 10.0.0.0/8 accept
 
-    # DHCPv4
-    tcp dport 67 tcp sport 68 accept
+    # DHCPv4 & DHCPv6
+    ip protocol tcp tcp dport 67 tcp sport 68 accept
+    ip6 nexthdr udp udp sport 546 udp dport 547 accept
 
     # SSH, DNS, HTTP, HTTPS, git, my SSH alt port, DNS alt port, and GPG keyserver port
     tcp dport { 22, 53, 80, 443, 873, 2200, 5353, 7053, 11371 } accept

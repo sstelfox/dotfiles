@@ -15,3 +15,4 @@ time for me right now.
 Other changes I've made:
 
 * `dom.storage_access.enabled` -> true
+* `network.captive-portal-service.enabled` -> true
