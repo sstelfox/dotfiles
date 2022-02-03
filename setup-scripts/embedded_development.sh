@@ -33,3 +33,5 @@ udevadm control --reload-rules
 # Install and setup GEF
 #pip3 install --user unicorn capstone ropper keystone-engine
 #wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
+
+mkdir -p ~/workspace/electronics

@@ -27,3 +27,5 @@ cargo install cargo-audit viu
 #  cargo install cargo-binutils itm
 #  rustup component add llvm-tools-preview
 #fi
+
+mkdir -p ~/workspace/rust

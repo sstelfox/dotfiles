@@ -17,3 +17,5 @@ source ~/.bashrc
 
 # Install the globally available gems
 gem install pry rotp
+
+mkdir -p ~/workspace/ruby
