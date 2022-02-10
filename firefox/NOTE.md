@@ -16,3 +16,4 @@ Other changes I've made:
 
 * `dom.storage_access.enabled` -> true
 * `network.captive-portal-service.enabled` -> true
+* `reader.color_scheme` -> dark
