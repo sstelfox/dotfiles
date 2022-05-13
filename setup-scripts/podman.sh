@@ -16,6 +16,6 @@ dnf install buildah podman -y
 # ```
 #     {
 #       "type": "dnsname",
-#       "domainName": "podman.local",
+#       "domainName": "podman.local"
 #     },
 # ```
