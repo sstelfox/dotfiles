@@ -251,7 +251,7 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""
 " Mapped triggers
 """""""""""""""""""""""""""""""""""""""""""""""""
-"map \t :w\|!bundle exec rspec %<cr>
+map \t :w\|!bundle exec rspec %<cr>
 "map \e :Vexplore<cr>
 
 """""""""""""""""""""""""""""""""""""""""""""""""

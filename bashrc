@@ -36,7 +36,7 @@ export EDITOR="vim"
 # NetworkManager is absolute trash and doesn't allow you to set these, so we
 # have to fallback on env variables
 export RES_OPTIONS="edns0 trust-ad"
-export TZ="America/Chicago"
+#export TZ="America/Chicago"
 
 # If we're running interactively (such as through rsync, sftp etc) don't
 # execute the rest of the setup code.
@@ -83,8 +83,10 @@ BLUE=$(tput setaf 5)
 RST=$(tput sgr0)
 
 function personal_ps1_prompt() {
-  local __bat_status="\$(${DOTFILES_DIR}/helpers/battery_status.sh)"
-  local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
+  #local __bat_status="\$(${DOTFILES_DIR}/helpers/battery_status.sh)"
+  local __bat_status=""
+  #local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
+  local __exit_status=""
   local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
   local __path="\$(${DOTFILES_DIR}/helpers/shortdir.sh)"
   local __user_host="[\u@\h]"
