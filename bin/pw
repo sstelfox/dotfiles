@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-MINIMUM_LENGTH = 16
-TARGET_LENGTH = ARGV[0] ? ARGV[0].to_i : 24
+MINIMUM_LENGTH = 20
+TARGET_LENGTH = ARGV[0] ? ARGV[0].to_i : 32
 
 # A stackoverflow post recommended 36.86 bits of entropy, this seems to match
 # my gut feeling. I've rounded it up here for good measure.
