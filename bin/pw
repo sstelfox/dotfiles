@@ -16,7 +16,7 @@ TARGET_LENGTH = ARGV[0] ? ARGV[0].to_i : 32
 # PER_CHARACTER_ENTROPY) which is 146 bits by default at the time of writing of
 # this comment which is more than sufficient against untargetted brute force
 # attacks.
-TARGET_ENTROPY = 50
+TARGET_ENTROPY = ARGV[1] ? ARGV[1].to_i : 50
 
 WORD_LIST = %w{
 
