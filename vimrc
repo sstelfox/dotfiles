@@ -252,6 +252,7 @@ endfunction
 " Mapped triggers
 """""""""""""""""""""""""""""""""""""""""""""""""
 map \t :w\|!bundle exec rspec %<cr>
+map \r :w\|!cargo test && cargo run<cr>
 "map \e :Vexplore<cr>
 
 """""""""""""""""""""""""""""""""""""""""""""""""

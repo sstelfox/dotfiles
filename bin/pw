@@ -1,29 +1,186 @@
 #!/usr/bin/env ruby
 
-COUNT=5
-LENGTH=128
+MINIMUM_LENGTH = 16
+TARGET_LENGTH = ARGV[0] ? ARGV[0].to_i : 24
 
-ambiguous_characters = %w{ O 0 l I 1 |}
-special_characters = %w{ ! @ # $ % ^ & * ( ) - _ + = [ ] | ; : " , < . > / ? ~ }
+# A stackoverflow post recommended 36.86 bits of entropy, this seems to match
+# my gut feeling. I've rounded it up here for good measure.
+#
+# It's worth calling out that I'm measuring the entropy assuming the attacker
+# knows my password generation strategy (this file is public). Against web
+# services which presumably have some kind of rate-limiting this should be more
+# than sufficient and probably stronger than most other passwords.
+#
+# If an attacker does not know my password generation strategy this becomes a
+# much harder problem for them, effectively hitting (TARGET_LENGTH *
+# PER_CHARACTER_ENTROPY) which is 146 bits by default at the time of writing of
+# this comment which is more than sufficient against untargetted brute force
+# attacks.
+TARGET_ENTROPY = 50
 
-character_set = [('a'..'z'), ('A'..'Z'), (0..9)].map do |item|
-  item.to_a
+WORD_LIST = %w{
+
+  abandoned able abolished abrupt absolute abyss accord aching afterlight
+  afternoon aged ambrosia ancient ancients anxious askew auspicious autumn
+  balanced bare bashful basin battle bawdy beach bedrock bewildered billowing
+  blazing blocked bloody bluff bog bold bottle bound brash brave breeze bright
+  bristling brooch brook bubbling bush cackling calming cave cavern changing
+  channel chaotic chasm chilling chronicle civilized clean cleftal clever cliff
+  clinging closed cloud clover coarse collapsed comforting complacent
+  congealing cool cosmic courteous cove coy cracked creek crescent crimson
+  crushed crystal cult curious daft dainty dangerous dasein dawn debris deep
+  delicate demonic desperate dew diligent dim distant divine dome doom dreadful
+  dream dripping drunken dull dusk dust dusty dying echoing eddy edge
+  effortless elaborate elemental eloquent elusive ember emblem emergent empty
+  endless energized engraved envied ersatz etched even evening eventide
+  exciting exiled experiment explored faceted faerie faint familiar fancy
+  faraway fast feathered feigned fen field fierce figurine finished fire
+  firefly fireplace fizzing flickering floating flooded flower fog fond foolish
+  foreign forest fountain frail frantic frayed free friendly frog frost frosty
+  fulsome furrowed gasping gathered gentle gestalt geyser gift giggling gilded
+  glacier glade gleaming glen gloaming glorious glowing gorge graceful grass
+  grating graven greedy grubby guarded guilty healthy heart heaving heavy herbs
+  hidden hill hoisted hollow home hopeful horizon howling humming hurried
+  hushed icy idle immortal important infernal inlet innocent intent invisible
+  isle isolated ivory jagged jar jittery jostled joyful just karma kindled
+  kindly kinked knight knowing lacking laden lake lank laughing laurel lavender
+  leaf leathery level light liminal lithe lively locus lonely lost loved lovely
+  lurching luster luxurious mad managed marble marsh marvelous massive meadow
+  meddling melting mended mesa metal mewling midday midnight mighty mire
+  mirrored missing misty modest moon morning mortal moss motherly mountain
+  moving muffled murmuring mysterious nameless narrow natural neat necropolis
+  nefarious nervous nestled newfound night noon normal numb oasis obscured
+  obvious ocean odd offended oily ominous oozing ordinary ornate oubliette
+  overgrown overwatch padded painted pale paper passage passionate patient peak
+  perfect perfumed phyle picture pine pithy plain planned playful pleasant
+  pleased plenum poet poisoned polished polished pond poor portent praxis
+  precious precise preserved prickly prideful private prized profane proper
+  proud pure puzzling quest quick quiet quivering radiant ragged rain rare
+  reasonable recovered rediculous redoubt reef reflected refused relaxed
+  reluctant remnant replaced resonance resting restless ringing rippled rising
+  river road roasted roiling rough safe sanguine satisfied scarce scarred
+  scattered scent scraped sea sealed seasoned secret seed seemly seething
+  selfish sensible shadow shaft shallow sharp shattered shelter shield
+  shimmering shining shivering shuffling shy silence silent simple singing
+  skewed sky slanting sleeping slick slow small smoke smoky smooth smudged snow
+  soaked soft solitary sooty sorrow sound sparkling spattered spiraling spirit
+  spiteful sprawling spring squeeking staggering staircase star startled
+  stately steaming steep stiff still stirring stolid stormy strange striking
+  strong stubborn sublime sufficient suitable sullen summer sun sunrise sunset
+  supicious sure surf surface swamp sweet swollen tangled tarnished tattered
+  tawdry tempered tempest tender terrible thought threshold thunder tinkling
+  tiny tired toasted toppled torment tower treasure tree tremulant triptych
+  triumphant trove truculent trusted tumescent tunnel twilight unassuming
+  unbroken uncertain uncommon unexpected unholy unique unkind unknown unseen
+  unwashed urgent vacuum vain variegated voice volcano wanton wary wasteful
+  water waterfall wave weathered whispering wild wind winter wintry wise
+  withered wondrous wood world young zombie
+
+}.sort.uniq
+
+ambiguous_characters = %w{ O 0 l I 1 | }
+special_characters = %w{ @ # % - _ + = , . | / ? ~ }
+
+character_sets = [
+  ('a'..'z').to_a, # Lower case
+  ('A'..'Z').to_a, # Upper case
+  ('0'..'9').to_a, # Numerals
+]
+
+# Remove any visually ambiguous characters from our lists
+character_sets.each do |cs|
+  ambiguous_characters.each { |ac| cs.delete(ac) }
 end
-character_set.flatten!.map(&:to_s)
 
-ambiguous_characters.each do |ac|
-  character_set.delete(ac)
+complete_character_set = character_sets.flatten
+
+PER_WORD_ENTROPY = Math.log2(WORD_LIST.length)
+PER_CHARACTER_ENTROPY = Math.log2(complete_character_set.length)
+
+AVERAGE_WORD_LENGTH = WORD_LIST.map(&:length).sum / WORD_LIST.length
+MAXIMUM_WORD_LENGTH = WORD_LIST.map(&:length).max
+MEDIAN_WORD_LENGTH = WORD_LIST.map(&:length).sort[WORD_LIST.length / 2]
+
+password_chunks = []
+current_password_entropy = 0
+
+# We can eke out a little bit of extra entropy by randomly selecting our delimiter
+delimiter = special_characters.sample
+current_password_entropy += Math.log2(special_characters.length)
+
+def current_length(chunks, chars)
+  # The last chunks.length addition accounts for the number of delimiters
+  # required to join the chunks (which is the length - 1) plus the last
+  # delimiter to account for joining the tail characters.
+  chunks.map(&:length).sum + chars.length + chunks.length
 end
 
-#COUNT.times do |i|
-#  password = ""
-#  (LENGTH / (2 ** i)).times do
-#    password += character_set[rand(character_set.length)].to_s
-#  end
-#  puts password
-#end
-
-32.times do
-  print character_set[rand(character_set.length)].to_s
+def remaining_length(length)
+  [TARGET_LENGTH - length, 0].max
 end
-puts
+
+def can_extend_with_word?(current_entropy, current_length)
+  # Don't extend with additional words if we've already exceeded our goal by a bit
+  return false if current_entropy >= TARGET_ENTROPY
+
+  # Allow an additional word if we have the room and it will push us over out
+  # entropy goal
+  return true if (current_length + MAXIMUM_WORD_LENGTH) <= TARGET_LENGTH &&
+    (current_entropy + PER_WORD_ENTROPY) >= TARGET_ENTROPY
+
+  # If either of the other conditions haven't been met, then check the worst
+  # case scenario of remaining possible entropy and see if we're going to run
+  # against the character limit before the entropy limit by adding the longest
+  # word...
+  remaining_chars = [remaining_length(current_length) - MAXIMUM_WORD_LENGTH, 0].max
+  possible_character_entropy = remaining_chars * PER_CHARACTER_ENTROPY
+
+  (current_entropy + possible_character_entropy) >= TARGET_ENTROPY
+end
+
+tail_chars = []
+
+# Ensure we end with at least one of each character class (other than special
+# which is handled by the delimiters). This ensures we always match the
+# strictest of password policies.
+#
+# There is a catch with this strategy, since we're using reduced character
+# sets, we're reducing the entropy of each entry by quite a bit... But only if
+# we keep them in order... Before combining the selected characters at the end
+# we randomly shuffle all tail characters to obscure the reduced entropy
+# positions.
+#
+# To calculate that entropy correctly I would probably need to account for the
+# possible combinations those reduced entropy positions could be in and account
+# for that but its sufficiently obscurred that I'm willing to give these full
+# character entropy credit for now.
+#
+# We do get a little extra entropy from the unknown _number_ of words, and
+# trailing letters which isn't accounted for anywhere else.
+tail_chars += character_sets.map { |cs| cs.sample }
+current_password_entropy += PER_CHARACTER_ENTROPY * tail_chars.length
+
+# Always select at least two words...
+password_chunks << WORD_LIST.sample
+password_chunks << WORD_LIST.sample
+current_password_entropy += PER_WORD_ENTROPY * 2
+
+while can_extend_with_word?(current_password_entropy, current_length(password_chunks, tail_chars))
+  current_password_entropy += PER_WORD_ENTROPY
+  password_chunks << WORD_LIST.sample
+end
+
+while current_password_entropy < TARGET_ENTROPY || current_length(password_chunks, tail_chars) < MINIMUM_LENGTH do
+  if current_length(password_chunks, tail_chars) >= TARGET_LENGTH
+    puts "WARNING: Ran out of length before hitting target entropy"
+    break
+  end
+
+  current_password_entropy += PER_CHARACTER_ENTROPY
+  tail_chars << complete_character_set.sample
+end
+
+password_chunks << tail_chars.shuffle.join
+password = password_chunks.join(delimiter)
+
+puts password
