@@ -61,7 +61,7 @@ alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
 alias vi='vim'
 
-export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
+export PATH="${HOME}/.dotfiles/in_path/bin:${HOME}/.dotfiles/in_path/scripts:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
 # You know what I really need? An archive of every bash command I ever run...
 if [ ! -f "${HOME}/.dotfiles/bash-histories/.archive_created" ]; then

@@ -42,4 +42,4 @@ fi
 
 echo 'Attempting to install auto tunnel key on remote host...'
 
-ssh-copy-id -i /home/sstelfox/.ssh/auto_tunnel_key ${REMOTE_TUNNEL_HOST}
+ssh-copy-id -i /home/sstelfox/.ssh/auto_tunnel_key ${REMOTE_TUNNEL_USER}@${REMOTE_TUNNEL_HOST}
