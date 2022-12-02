@@ -7,6 +7,8 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
+dnf remove firewalld -y
+
 cat << 'EOF' > /etc/sysconfig/nftables.conf
 flush ruleset
 

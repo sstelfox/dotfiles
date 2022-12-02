@@ -7,18 +7,10 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf remove firewalld -y
-
-dnf install bind-utils git git-crypt graphviz httpd-tools iotop ipset jq mutt \
-  pv ranger tcpdump tmux vim-enhanced -y
-
-dnf remove vim-powerline --noautoremove -y
+dnf install bind-utils git git-crypt graphviz httpd-tools iotop ipset jq pv \
+  tcpdump tmux vim-enhanced -y
 
 dnf update -y
-
-if [ -n "${SETUP_USER}" ]; then
-  usermod -a -G wireshark ${SETUP_USER}
-fi
 
 # Rediculous there is no default for maximum log size in journalctl, systemd is such trash software
 mkdir -p /etc/systemd/journald.conf.d/
@@ -41,8 +33,8 @@ systemctl stop systemd-resolved.service
 # service. Mask it so attempts to turn this back on fail.
 systemctl mask systemd-resolved.service
 
-# And clean up the garbage left behind by resolved and forcing NetworkManager
-# to generate a valid one.
+# And clean up the garbage left behind by resolved, force NetworkManager to
+# generate a valid one.
 rm -f /etc/resolv.conf
 systemctl restart NetworkManager.service
 
