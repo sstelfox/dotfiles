@@ -38,7 +38,7 @@ done
 # Generate our SSH config
 ${DOTFILE_DIR}/ssh/build_config.sh
 
-chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
+chmod -R u=rwX,g=,o= ${DOTFILE_DIR}
 chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/gnupg
 
 #if which fc-cache &> /dev/null; then

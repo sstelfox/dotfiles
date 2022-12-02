@@ -22,5 +22,5 @@ for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* 2>/dev/null | sort); do
 done
 
 # Ensure our permissions are good
-chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
+chmod -R u=rwX,g=,o= ${DOTFILE_DIR}
 chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/ssh
