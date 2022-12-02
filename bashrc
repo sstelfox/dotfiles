@@ -30,13 +30,13 @@ export AZURE_CORE_COLLECT_TELEMETRY=0
 # Likely not adopted by anyone, but for the apps that do I definitely want to opt-out
 # https://consoledonottrack.com/
 export DO_NOT_TRACK=1
+
 export DOTFILES_DIR="$HOME/.dotfiles"
 export EDITOR="vim"
 
 # NetworkManager is absolute trash and doesn't allow you to set these, so we
 # have to fallback on env variables
 export RES_OPTIONS="edns0 trust-ad"
-#export TZ="America/Chicago"
 
 # If we're running interactively (such as through rsync, sftp etc) don't
 # execute the rest of the setup code.
@@ -61,14 +61,12 @@ alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
 alias vi='vim'
 
-# Shortcut for generating a QR code in the command line
-alias qr='echo "$@" | qrencode -m 3 -t UTF8 -o -'
-
 export PATH="$HOME/.dotfiles/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
 # You know what I really need? An archive of every bash command I ever run...
-if [ ! -d "${HOME}/.dotfiles/bash-histories" ]; then
+if [ ! -f "${HOME}/.dotfiles/bash-histories/.archive_created" ]; then
   mkdir -p "${HOME}/.dotfiles/bash-histories"
+  touch "${HOME}/.dotfiles/bash-histories/.archive_created"
 fi
 
 export HISTCONTROL="ignoreboth"
@@ -87,7 +85,7 @@ function personal_ps1_prompt() {
   local __bat_status=""
   #local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
   local __exit_status=""
-  local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
+  #local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
   local __path="\$(${DOTFILES_DIR}/helpers/shortdir.sh)"
   local __user_host="[\u@\h]"
 
@@ -103,35 +101,11 @@ function setup_prompt {
 
   # Don't expose more than path through the window title...
   export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
-
-  # Flush our history after every command as well...
-  export PROMPT_COMMAND="${PROMPT_COMMAND}; history -a"
 }
 
 setup_prompt
 
 source $HOME/.dotfiles/helpers/gpg-agent.sh
-source $HOME/.cargo/env
-source $HOME/.rvm/scripts/rvm
 
-# TODO: All this still needs review and possibly updating:
-
-#source $HOME/.dotfiles/helpers/sagent.sh
-
-# minim ops related settings
-#export TF_VAR_custom_bastion_user=$(whoami)
-#export TF_VAR_custom_bastion_private_key=~/.ssh/provisioning.pub
-#export TF_VAR_chr_provisioning_password=dootdootdootnotreal
-#export EXTRA_ANSIBLE_SSH_ARGS="-i ~/.ssh/provisioning.pub"
-
-## If the rust toolchain in installed source it's environment
-#if [ -f $HOME/.cargo/env ]; then
-#  source $HOME/.cargo/env
-#fi
-
-#if [ -n "${DESKTOP_SESSION}" ]; then
-#  # Bump up our file descriptor count from the default, only in the desktop environments thogh
-#  ulimit -n 524288
-#fi
-
-#if [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then . /home/sstelfox/.nix-profile/etc/profile.d/nix.sh; fi
+[[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
+[[ -f "$HOME/.rvm/scripts/rvm" ]] && source $HOME/.rvm/scripts/rvm

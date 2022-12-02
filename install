@@ -7,7 +7,7 @@
 # The original files are stored in $HOME/.dotfiles/system-originals/ if they
 # existed for reference. This folder is not included in the repository and as
 # such will not migrate between machines
-FILES=( bashrc bash_profile ctags fonts gitconfig gnupg muttrc pryrb sqliterc ssh tmux.conf toprc vim vimrc )
+FILES=( bashrc bash_profile ctags gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vim vimrc )
 
 DOTFILE_DIR="${HOME}/.dotfiles"
 
@@ -38,23 +38,13 @@ done
 # Generate our SSH config
 ${DOTFILE_DIR}/ssh/build_config.sh
 
-for cfg_segment in $(ls $DOTFILE_DIR/ssh/shared-config/* 2>/dev/null | sort); do
-  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
-  echo >> ${DOTFILE_DIR}/ssh/config
-done
-
-for cfg_segment in $(ls $DOTFILE_DIR/ssh/system-config/* 2>/dev/null | sort); do
-  cat ${cfg_segment} >> ${DOTFILE_DIR}/ssh/config
-  echo >> ${DOTFILE_DIR}/ssh/config
-done
-
 chmod -R u=rwX,g=rX,o= ${DOTFILE_DIR}
-chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/{gnupg,ssh}
+chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/gnupg
 
-if which fc-cache &> /dev/null; then
-  echo "Installing fonts and updating font cache..."
-  fc-cache &> /dev/null
-fi
+#if which fc-cache &> /dev/null; then
+#  echo "Installing fonts and updating font cache..."
+#  fc-cache &> /dev/null
+#fi
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over
 # the public HTTPS endpoint to get these here. Leave a noauth version in case I
@@ -65,9 +55,5 @@ fi
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
 (cd ~/.dotfiles; git update-index --assume-unchanged system-specific/git-user-info.sh)
-
-## Don't believe this is necessary anymore
-#echo "Installing VIM plugins..."
-#vim +PlugInstall +PlugUpdate +CocInstall coc-rust-analyzer +qa
 
 echo "Done."
