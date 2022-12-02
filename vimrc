@@ -41,49 +41,6 @@ set cryptmethod=blowfish
 autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= nobackup noshelltemp history=0 secure | endif
 
 """""""""""""""""""""""""""""""""""""""""""""""""
-" PLUGINS SETUP
-"""""""""""""""""""""""""""""""""""""""""""""""""
-
-" vim-plug setup
-"call plug#begin('~/.dotfiles/vim-plugins')
-"
-"Plug 'neoclide/coc.nvim', {'branch': 'release'}
-"
-"Plug 'godlygeek/tabular'
-"Plug 'plasticboy/vim-markdown'
-"
-"Plug 'vim-ruby/vim-ruby'
-"Plug 'tpope/vim-rails'
-"
-"" CTags
-"Plug 'ctrlpvim/ctrlp'
-"
-"" Rust Object Notation
-"Plug 'ron-rs/ron.vim'
-"
-"call plug#end()
-
-" vim-markdown configuration
-"let g:vim_markdown_folding_disabled = 1
-"let g:vim_markdown_no_default_key_mappings = 1
-"
-"" A plugin free version of NERDtree
-"" https://shapeshed.com/vim-netrw/
-"let g:netrw_banner = 0
-"let g:netrw_liststyle = 3
-"let g:netrw_browse_split = 4
-"let g:netrw_altv = 1
-"let g:netrw_winsize = 25
-
-"augroup ProjectDrawer
-"  autocmd!
-"  autocmd VimEnter * :Vexplore
-"augroup END
-
-" Enable filetype plugin
-"filetype indent plugin on
-
-"""""""""""""""""""""""""""""""""""""""""""""""""
 " USER INTERFACE CONFIGURATION
 """""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -167,8 +124,6 @@ try
 catch
 endtry
 
-"colorscheme vividchalk
-
 " Default file types
 set ffs=unix,dos,mac
 
@@ -186,7 +141,7 @@ set smarttab
 set autoindent
 " Note this is the annoying feature that would automatically remove all
 " leading whitespace whenever I started a comment.
-set nosmartindent
+"set nosmartindent
 set nowrap
 
 " When wrapping break on spaces rather than in the middle of a word
