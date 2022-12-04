@@ -13,12 +13,21 @@ fi
 
 source $HOME/.cargo/env
 
-rustup component add rustfmt || true
+rustup component add rustfmt
 rustup component add clippy
+rustup component add miri
+
 rustup install stable
 
+# Needed for cargo-deny
+sudo dnf install perl-FindBin -y
+
+# Needed for sunset-cavern project, systemd-devel provides libudev.h which was
+# required by libudev-sys
+sudo dnf install alsa-lib-devel systemd-devel -y
+
 # Viu is a sweet terminal image viewer that is super handy
-cargo install cargo-audit viu
+cargo install cargo-audit cargo-deny viu
 
 #if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
 #  rustup target add --toolchain stable thumbv6m-none-eabi

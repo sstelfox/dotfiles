@@ -9,13 +9,14 @@ fi
 
 # A lot of my desktop specific software requires repos outside of the core, the
 # RPM fusion repos handle that for me
-dnf install \
-  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
+if [ ! -f /etc/yum.repos.d/rpmfusion-free.repo ]; then
+  dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm -y
+fi
 
-# fust is required to run appimages like Obsidian
-dnf install cheese discord fswebcam fuse gnupg2-smime libreoffice \
-  pcsc-lite-ccid pinentry-gtk screen transmission-gtk vlc xclip youtube-dl -y
+if [ ! -f /etc/yum.repos.d/rpmfusion-nonfree.repo ]; then
+  dnf install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
+fi
 
-systemctl enable pcscd.service
-systemctl start pcscd.service
+# fuse is required to run appimages like Obsidian
+dnf install cheese discord fswebcam fuse libreoffice screen transmission-gtk \
+  vlc xclip youtube-dl -y

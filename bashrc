@@ -109,3 +109,6 @@ source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 [[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
 [[ -f "$HOME/.rvm/scripts/rvm" ]] && source $HOME/.rvm/scripts/rvm
+
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin"

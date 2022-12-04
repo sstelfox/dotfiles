@@ -7,4 +7,7 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install godot -y
+dnf install gnupg2-smime pcsc-lite-ccid pinentry-gtk -y
+
+systemctl enable pcscd.service
+systemctl start pcscd.service
