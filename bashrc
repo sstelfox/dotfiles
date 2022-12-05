@@ -51,6 +51,7 @@ for FILE in $HOME/.dotfiles/system-specific/*.sh; do
   fi
 done
 
+alias ga='git log --diff-filter=A --follow --format=%aI -- '
 alias gb='git branch --sort=-committerdate | head -n 20'
 alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
 alias gr='git fetch && git rebase origin/master'

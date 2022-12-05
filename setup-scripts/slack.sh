@@ -7,6 +7,6 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-wget -O /tmp/slack.rpm https://downloads.slack-edge.com/releases/linux/4.21.1/prod/x64/slack-4.21.1-0.1.fc21.x86_64.rpm
+wget -O /tmp/slack.rpm https://downloads.slack-edge.com/releases/linux/4.29.149/prod/x64/slack-4.29.149-0.1.el8.x86_64.rpm
 dnf install /tmp/slack.rpm -y
 rm -f /tmp/slack.rpm
