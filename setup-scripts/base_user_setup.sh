@@ -8,3 +8,6 @@ if [ ${EUID} = 0 ]; then
 fi
 
 ~/.dotfiles/install
+
+gpg2 --import ~/.dotfiles/publickey.gpg
+gpg2 --import-ownertrust < ~/.dotfiles/trusted_keys.txt

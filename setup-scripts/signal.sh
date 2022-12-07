@@ -16,4 +16,4 @@ rpm --import https://download.opensuse.org/repositories/network:/im:/signal/Fedo
 # OpenSUSE provides a Fedora build repository for this package which we can use
 dnf config-manager --add-repo https://download.opensuse.org/repositories/network:im:signal/Fedora_${VERSION_ID}/network:im:signal.repo
 
-dnf install signal-desktop
+dnf install signal-desktop -y

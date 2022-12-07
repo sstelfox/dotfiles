@@ -8,5 +8,5 @@ if [ ${EUID} != 0 ]; then
 fi
 
 wget -O /tmp/zoom.rpm https://zoom.us/client/latest/zoom_x86_64.rpm
-dnf install /tmp/zoom.rpm
+dnf install /tmp/zoom.rpm -y
 rm -f /tmp/zoom.rpm
