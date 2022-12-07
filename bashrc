@@ -34,7 +34,7 @@ export DO_NOT_TRACK=1
 export DOTFILES_DIR="$HOME/.dotfiles"
 export EDITOR="vim"
 
-if [ "${XDG_SESSION_DESKTOP}" -eq "KDE" ]; then
+if [ "${XDG_SESSION_DESKTOP}" == "KDE" ]; then
   # The system doesn't seem to properly detect the pinentry program under KDE
   # so we need to configure that through this environment variable.
   export PINENTRY_USER_DATA="qt"
