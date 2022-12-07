@@ -18,5 +18,5 @@ if [ ! -f /etc/yum.repos.d/rpmfusion-nonfree.repo ]; then
 fi
 
 # fuse is required to run appimages like Obsidian
-dnf install cheese discord fswebcam fuse libreoffice screen transmission-gtk \
-  vlc xclip youtube-dl -y
+dnf install cheese discord fswebcam fuse libreoffice screen strace \
+  transmission-gtk vlc xclip youtube-dl -y
