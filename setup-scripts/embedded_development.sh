@@ -30,4 +30,4 @@ udevadm control --reload-rules
 #pip3 install --user unicorn capstone ropper keystone-engine
 #wget -q -O- https://github.com/hugsy/gef/raw/master/scripts/gef.sh | sh
 
-mkdir -p ~/workspace/electronics
+su -l sstelfox -c /bin/bash -c 'mkdir -p ~/workspace/electronics'
