@@ -16,7 +16,10 @@ curl -sSL https://get.rvm.io | bash -s -- --ignore-dotfiles stable
 source ~/.bashrc
 
 rvm install 3.1.0 --no-docs
+rvm gemset create global
+
 rvm use ruby-3.1.0@global --default
+rvm gemset use global --default
 
 # Install the globally available gems
 gem install -r pry rotp --no-document
