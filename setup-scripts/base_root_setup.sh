@@ -26,17 +26,17 @@ systemctl enable sshd.service
 systemctl start sshd.service
 
 # Resolved is unreliable and has broken DNS on my system many times. Fuck this service
-#systemctl disable systemd-resolved.service
-#systemctl stop systemd-resolved.service
+systemctl disable systemd-resolved.service
+systemctl stop systemd-resolved.service
 
 # Unfortunately some updates from Fedora have automatically re-enabled this
 # service. Mask it so attempts to turn this back on fail.
-#systemctl mask systemd-resolved.service
+systemctl mask systemd-resolved.service
 
 # And clean up the garbage left behind by resolved, force NetworkManager to
 # generate a valid one.
-#rm -f /etc/resolv.conf
-#systemctl restart NetworkManager.service
+rm -f /etc/resolv.conf
+systemctl restart NetworkManager.service
 
 # Give it a few seconds to fix itself, poor dumb thing
-#sleep 5
+sleep 5
