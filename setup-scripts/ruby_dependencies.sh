@@ -14,5 +14,5 @@ fi
 # Note: some tests and environments I have require the redis client which is
 # available in the redis package.
 
-dnf install autoconf automake bison gcc-c++ libffi-devel libpq-devel libtool \
+dnf install autoconf automake bison gcc-c++ libffi-devel libpq-devel libstdc++-static libtool \
   libyaml-devel patch readline-devel sqlite-devel zlib-devel -y
