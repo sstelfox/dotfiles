@@ -66,7 +66,8 @@ alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
 
 alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
-alias vi='vim'
+alias vi='nvim'
+alias vim='nvim'
 
 export PATH="${HOME}/.dotfiles/in_path/bin:${HOME}/.dotfiles/in_path/scripts:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
