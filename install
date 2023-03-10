@@ -37,8 +37,13 @@ function backup_and_install {
 }
 
 for DOTFILE in ${FILES[@]}; do
-  backup_and_install $DOTFILE
+    backup_and_install $DOTFILE
 done
+
+# If neovim is available, try and start it up so it will synchronize and setup any plugins
+if which nvim &>/dev/null; then
+    nvim --headless -c 'quitall'
+fi
 
 # Generate our SSH config
 ${DOTFILE_DIR}/ssh/build_config.sh
