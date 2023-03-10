@@ -33,12 +33,15 @@ set nospell
 " tmux with muted colors
 set background=dark
 
-" When encrypting any file, use the much stronger blowfish algorithm
-set cryptmethod=blowfish
+" These don't work with neovim
+if !has('nvim')
+  " When encrypting any file, use the much stronger blowfish algorithm
+  set cryptmethod=blowfish
 
-" If there is a key set for the file, disable things like swap files, backups,
-" temporary files, and history.
-autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= nobackup noshelltemp history=0 secure | endif
+  " If there is a key set for the file, disable things like swap files, backups,
+  " temporary files, and history.
+  autocmd BufReadPost * if &key != "" | set noswapfile nowritebackup viminfo= nobackup noshelltemp history=0 secure | endif
+endif
 
 """""""""""""""""""""""""""""""""""""""""""""""""
 " USER INTERFACE CONFIGURATION

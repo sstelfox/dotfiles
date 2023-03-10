@@ -7,7 +7,7 @@
 # The original files are stored in $HOME/.dotfiles/system-originals/ if they
 # existed for reference. This folder is not included in the repository and as
 # such will not migrate between machines
-FILES=( bashrc bash_profile ctags gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vimrc )
+FILES=( bashrc bash_profile config/nvim ctags gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vimrc )
 
 DOTFILE_DIR="${HOME}/.dotfiles"
 
@@ -21,14 +21,19 @@ function backup_and_install {
     if [ -h "$HOME/.$1" ]; then
       rm -f $HOME/.$1
     elif [ -d "$HOME/.$1" -o -f "$HOME/.$1" ]; then
-      mv $HOME/.$1 $DOTFILE_DIR/system-originals/$1
+      mv $HOME/.$1 $DOTFILE_DIR/system-originals/$(basename $1)
     else
       echo "\tFound inode type this installer isn't aware of. Skipping install"
       return 1
     fi
   fi
 
-  ln -s $HOME/.dotfiles/$1 $HOME/.$1
+  PARENT_DIR="$(dirname $HOME/.$1)"
+  if [ ! -d "${PARENT_DIR}" ]; then
+    mkdir -p "${PARENT_DIR}"
+  fi
+
+  ln -s $HOME/.dotfiles/$(basename $1) $HOME/.$1
 }
 
 for DOTFILE in ${FILES[@]}; do
