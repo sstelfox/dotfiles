@@ -24,7 +24,13 @@ return require('packer').startup(function(use)
 	-- Have the plugin manager manage itself as well...
 	use 'wbthomason/packer.nvim'
 
-	-- TODO: include any plugins that I want here...
+	-- Language server plugins
+	use 'neovim/nvim-lspconfig'
+	use 'simrat39/rust-tools.nvim'
+
+	-- Active debugging plugins
+	use 'nvim-lua/plenary.nvim' -- might be required for some rust-tools functionality, came from their installation instructions
+	use 'mfussenegger/nvim-dap' -- required by rust-tools
 
 	-- If packer needed to be bootstrapped during this run, we also want to
 	-- grab all our other plugins and make sure we have them present as well

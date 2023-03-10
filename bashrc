@@ -69,6 +69,8 @@ alias gdb='gdb -q'
 alias vi='nvim'
 alias vim='nvim'
 
+alias sync_nvim_plugins='nvim --headless -c "lua require('packer').sync()" -c "quitall"'
+
 export PATH="${HOME}/.dotfiles/in_path/bin:${HOME}/.dotfiles/in_path/scripts:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
 # You know what I really need? An archive of every bash command I ever run...
