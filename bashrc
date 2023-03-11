@@ -66,6 +66,7 @@ alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
 
 alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
+alias ap='$(which -a vim 2>&1 | grep -e '^/' | head -n 1 || /bin/false) ~/documentation/passwords.txt'
 
 if which nvim &>/dev/null; then
     alias vi='nvim'
