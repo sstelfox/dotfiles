@@ -7,8 +7,8 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-dnf install bind-utils git git-crypt graphviz httpd-tools iotop ipset jq pv \
-  tcpdump tmux vim-enhanced -y
+dnf install bind-utils git git-crypt graphviz httpd-tools iotop ipset jq neovim pv tcpdump tmux \
+    vim-enhanced -y
 
 dnf update -y
 
