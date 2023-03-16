@@ -15,7 +15,7 @@ if [ "${1:-}" = "-q" ]; then
 fi
 
 echo "Serving $(pwd)..."
-podman run -d --rm --security-opt label=disable -p 8080:80 \
+podman run -d --rm --security-opt label=disable -p 4250:80 \
   --name simple_dir_server -v $(pwd):/usr/share/nginx/html:ro nginx:alpine
 
-xdg-open http://127.0.0.1:8080
+#xdg-open http://127.0.0.1:8080
