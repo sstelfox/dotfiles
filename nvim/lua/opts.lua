@@ -26,14 +26,16 @@ opt.termguicolors = true    -- bool: If term supports ui color then enable
 vim.cmd.colorscheme("habamax") -- cmd: configure the theme to use, lazyvim uses a different plugin called 'tokyonight' which I might want to look into...
 
 -- [[ Search ]]
-opt.completeopt = "menu,menuone,noselect"   -- str:  During completions always pop-up a menu of options and force the user to make a selection.
+--opt.completeopt = "menu,menuone,noselect"   -- str:  During completions always pop-up a menu of options and force the user to make a selection.
+opt.completeopt = "menu,menuone,preview"   -- str:  During completions always pop-up a menu of options and force the user to make a selection.
 opt.hlsearch = false    -- bool: Highlight search matches
 opt.ignorecase = true   -- bool: Ignore case in search patterns
 opt.incsearch = true    -- bool: Use incremental search
 opt.pumblend = 10       -- num: Create a slight transparency in pop-up windows
 opt.pumheight = 10      -- num: Maximum number of items in pop-up windows
 opt.smartcase = true    -- bool: Override ignorecase if search contains capitals
-opt.wildmode = "longest:full,full"          -- str:  Ordering of completion entries
+--opt.wildmode = "longest:full,full"          -- str:  Ordering of completion entries
+opt.wildmode = "lastused,full"          -- str:  Ordering of completion entries
 
 -- [[ Whitespace ]]
 opt.expandtab = true    -- bool: Use spaces instead of tabs
