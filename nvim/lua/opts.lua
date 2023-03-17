@@ -23,6 +23,8 @@ opt.spelllang = { "en" }    -- map:  List of languages to be used
 opt.syntax = "on"           -- str:  Allow syntax highlighting
 opt.termguicolors = true    -- bool: If term supports ui color then enable
 
+vim.cmd.colorscheme("habamax") -- cmd: configure the theme to use, lazyvim uses a different plugin called 'tokyonight' which I might want to look into...
+
 -- [[ Search ]]
 opt.completeopt = "menu,menuone,noselect"   -- str:  During completions always pop-up a menu of options and force the user to make a selection.
 opt.hlsearch = false    -- bool: Highlight search matches
