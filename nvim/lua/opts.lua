@@ -3,7 +3,7 @@
 local opt = vim.opt
 
 -- [[ Context ]]
-opt.colorcolumn = '100'     -- str:  Show col for max line length
+opt.colorcolumn = '120'     -- str:  Show col for max line length
 opt.cursorline = true       -- bool: Enable highlighting of the current line
 opt.mouse = "a"             -- str:  Enable mouse mode in all modes
 opt.number = true           -- bool: Show line numbers
@@ -26,7 +26,6 @@ opt.termguicolors = true    -- bool: If term supports ui color then enable
 vim.cmd.colorscheme("habamax") -- cmd: configure the theme to use, lazyvim uses a different plugin called 'tokyonight' which I might want to look into...
 
 -- [[ Search ]]
---opt.completeopt = "menu,menuone,noselect"   -- str:  During completions always pop-up a menu of options and force the user to make a selection.
 opt.completeopt = "menu,menuone,preview"   -- str:  During completions always pop-up a menu of options and force the user to make a selection.
 opt.hlsearch = false    -- bool: Highlight search matches
 opt.ignorecase = true   -- bool: Ignore case in search patterns
@@ -34,16 +33,14 @@ opt.incsearch = true    -- bool: Use incremental search
 opt.pumblend = 10       -- num: Create a slight transparency in pop-up windows
 opt.pumheight = 10      -- num: Maximum number of items in pop-up windows
 opt.smartcase = true    -- bool: Override ignorecase if search contains capitals
---opt.wildmode = "longest:full,full"          -- str:  Ordering of completion entries
 opt.wildmode = "lastused,full"          -- str:  Ordering of completion entries
 
 -- [[ Whitespace ]]
 opt.expandtab = true    -- bool: Use spaces instead of tabs
 opt.list = true         -- bool: Show some invisible characters (tabs...
-opt.shiftwidth = 2      -- num:  Size of an indent
+opt.shiftwidth = 4      -- num:  Size of an indent
 opt.smartindent = true  -- bool: Insert indents automatically
-opt.softtabstop = 4     -- num:  Number of spaces tabs count for in insert mode
-opt.tabstop = 2         -- num:  Number of spaces tabs count for
+opt.tabstop = 4         -- num:  Number of spaces tabs count for
 
 -- [[ Splits ]]
 opt.splitright = true   -- bool: Place new window to right of current one
