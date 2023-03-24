@@ -1,3 +1,11 @@
+local lspconfig = require("lspconfig")
+
+lspconfig.rust_analyzer.setup({
+    settings = {
+        ["rust-analyzer"] = {},
+    },
+})
+
 return {
     -- extra typescript setup
     { import = "lazyvim.plugins.extras.lang.typescript" },
@@ -7,7 +15,6 @@ return {
         opts = {
             ensure_installed = {
                 "bash",
-                "c",
                 "help",
                 "html",
                 "javascript",
@@ -25,8 +32,5 @@ return {
                 "yaml",
             },
         },
-        -- config = function(_, opts)
-        --     require("nvim-treesitter.configs").setup(opts)
-        -- end,
     },
 }
