@@ -3,18 +3,18 @@
 set -o errexit
 
 if [ ${EUID} != 0 ]; then
-  echo "This setup script is expecting to run as root."
-  exit 1
+	echo "This setup script is expecting to run as root."
+	exit 1
 fi
 
-dnf install bind-utils git git-crypt graphviz httpd-tools iotop ipset jq neovim pv tcpdump tmux \
-    vim-enhanced -y
+dnf install bind-utils fd-find git git-crypt graphviz httpd-tools iotop ipset \
+	jq neovim pv ripgrep tcpdump tmux vim-enhanced -y
 
 dnf update -y
 
 # Rediculous there is no default for maximum log size in journalctl, systemd is such trash software
 mkdir -p /etc/systemd/journald.conf.d/
-cat << 'EOF' > /etc/systemd/journald.conf.d/00_log_limits.conf
+cat <<'EOF' >/etc/systemd/journald.conf.d/00_log_limits.conf
 [Journal]
 RateLimitBurst=5000
 RateLimitIntervalSec=30s
