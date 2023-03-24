@@ -7,7 +7,7 @@
 # The original files are stored in $HOME/.dotfiles/system-originals/ if they
 # existed for reference. This folder is not included in the repository and as
 # such will not migrate between machines
-FILES=( bashrc bash_profile config/nvim ctags gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vimrc )
+FILES=( bashrc bash_profile config/nvim ctags fonts gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vimrc )
 
 DOTFILE_DIR="${HOME}/.dotfiles"
 
@@ -51,10 +51,10 @@ ${DOTFILE_DIR}/ssh/build_config.sh
 chmod -R u=rwX,g=,o= ${DOTFILE_DIR}
 chmod -R u=rwX,g=,o= ${DOTFILE_DIR}/gnupg
 
-#if which fc-cache &> /dev/null; then
-#  echo "Installing fonts and updating font cache..."
-#  fc-cache &> /dev/null
-#fi
+if which fc-cache &> /dev/null; then
+  echo "Installing fonts and updating font cache..."
+  fc-cache &> /dev/null
+fi
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over
 # the public HTTPS endpoint to get these here. Leave a noauth version in case I
