@@ -13,6 +13,9 @@ g.localleader = " "
 
 require('vars')      -- Global variables used by other scripts
 require('opts')      -- Vim specific options
+
+require('plugins.install')  -- Base container for any plugin installation
+require('plugins.config')   -- Setup and configure any installed plugins
+
 require('keys')      -- Keymaps, binds, and quick commands
-require('plugins')   -- Base container for any plugin installation, setup, and configuration
 require('fixes')     -- Fixes for various weird behaviors or problems in plugins
