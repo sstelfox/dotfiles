@@ -10,6 +10,8 @@ return {
     -- extra typescript setup
     { import = "lazyvim.plugins.extras.lang.typescript" },
 
+    { "folke/neoconf.nvim" },
+
     {
         "nvim-treesitter/nvim-treesitter",
         opts = {
