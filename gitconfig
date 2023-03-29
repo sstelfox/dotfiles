@@ -1,45 +1,47 @@
 [apply]
-  whitespace = nowarn
+    whitespace = nowarn
 
 [color]
-  branch      = auto
-  interactive = auto
-  diff        = auto
-  status      = auto
-  ui          = auto
+    branch      = auto
+    interactive = auto
+    diff        = auto
+    status      = auto
+    ui          = auto
 
 #[commit]
 #  gpgsign = true
 
 [core]
-  autocrlf = input
-  safecrlf = false
-  editor   = vim
-  filemode = true
+    autocrlf = input
+    safecrlf = false
+    editor   = vim
+    filemode = true
 
 [fetch]
-  fsckobjects = true
+    fsckobjects = true
+    prune = true
 
 [gpg]
-  program = gpg2
+    program = gpg2
 
 [init]
-  defaultBranch = main
+    defaultBranch = main
 
 [pull]
-  default = current
+    default = current
 
 [push]
-  default = current
+    default = upstream
 
 [receive]
-  fsckobjects = true
+    fsckobjects = true
 
 [transfer]
-  fsckobjects = true
+    fsckobjects = true
 
 [user]
-  useConfigOnly = true
+    useConfigOnly = true
 
 [branch]
-  autosetupmerge = true
+    autosetupmerge = true
+    autoSetupMerger = always
