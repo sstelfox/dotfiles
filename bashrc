@@ -133,4 +133,12 @@ if which podman &>/dev/null; then
 	systemctl --user start podman.socket
 	export DOCKER_HOST=http+unix:///run/user/$(id -u)/podman/podman.sock
 	alias docker=podman
+
+	# Also set a custom registry config for podman to use the docker hub by default as the interactive prompt isn't available outside of the podman ecosystem.
+	if [ ! -f ~/.config/containers/registries.conf ]; then
+		mkdir -p ~/.config/containers
+		cat <<'EOF' >~/.config/containers/registries.conf
+short-name-mode="disabled"
+EOF
+	fi
 fi
