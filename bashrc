@@ -1,6 +1,6 @@
 # Source global definitions
 if [ -f /etc/bashrc ]; then
-  source /etc/bashrc
+	source /etc/bashrc
 fi
 
 # When a command was run that spanned multiple lines, merge that into a single
@@ -16,7 +16,7 @@ shopt -s globstar
 # Disable the XON/XOFF flow control completely (Ctrl-Q/Ctrl-S). Damn this is an
 # annoying legacy feature...
 if [ -t 0 ]; then
-  stty -ixon
+	stty -ixon
 fi
 
 # Fuck this command auto search bull shit
@@ -35,9 +35,9 @@ export DOTFILES_DIR="$HOME/.dotfiles"
 export EDITOR="vim"
 
 if [ "${XDG_SESSION_DESKTOP}" == "KDE" ]; then
-  # The system doesn't seem to properly detect the pinentry program under KDE
-  # so we need to configure that through this environment variable.
-  export PINENTRY_USER_DATA="qt"
+	# The system doesn't seem to properly detect the pinentry program under KDE
+	# so we need to configure that through this environment variable.
+	export PINENTRY_USER_DATA="qt"
 fi
 
 # NetworkManager is absolute trash and doesn't allow you to set these, so we
@@ -47,14 +47,14 @@ export RES_OPTIONS="edns0 trust-ad"
 # If we're running interactively (such as through rsync, sftp etc) don't
 # execute the rest of the setup code.
 if [[ $- != *i* ]]; then
-  return
+	return
 fi
 
 # Source all executable files that live the system-specific folder
 for FILE in $HOME/.dotfiles/system-specific/*.sh; do
-  if [ -x "$FILE" ]; then
-    source $FILE
-  fi
+	if [ -x "$FILE" ]; then
+		source $FILE
+	fi
 done
 
 alias ga='git log --diff-filter=A --follow --format=%aI -- '
@@ -69,19 +69,19 @@ alias gdb='gdb -q'
 alias ap='$(which -a vim 2>&1 | grep -e '^/' | head -n 1 || /bin/false) ~/documentation/passwords.txt'
 
 if which nvim &>/dev/null; then
-    alias vi='nvim'
-    alias vim='nvim'
-    alias sync_nvim_plugins='nvim --headless -c "lua require('packer').sync()" -c "quitall"'
+	alias vi='nvim'
+	alias vim='nvim'
+	alias sync_nvim_plugins='nvim --headless -c "lua require('packer').sync()" -c "quitall"'
 
-    export EDITOR="nvim"
+	export EDITOR="nvim"
 fi
 
 export PATH="${HOME}/.dotfiles/in_path/bin:${HOME}/.dotfiles/in_path/scripts:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
 # You know what I really need? An archive of every bash command I ever run...
 if [ ! -f "${HOME}/.dotfiles/bash-histories/.archive_created" ]; then
-  mkdir -p "${HOME}/.dotfiles/bash-histories"
-  touch "${HOME}/.dotfiles/bash-histories/.archive_created"
+	mkdir -p "${HOME}/.dotfiles/bash-histories"
+	touch "${HOME}/.dotfiles/bash-histories/.archive_created"
 fi
 
 export HISTCONTROL="ignoreboth"
@@ -96,26 +96,26 @@ BLUE=$(tput setaf 5)
 RST=$(tput sgr0)
 
 function personal_ps1_prompt() {
-  #local __bat_status="\$(${DOTFILES_DIR}/helpers/battery_status.sh)"
-  local __bat_status=""
-  #local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
-  local __exit_status=""
-  #local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
-  local __path="\$(${DOTFILES_DIR}/helpers/shortdir.sh)"
-  local __user_host="[\u@\h]"
+	#local __bat_status="\$(${DOTFILES_DIR}/helpers/battery_status.sh)"
+	local __bat_status=""
+	#local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
+	local __exit_status=""
+	#local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
+	local __path="\$(${DOTFILES_DIR}/helpers/shortdir.sh)"
+	local __user_host="[\u@\h]"
 
-  if [ -n "${TMUX_PANE}" ]; then
-    echo "$__bat_status$__exit_status $__path$__git \\$"
-  else
-    echo "$__bat_status$__exit_status $__user_host $__path$__git \\$"
-  fi
+	if [ -n "${TMUX_PANE}" ]; then
+		echo "$__bat_status$__exit_status $__path$__git \\$"
+	else
+		echo "$__bat_status$__exit_status $__user_host $__path$__git \\$"
+	fi
 }
 
 function setup_prompt {
-  export PS1="$(personal_ps1_prompt) "
+	export PS1="$(personal_ps1_prompt) "
 
-  # Don't expose more than path through the window title...
-  export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
+	# Don't expose more than path through the window title...
+	export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
 }
 
 setup_prompt
@@ -127,3 +127,10 @@ source $HOME/.dotfiles/helpers/gpg-agent.sh
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
+
+# Docker compatibility shim
+if which podman &>/dev/null; then
+	systemctl --user start podman.socket
+	export DOCKER_HOST=http+unix:///run/user/$(id -u)/podman/podman.sock
+	alias docker=podman
+fi
