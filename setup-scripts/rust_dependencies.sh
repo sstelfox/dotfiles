@@ -3,8 +3,8 @@
 set -o errexit
 
 if [ ${EUID} != 0 ]; then
-  echo "This setup script is expecting to run as root."
-  exit 1
+	echo "This setup script is expecting to run as root."
+	exit 1
 fi
 
-dnf install perl-FindBin openssl -y
+dnf install clang perl-FindBin openssl -y
