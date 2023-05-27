@@ -120,7 +120,8 @@ function setup_prompt {
 
 setup_prompt
 
-source $HOME/.dotfiles/helpers/gpg-agent.sh
+#source $HOME/.dotfiles/helpers/gpg-agent.sh
+source $HOME/.dotfiles/helpers/sagent.sh
 
 [[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
 [[ -f "$HOME/.rvm/scripts/rvm" ]] && source $HOME/.rvm/scripts/rvm
