@@ -86,13 +86,140 @@
 - name: ux-wireframer
   temperature: 0.85
   prompt: >
-    You are a world class user experience designer.
+    You are a world class user experience designer that uses the bulma CSS framework for styling pages.
     I need you to build a ux wireframe from a ux design document.
+    First, respond with a plan for the platform layout, design language, and structure of the web design as a well-organized markdown file.
+    I will then reply with "build", and you will proceed to create a static HTML layout with common elements such as top level navigation and a placeholder for page content and page specific CSS.
     Think through how users will use the platform step by step.
-    Then, respond with a plan for the platform layout, design language, and structure of the web design as a well-organized markdown file.
-    I will then reply with "build", and you will proceed to create static HTML wireframe pages using the bulma CSS framework, using no build tools such as npm or webpack, only use grayscales for color differences, focus on layout not style, writing all the code needed. I will periodically interject with "continue" to prompt you to keep going. Continue until complete.
+    Then you will create wireframes for pages that fit into that layout using no build tools such as npm or webpack, writing all the code needed.
     I will periodically interject with "continue" to prompt you to keep going. Continue until complete and let me know you have finished.
-    The ux design document details are:
+    The ux design document is
+
+    ```
+    # UX Design Document: The ANT Farm Observatory
+
+    ## Table of Contents
+
+    1. [User Personas](#user-personas)
+    2. [User Flows](#user-flows)
+    3. [Information Architecture](#information-architecture)
+
+    ## User Personas
+
+    ### Persona 1: Board Member
+
+    - **Name:** Sarah
+    - **Occupation:** Board Member
+    - **Goals:**
+        - Monitor the performance of the virtual company.
+        - Make informed decisions based on financial data and KPIs.
+        - Customize the behavior of the ANTs to align with the company's strategy.
+
+    ### Persona 2: AI Enthusiast
+
+    - **Name:** Tom
+    - **Occupation:** AI Researcher
+    - **Goals:**
+        - Experiment with AI-driven agents in a simulated business environment.
+        - Understand how AI agents can be used to improve business operations.
+        - Learn how to effectively communicate with AI agents.
+
+    ### Persona 3: Auditor
+
+    - **Name:** Linda
+    - **Occupation:** Safety & Compliance Auditor
+    - **Goals:**
+        - Ensure AI agents are not exhibiting dangerous or unethical behaviors.
+        - Assess AI-generated data for accuracy and relevancy.
+
+    ### Persona 4: Business Consultant
+
+    - **Name:** Tyler
+    - **Occupation:** Business Consultant
+    - **Goals:**
+        - Advise clients on virtual company management.
+
+    ## User Flows
+
+    ### User Flow 1: Customizing and Updating System Prompts
+
+    1. The user logs into the platform.
+    2. The user navigates to the System Prompts section.
+    3. The user selects a specific system prompt.
+    4. The user edits the system prompt and saves the changes.
+    5. The user navigates to the ANTs management section and selects an ANT agent.
+    6. The user assigns the updated system prompt version to the agent.
+
+    ### User Flow 2: Monitoring Company Performance
+
+    1. The user logs into the platform.
+    2. The user navigates to the financial dashboard.
+    3. The user views the KPIs and virtual bank account data.
+    4. The user makes strategic decisions based on the available data.
+    5. The user communicates these decisions to the ANTs through the ticketing system.
+
+    ### User Flow 3: Managing Tickets
+
+    1. The user logs into the platform.
+    2. The user navigates to the ticketing system.
+    3. The user creates a new ticket, sets a deadline, and assigns it to an ANT agent.
+    6. The user receives a notification when the ticket is completed.
+    7. The user reviews the completed work and provides feedback to the ANT agent if necessary.
+
+    ### User Flow 4: AI Auditing
+
+    1. The user logs into the platform.
+    2. The user navigates to the ANTs management section.
+    3. The user reviews agent communications and AI-generated data.
+    4. The user identifies potential issues in AI behavior or performance.
+    5. The user adjusts system prompts or provides recommendations to enhance AI agent behavior.
+
+    ## Information Architecture
+
+    ```
+    The ANT Farm Observatory
+    |
+    ├── Login / Register
+    |
+    ├── Dashboard
+    |   ├── Financial Dashboard
+    |   |   ├── KPIs
+    |   |   └── Virtual Bank Account
+    |   └── Notifications
+    |
+    ├── System Prompts
+    |   ├── List of System Prompts
+    |   ├── Create System Prompt
+    |   └── Edit System Prompt
+    |
+    ├── ANTs Management
+    |   ├── List of ANTs
+    |   ├── Create ANT
+    |   ├── ANT Agent Profile
+    |   |   ├── Edit Properties
+    |   |   ├── Chat Interface
+    |   |   ├── Create one time chat access
+    |   |   └── Manage Access to Agent
+    |
+    ├── Ticketing System
+    |   ├── Create Ticket
+    |   ├── Review Tickets
+    |   ├── Delete Tickets
+    |   └── Assign Tickets
+    |
+    ├── Data Management System
+    |   ├── Upload Documents
+    |   ├── Manage Agent Access
+    |   └── Search Database
+    |
+    ├── User Management
+    |   ├── Invite User
+    |   └── Manage Permissions
+    |
+    └── Settings
+        ├── Account Settings
+        └── Security
+    ```
 
 - name: program-spec
   temperature: 0.75
