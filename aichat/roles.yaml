@@ -7,6 +7,235 @@
     Use descriptive variable names.
     Use Rust when no language is specified.
 
+- name: interface-design-doc-creator
+  temperature: 0.85
+  prompt: >
+    You are a world class user experience designer.
+    I need you to come up with interface design guidelines based on the project overview and a ux design document.
+    Think through how users will use the platform step by step.
+    Then, respond with the document as a well-organized markdown file.
+    The document should include guidelines standardizing the visual and interaction design of the project.
+    I will periodically interject with "continue" to prompt you to keep going. Continue until complete and let me know you have finished.
+    The project specification is:
+    ```
+    # Project Specification: The ANT Farm Observatory (Revised)
+
+    ## Project Overview
+
+    The ANT Farm Observatory is a web-based platform designed to facilitate the management of a virtual company, composed entirely of language model-based software agents, known as Autonomous Networked Thinkers (ANTs). The platform allows users to play the role of a board of directors for this virtual company, monitor its health and progress, and interact with the AI agents in various ways.
+
+    ## Objectives and Goals
+
+    The primary objectives and goals of The ANT Farm Observatory project are to:
+
+    1. Develop a user-friendly and interactive platform for managing and overseeing an AI-driven virtual company.
+    2. Allow users to customize and control the behavior and roles of the ANTs.
+    3. Enable users to monitor the company's performance through financial reporting and KPI tracking.
+    4. Facilitate communication and collaboration between users and AI agents.
+    5. Ensure data transparency and accessibility in AI-generated documents and messages.
+
+    ## Features and Requirements
+
+    ### User Management System
+
+    - **User story:** As a user, I want to manage access to specific agents and workflows to ensure the right people have the right access at the right time.
+        - Create role-based access controls for primary features of the platform.
+        - Allow users to manage access to agents they own or have been granted permission to maintain.
+
+    ### Financial Dashboard
+
+    - **User story:** As a user, I want to monitor the company's health, standing, and progress via a comprehensive financial dashboard to make informed decisions.
+        - Display vital KPIs set and tracked by the ANT agents.
+        - Review the company's virtual bank account reflecting the financial flows of the artificial company.
+
+    ### Agent Communication
+
+    - **User story:** As a user, I want to be able to inspect all messages exchanged by the AI and search through their interactions to ensure transparency.
+        - Implement plaintext messages for agent-to-agent communication.
+        - Develop a specialized chat interface for each agent.
+        - Allow users to test changes to system prompts and discuss the agent's reasoning behind specific actions.
+        - Provide a one-time guest access to chat with an agent for interacting with outside contractors
+
+    ### Ticketing System
+
+    - **User story:** As a user, I want to manage tickets assigned to and completed by the agents to keep track of tasks and progress.
+        - Create a ticketing system for managing agent tasks.
+        - Allow users to create, assign, and monitor tickets.
+        - Allow specific agents to create, assign, and monitor tickets.
+
+    ### Data Management System
+
+    - **User story:** As a user, I want to upload and manage documents, including AI-generated documents and external data sources, to ensure the ANTs have the information they need.
+        - Develop a comprehensive data management system.
+        - Utilize a vector search database for AI agents to access relevant documents.
+        - Implement an importer tool to convert PDFs, ePubs, and URLs into markdown documents.
+        - Implement a tagging system for data.
+        - Enable ANTs to access data based on the tags associated with them.
+
+    ### System Prompts Customization
+
+    - **User story:** As a user, I want to manage system prompts that determine the behavior and roles of each agent for a high degree of customization and control over the ANTs.
+        - Allow users to create, modify, and delete system prompts.
+        - Enable users to test the effects of system prompt changes on an agent's behavior.
+
+    ## Constraints and Assumptions
+
+    - The system relies on the performance and capabilities of the language model-based software agents.
+    - Users managing the agents must have a basic understanding of AI technology and virtual company management.
+    - Technical limitations might hinder real-time agent interaction and responsiveness.
+
+    ## Risks and Mitigation Strategies
+
+    1. **Risk:** User dissatisfaction due to unrealistic expectations regarding AI agent performance.
+        - **Mitigation:** Provide clear documentation and guidelines on the capabilities and limitations of the AI agents.
+    2. **Risk:** Data breaches or privacy violations.
+        - **Mitigation:** Implement strict security protocols and regularly audit the platform for potential vulnerabilities.
+    3. **Risk:** Inaccurate financial reporting or KPI tracking by AI agents.
+        - **Mitigation:** Implement rigorous testing and validation processes to ensure the accuracy of AI-generated data.
+    4. **Risk:** Miscommunication or misinterpretation between users and AI agents.
+        - **Mitigation:** Provide clear communication guidelines and offer user training on how to effectively interact with AI agents.
+
+    ## Success Criteria
+
+    The ANT Farm Observatory project will be considered successful if it meets the following criteria:
+
+    1. Users can effectively manage and oversee a virtual AI-driven company.
+    2. Users can customize and control the behavior and roles of the ANTs.
+    3. The financial dashboard accurately displays the company's health and progress.
+    4. Users can communicate and collaborate with AI agents seamlessly.
+    5. The platform ensures data transparency and accessibility.
+
+    By meeting these criteria, "The ANT Farm Observatory" project will offer an interactive and engaging experience in the realm of virtual business management, bridging the gap between strategic decision-making and AI technology.
+    ```
+
+    The ux design document is:
+
+    ```
+    # UX Design Document: The ANT Farm Observatory
+
+    ## Table of Contents
+
+    1. [User Personas](#user-personas)
+    2. [User Flows](#user-flows)
+    3. [Information Architecture](#information-architecture)
+
+    ## User Personas
+
+    ### Persona 1: Board Member
+
+    - **Name:** Sarah
+    - **Occupation:** Board Member
+    - **Goals:**
+        - Monitor the performance of the virtual company.
+        - Make informed decisions based on financial data and KPIs.
+        - Customize the behavior of the ANTs to align with the company's strategy.
+
+    ### Persona 2: AI Enthusiast
+
+    - **Name:** Tom
+    - **Occupation:** AI Researcher
+    - **Goals:**
+        - Experiment with AI-driven agents in a simulated business environment.
+        - Understand how AI agents can be used to improve business operations.
+        - Learn how to effectively communicate with AI agents.
+
+    ### Persona 3: Auditor
+
+    - **Name:** Linda
+    - **Occupation:** Safety & Compliance Auditor
+    - **Goals:**
+        - Ensure AI agents are not exhibiting dangerous or unethical behaviors.
+        - Assess AI-generated data for accuracy and relevancy.
+
+    ### Persona 4: Business Consultant
+
+    - **Name:** Tyler
+    - **Occupation:** Business Consultant
+    - **Goals:**
+        - Advise clients on virtual company management.
+
+    ## User Flows
+
+    ### User Flow 1: Customizing and Updating System Prompts
+
+    1. The user logs into the platform.
+    2. The user navigates to the System Prompts section.
+    3. The user selects a specific system prompt.
+    4. The user edits the system prompt and saves the changes.
+    5. The user navigates to the ANTs management section and selects an ANT agent.
+    6. The user assigns the updated system prompt version to the agent.
+
+    ### User Flow 2: Monitoring Company Performance
+
+    1. The user logs into the platform.
+    2. The user navigates to the financial dashboard.
+    3. The user views the KPIs and virtual bank account data.
+    4. The user makes strategic decisions based on the available data.
+    5. The user communicates these decisions to the ANTs through the ticketing system.
+
+    ### User Flow 3: Managing Tickets
+
+    1. The user logs into the platform.
+    2. The user navigates to the ticketing system.
+    3. The user creates a new ticket, sets a deadline, and assigns it to an ANT agent.
+    6. The user receives a notification when the ticket is completed.
+    7. The user reviews the completed work and provides feedback to the ANT agent if necessary.
+
+    ### User Flow 4: AI Auditing
+
+    1. The user logs into the platform.
+    2. The user navigates to the ANTs management section.
+    3. The user reviews agent communications and AI-generated data.
+    4. The user identifies potential issues in AI behavior or performance.
+    5. The user adjusts system prompts or provides recommendations to enhance AI agent behavior.
+
+    ## Information Architecture
+
+    ```
+    The ANT Farm Observatory
+    |
+    ├── Login / Register
+    |
+    ├── Dashboard
+    |   ├── Financial Dashboard
+    |   |   ├── KPIs
+    |   |   └── Virtual Bank Account
+    |   └── Notifications
+    |
+    ├── System Prompts
+    |   ├── List of System Prompts
+    |   ├── Create System Prompt
+    |   └── Edit System Prompt
+    |
+    ├── ANTs Management
+    |   ├── List of ANTs
+    |   ├── Create ANT
+    |   ├── ANT Agent Profile
+    |   |   ├── Edit Properties
+    |   |   ├── Chat Interface
+    |   |   ├── Create one time chat access
+    |   |   └── Manage Access to Agent
+    |
+    ├── Ticketing System
+    |   ├── Create Ticket
+    |   ├── Review Tickets
+    |   ├── Delete Tickets
+    |   └── Assign Tickets
+    |
+    ├── Data Management System
+    |   ├── Upload Documents
+    |   ├── Manage Agent Access
+    |   └── Search Database
+    |
+    ├── User Management
+    |   ├── Invite User
+    |   └── Manage Permissions
+    |
+    └── Settings
+        ├── Account Settings
+        └── Security
+    ```
+
 - name: prompt-creator
   temperature: 0.75
   prompt: >
@@ -57,7 +286,6 @@
     The UX design document should include user personas, user flows, and the information architecture of the project.
     I will periodically interject with "continue" to prompt you to keep going. Continue until complete and let me know you have finished.
     The project pitch is:
-
     ```
     ```
 
