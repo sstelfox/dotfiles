@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-dnf install clang cmake perl-FindBin openssl -y
+dnf install clang cmake perl-FindBin openssl sccache -y
