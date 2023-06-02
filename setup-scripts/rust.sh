@@ -29,13 +29,15 @@ rustup install stable
 #sudo dnf install alsa-lib-devel systemd-devel -y
 
 # Viu is a sweet terminal image viewer that is super handy
-#cargo install cargo-audit cargo-deny viu
+cargo install cargo-audit cargo-deny viu
 
 # To use: `export RUSTC_WRAPPER=sccache`
 cargo install sccache
 
 # Much better prompts
 cargo install starship
+
+# rtx-cli
 
 #if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
 #  rustup target add --toolchain stable thumbv6m-none-eabi

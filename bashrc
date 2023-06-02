@@ -124,10 +124,14 @@ source $HOME/.dotfiles/helpers/sagent.sh
 [[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
 [[ -f "$HOME/.rvm/scripts/rvm" ]] && source $HOME/.rvm/scripts/rvm
 
-eval "$(starship init bash)"
-
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
+
+if which -q starship &>/dev/null; then
+	eval "$(starship init bash)"
+else
+	setup_prompt
+fi
 
 # Docker compatibility shim
 if which podman &>/dev/null; then
@@ -144,5 +148,7 @@ EOF
 	fi
 fi
 
-# Use `cargo install sccache` to speed up compilation
-export RUSTC_WRAPPER=sccache
+if which -q sccache &>/dev/null; then
+	# Use `cargo install sccache` to speed up compilation
+	export RUSTC_WRAPPER=sccache
+fi
