@@ -118,13 +118,13 @@ function setup_prompt {
 	export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
 }
 
-setup_prompt
-
 #source $HOME/.dotfiles/helpers/gpg-agent.sh
 source $HOME/.dotfiles/helpers/sagent.sh
 
 [[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
 [[ -f "$HOME/.rvm/scripts/rvm" ]] && source $HOME/.rvm/scripts/rvm
+
+eval "$(starship init bash)"
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
@@ -143,3 +143,6 @@ short-name-mode="disabled"
 EOF
 	fi
 fi
+
+# Use `cargo install sccache` to speed up compilation
+export RUSTC_WRAPPER=sccache

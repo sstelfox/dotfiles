@@ -31,6 +31,12 @@ rustup install stable
 # Viu is a sweet terminal image viewer that is super handy
 #cargo install cargo-audit cargo-deny viu
 
+# To use: `export RUSTC_WRAPPER=sccache`
+cargo install sccache
+
+# Much better prompts
+cargo install starship
+
 #if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
 #  rustup target add --toolchain stable thumbv6m-none-eabi
 #  rustup target add --toolchain nightly thumbv6m-none-eabi
