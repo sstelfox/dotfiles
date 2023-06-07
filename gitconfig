@@ -31,7 +31,7 @@
     default = current
 
 [push]
-    default = upstream
+    default = current
     autoSetupRemote = true
 
 [receive]
