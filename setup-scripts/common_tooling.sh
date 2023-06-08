@@ -73,6 +73,8 @@ function install_latest_rtx_plugin() {
 	return 0
 }
 
+# TODO: These belong in the individual scripts
+# TODO: Need to figure out per-project gemset settings kind of things
 install_latest_rtx_plugin gcloud yes
 install_latest_rtx_plugin kubectl yes
 install_latest_rtx_plugin ruby yes
