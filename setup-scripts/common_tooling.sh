@@ -78,3 +78,6 @@ function install_latest_rtx_plugin() {
 install_latest_rtx_plugin gcloud yes
 install_latest_rtx_plugin kubectl yes
 install_latest_rtx_plugin ruby yes
+
+install_latest_rtx_plugin terraform yes
+install_latest_rtx_plugin terrascan yes

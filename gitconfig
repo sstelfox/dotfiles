@@ -8,8 +8,8 @@
     status      = auto
     ui          = auto
 
-#[commit]
-#  gpgsign = true
+[commit]
+  gpgsign = true
 
 [core]
     autocrlf = input
