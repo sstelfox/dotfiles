@@ -57,6 +57,8 @@ function install_latest_rtx_plugin() {
 			echo -e "Failed to install latest ${PLUGIN_NAME}, output was:\n${INSTALLER_OUTPUT}"
 			return 4
 		fi
+
+		rtx use --global ${PLUGIN_NAME}
 		;;
 	[nN] | no)
 		# Do nothing
