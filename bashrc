@@ -118,8 +118,8 @@ function setup_prompt {
 	export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
 }
 
-#source $HOME/.dotfiles/helpers/gpg-agent.sh
-source $HOME/.dotfiles/helpers/sagent.sh
+source $HOME/.dotfiles/helpers/gpg-agent.sh
+#source $HOME/.dotfiles/helpers/sagent.sh
 
 [[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
 
@@ -156,9 +156,3 @@ if which -q sccache &>/dev/null; then
 	# Use `cargo install sccache` to speed up compilation
 	export RUSTC_WRAPPER=sccache
 fi
-
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/home/sstelfox/.dotfiles/in_path/bin/google-cloud-sdk/path.bash.inc' ]; then . '/home/sstelfox/.dotfiles/in_path/bin/google-cloud-sdk/path.bash.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/home/sstelfox/.dotfiles/in_path/bin/google-cloud-sdk/completion.bash.inc' ]; then . '/home/sstelfox/.dotfiles/in_path/bin/google-cloud-sdk/completion.bash.inc'; fi
