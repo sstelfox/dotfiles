@@ -1,5 +1,12 @@
+[advice]
+    detachedHead = false
+
 [apply]
     whitespace = nowarn
+
+[branch]
+    autosetupmerge = true
+    autoSetupMerger = always
 
 [color]
     branch      = auto
@@ -8,8 +15,8 @@
     status      = auto
     ui          = auto
 
-[commit]
-  gpgsign = true
+#[commit]
+#  gpgsign = true
 
 [core]
     autocrlf = input
@@ -21,15 +28,15 @@
     fsckobjects = true
     prune = true
 
-[gpg]
-    program = gpg2
+#[gpg]
+#    program = gpg2
 
 [init]
     defaultBranch = main
 
 [pull]
     default = current
-	rebase = true
+    rebase = true
 
 [push]
     default = current
@@ -43,7 +50,3 @@
 
 [user]
     useConfigOnly = true
-
-[branch]
-    autosetupmerge = true
-    autoSetupMerger = always
