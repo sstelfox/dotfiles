@@ -118,8 +118,8 @@ function setup_prompt {
 	export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
 }
 
-#source $HOME/.dotfiles/helpers/gpg-agent.sh
-source $HOME/.dotfiles/helpers/sagent.sh
+source $HOME/.dotfiles/helpers/gpg-agent.sh
+#source $HOME/.dotfiles/helpers/sagent.sh
 
 [[ -f "$HOME/.cargo/env" ]] && source $HOME/.cargo/env
 

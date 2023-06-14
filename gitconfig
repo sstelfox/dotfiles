@@ -15,8 +15,8 @@
     status      = auto
     ui          = auto
 
-#[commit]
-#  gpgsign = true
+[commit]
+  gpgsign = true
 
 [core]
     autocrlf = input
@@ -28,8 +28,8 @@
     fsckobjects = true
     prune = true
 
-#[gpg]
-#    program = gpg2
+[gpg]
+    program = gpg2
 
 [init]
     defaultBranch = main

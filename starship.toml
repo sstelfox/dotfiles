@@ -27,16 +27,16 @@ disabled = true
 format = '\[[$symbol($version(-$name))]($style)\]'
 
 [character]
-success_symbol = '[➜](bold green)'
-error_symbol = '[✗](bold red)'
+success_symbol = '\[[✓](bold green)\]'
+error_symbol = '\[[✗](bold red)\]'
 
 [cmake]
 disabled = true
 format = '\[[$symbol($version)]($style)\]'
 
 [cmd_duration]
-format = '\[[⏱ $duration]($style)\]'
-min_time = 1_500
+format = '\[[⏱$duration]($style)\]'
+min_time = 15_000
 show_milliseconds = true
 
 [cobol]
@@ -107,6 +107,7 @@ format = '\[[$symbol$account(@$domain)(\($region\))]($style)\]'
 
 [git_branch]
 format = '\[[$branch]($style)\]'
+truncation_length = 32
 
 [git_commit]
 tag_disabled = false
@@ -280,7 +281,7 @@ disabled = true
 format = '\[[$symbol($version)]($style)\]'
 
 [terraform]
-format = '\[[$symbol$workspace]($style)\]'
+format = '\[[tfw:$workspace]($style)\]'
 
 [time]
 disabled = false
