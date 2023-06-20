@@ -19,6 +19,8 @@ rustup component add rust-src
 rustup component add clippy
 rustup component add miri
 
+rustup target add wasm32-unknown-unknown
+
 rustup install stable
 
 # Needed for cargo-deny
@@ -29,22 +31,19 @@ rustup install stable
 #sudo dnf install alsa-lib-devel systemd-devel -y
 
 # Viu is a sweet terminal image viewer that is super handy
-cargo install cargo-audit cargo-deny viu
+cargo install cargo-audit cargo-deny rtx-cli starship trunk viu
 
 # To use: `export RUSTC_WRAPPER=sccache`
-cargo install sccache
-
-# Much better prompts
-cargo install starship
+#cargo install sccache
 
 # rtx-cli
 
-#if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
-#  rustup target add --toolchain stable thumbv6m-none-eabi
-#  rustup target add --toolchain nightly thumbv6m-none-eabi
-#
-#  cargo install cargo-binutils itm
-#  rustup component add llvm-tools-preview
-#fi
+if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
+	rustup target add --toolchain stable thumbv6m-none-eabi
+	rustup target add --toolchain nightly thumbv6m-none-eabi
+
+	cargo install cargo-binutils itm
+	rustup component add llvm-tools-preview
+fi
 
 mkdir -p ~/workspace/rust
