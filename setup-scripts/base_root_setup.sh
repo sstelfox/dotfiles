@@ -31,12 +31,12 @@ systemctl stop systemd-resolved.service
 
 # Unfortunately some updates from Fedora have automatically re-enabled this
 # service. Mask it so attempts to turn this back on fail.
-systemctl mask systemd-resolved.service
+if systemctl mask systemd-resolved.service &>/dev/null; then
+	# And clean up the garbage left behind by resolved, force NetworkManager to
+	# generate a valid one.
+	rm -f /etc/resolv.conf
+	systemctl restart NetworkManager.service
 
-# And clean up the garbage left behind by resolved, force NetworkManager to
-# generate a valid one.
-rm -f /etc/resolv.conf
-systemctl restart NetworkManager.service
-
-# Give it a few seconds to fix itself, poor dumb thing
-sleep 5
+	# Give it a few seconds to fix itself, poor dumb thing
+	sleep 30
+fi
