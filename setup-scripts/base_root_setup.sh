@@ -8,7 +8,7 @@ if [ ${EUID} != 0 ]; then
 fi
 
 dnf install bind-utils fd-find git git-crypt graphviz httpd-tools iotop ipset \
-	jq neovim pv ripgrep tcpdump tmux vim-enhanced -y
+	jq neovim pv python3-neovim ripgrep tcpdump tmux vim-enhanced -y
 
 dnf update -y
 
