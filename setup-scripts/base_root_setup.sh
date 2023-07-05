@@ -7,7 +7,7 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-dnf install bind-utils fd-find git git-crypt graphviz httpd-tools iotop ipset \
+dnf install bind-utils fd-find git git-crypt git-lfs graphviz httpd-tools iotop ipset \
 	jq neovim pv python3-neovim ripgrep tcpdump tmux vim-enhanced -y
 
 dnf update -y

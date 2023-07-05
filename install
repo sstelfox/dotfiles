@@ -7,7 +7,7 @@
 # The original files are stored in $HOME/.dotfiles/system-originals/ if they
 # existed for reference. This folder is not included in the repository and as
 # such will not migrate between machines
-FILES=(bashrc bash_profile config/aichat config/starship.toml config/nvim ctags fonts gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vimrc)
+FILES=(bashrc bash_profile config/aichat config/nvim config/starship.toml config/nvim ctags fonts gemrc gitconfig gnupg pryrb sqliterc ssh tmux.conf toprc vimrc)
 
 DOTFILE_DIR="${HOME}/.dotfiles"
 
