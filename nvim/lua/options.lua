@@ -22,30 +22,60 @@ opt.expandtab = true
 opt.formatoptions = "jcroqlnt"
 
 -- Use ripgrep instead of the standard one
-opt.greprg = "rg --vimgrep"
+opt.grepprg = "rg --vimgrep"
+opt.grepformat = "%f:%l:%c:%m"
 
 -- Preview incremental substitutions in the file
-opt.grepformat = "%f:%l:%c:%m"
+opt.inccommand = "nosplit"
 
 -- When searching, don't take case into account unless capitals are present
 opt.ignorecase = true
 opt.smartcase = true
 
--- Show the line number, relative to the current line
+-- Show the line number, relative to the current line, and always include the
+-- sign/line status column so the sidebar doesn't resize.
 opt.number = true
 opt.relativenumber = true
+opt.signcolumn = "yes"
 
 -- Show invisible characters
 opt.list = true
 
 -- Size of an indent, and how many spaces a tab should take up, rounding any
--- indents to the nearest correct value
+-- indents to the nearest correct value, and inserting them automatically
 opt.shiftwidth = 2
 opt.tabstop = 2
 opt.shiftround = true
+opt.smartindent = true
 
--- Number of lines of context to always keep visible near the edges
+-- Number of lines/characters of context to always keep visible near the edges
 opt.scrolloff = 5
+opt.sidescrolloff = 8
 
 -- Disable line wrapping
 opt.wrap = false
+
+-- Highlight the currently active line
+opt.cursorline = tre
+
+-- After running commands in a terminal don't show the exit status
+opt.laststatus = 0
+
+-- Spelling configuration
+opt.spelllang = { "en" }
+
+-- Enable true color support
+opt.termguicolors = true
+
+-- When splitting windows, split down and to the right
+opt.splitbelow = true
+opt.splitright = true
+
+-- Fix markdown indentation settings
+vim.g.markdown_recommended_style = 0
+
+-- Command line completion mode
+opt.wildmode = "longest:full,full"
+
+-- Minimum window width
+opt.winminwidth = 5

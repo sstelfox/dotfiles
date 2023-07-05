@@ -80,5 +80,6 @@ require("lazy").setup({
   -- The list of plugins to be automatically loaded, might want to break this
   -- out into its own file...
   spec = {
+    { 'stevearc/dressing.nvim', opts = {} },
   },
 })
