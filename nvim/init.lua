@@ -80,6 +80,17 @@ require("lazy").setup({
   -- The list of plugins to be automatically loaded, might want to break this
   -- out into its own file...
   spec = {
+    -- This plugin defines common entrypoints into the NeoVIM UI allowing them
+    -- to be customized at a common layer shared by other plugins for a
+    -- consistent UI experience throughout NeoVIM.
     { 'stevearc/dressing.nvim', opts = {} },
+
+    -- My preferred color scheme, referenced in a few other places if this gets
+    -- changed. I do like catppuccin/nvim as well and might switch to that
+    { 'folke/tokyonight.nvim', lazy = true, opts = { style = 'moon' } },
   },
 })
+
+-- TODO: Since I'm lazily loading this colorscheme I probably should add a
+-- handler to run this command when it's done being loaded.
+vim.cmd.colorscheme("tokyonight")
