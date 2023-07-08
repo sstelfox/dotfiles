@@ -24,7 +24,7 @@ function ensure_rtx_installed() {
 	chmod +x ~/.dotfiles/in_path/bin/rtx
 
 	if [ "${UPDATE_RTX_IN_PLACE}" = "true" ]; then
-		rtx self-update
+		~/.dotfiles/in_path/bin/rtx self-update
 	fi
 }
 
@@ -39,12 +39,12 @@ function install_latest_rtx_plugin() {
 
 	ensure_rtx_installed
 
-	if ! rtx plugins ls-remote | grep -q ${PLUGIN_NAME} &>/dev/null; then
+	if ! ~/.dotfiles/in_path/bin/rtx plugins ls-remote | grep -q ${PLUGIN_NAME} &>/dev/null; then
 		echo "Plugin named '${PLUGIN_NAME}' is not available with RTX"
 		return 2
 	fi
 
-	INSTALLER_OUTPUT="$(rtx plugin install ${PLUGIN_NAME} 2>&1)"
+	INSTALLER_OUTPUT="$(~/.dotfiles/in_path/bin/rtx plugin install ${PLUGIN_NAME} 2>&1)"
 	if [ $? -ne 0 ]; then
 		echo -e "Failed to install RTX plugin, output was:\n${INSTALLER_OUTPUT}"
 		return 3
@@ -52,13 +52,13 @@ function install_latest_rtx_plugin() {
 
 	case "${INSTALL_LATEST}" in
 	[yY] | yes)
-		INSTALLER_OUTPUT="$(rtx install ${PLUGIN_NAME})"
+		INSTALLER_OUTPUT="$(~/.dotfiles/in_path/bin/rtx install ${PLUGIN_NAME})"
 		if [ $? -ne 0 ]; then
 			echo -e "Failed to install latest ${PLUGIN_NAME}, output was:\n${INSTALLER_OUTPUT}"
 			return 4
 		fi
 
-		rtx use --global ${PLUGIN_NAME}
+		~/.dotfiles/in_path/bin/rtx use --global ${PLUGIN_NAME}
 		;;
 	[nN] | no)
 		# Do nothing

@@ -53,7 +53,7 @@ function ask_default_yes() {
 
 if ask_default_yes 'Would you like to setup the system to be a desktop?'; then
 	ROOT_SCRIPTS+=('desktop_root.sh')
-	USER_SCRIPTS+=('desktop_user.sh')
+	USER_SCRIPTS+=('desktop_user.sh' 'common_tooling.sh')
 	export DESKTOP_ENABLED="y"
 fi
 
@@ -63,6 +63,7 @@ if ask_default_no 'Would you like to setup nftables as the firewall?'; then
 fi
 
 if ask_default_yes 'Would you like to setup Rust?'; then
+	ROOT_SCRIPTS+=('rust_dependencies.sh')
 	USER_SCRIPTS+=('rust.sh')
 fi
 
@@ -157,7 +158,9 @@ if ask_default_no 'Are you ready to do this?'; then
 	fi
 
 	for script in ${ROOT_SCRIPTS[*]}; do
+		echo "echo 'Starting root script ${script}...'" >>/tmp/setup_script.sh
 		cat ~/.dotfiles/setup-scripts/${script} >>/tmp/setup_script.sh
+		echo "echo 'Root script ${script} complete.'" >>/tmp/setup_script.sh
 	done
 
 	# Have the script clean itself up
@@ -168,6 +171,8 @@ if ask_default_no 'Are you ready to do this?'; then
 	# For user scripts we can just run them directly as we don't have to worry
 	# about timeouts on sudo sessions.
 	for script in ${USER_SCRIPTS[*]}; do
+		echo "echo 'Starting user script ${script}...'" >>/tmp/setup_script.sh
 		~/.dotfiles/setup-scripts/${script}
+		echo "echo 'User script ${script} complete.'" >>/tmp/setup_script.sh
 	done
 fi

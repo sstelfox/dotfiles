@@ -23,20 +23,11 @@ rustup target add wasm32-unknown-unknown
 
 rustup install stable
 
-# Needed for cargo-deny
-#sudo dnf install perl-FindBin -y
-
-# Needed for sunset-cavern project, systemd-devel provides libudev.h which was
-# required by libudev-sys
-#sudo dnf install alsa-lib-devel systemd-devel -y
-
 # Viu is a sweet terminal image viewer that is super handy
-cargo install cargo-audit cargo-deny rtx-cli starship trunk viu
+cargo install cargo-audit cargo-deny starship trunk viu
 
 # To use: `export RUSTC_WRAPPER=sccache`
 #cargo install sccache
-
-# rtx-cli
 
 if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
 	rustup target add --toolchain stable thumbv6m-none-eabi
