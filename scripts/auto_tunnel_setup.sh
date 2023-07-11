@@ -39,7 +39,7 @@ chmod -R u=rwX,g=,o= "${HOME}/.ssh"
 
 if ! crontab -l 2>&1 | grep -q auto_tunnel.sh; then
   echo "Installing crontab"
-  echo "* * * * * ${HOME}/.dotfiles/scripts/auto_tunnel.sh &>/dev/null" | crontab -
+  echo -e "MAILTO=""\n* * * * * ${HOME}/.dotfiles/scripts/auto_tunnel.sh &>/dev/null" | crontab -
 fi
 
 echo 'Attempting to install auto tunnel key on remote host...'
