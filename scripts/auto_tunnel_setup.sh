@@ -16,11 +16,13 @@ if [ "${DEBUG:-}" = "true" ]; then
   set -o xtrace
 fi
 
+REMOTE_TUNNEL_LOOPBACK_PORT="${REMOTE_TUNNEL_LOOPBACK_PORT:-4319}"
+
 if [ ! -f "${HOME}/.dotfiles/system-specific/auto_tunnel.conf" ]; then
   cat << EOF > "${HOME}/.dotfiles/system-specific/auto_tunnel.conf"
 REMOTE_TUNNEL_USER="receiver"
 REMOTE_TUNNEL_HOST="singing-evening-road.stelfox.net"
-REMOTE_TUNNEL_LOOPBACK_PORT="4319"
+REMOTE_TUNNEL_LOOPBACK_PORT="${REMOTE_TUNNEL_LOOPBACK_PORT}"
 EOF
 fi
 
@@ -37,7 +39,7 @@ chmod -R u=rwX,g=,o= "${HOME}/.ssh"
 
 if ! crontab -l 2>&1 | grep -q auto_tunnel.sh; then
   echo "Installing crontab"
-  echo "* * * * * ${HOME}/.dotfiles/scripts/auto_tunnel.sh" | crontab -
+  echo "* * * * * ${HOME}/.dotfiles/scripts/auto_tunnel.sh &>/dev/null" | crontab -
 fi
 
 echo 'Attempting to install auto tunnel key on remote host...'
