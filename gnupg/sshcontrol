@@ -9,16 +9,3 @@
 # caching TTL in seconds, and another optional field for arbitrary
 # flags.   Prepend the keygrip with an '!' mark to disable it.
 
-# RSA key added on: 2016-12-07 11:55:25
-# MD5 Fingerprint:  bc:d0:88:02:36:a2:f1:8b:6e:b5:5e:60:d0:14:af:95
-0AB8E4D71DFB8C2F8CF5E785F28F6940B3741B4F 0
-# Ed25519 key added on: 2016-12-07 11:55:30
-# MD5 Fingerprint:  59:78:08:6f:fa:62:90:85:25:61:38:ca:2d:5a:84:b9
-07E42C7A34957B12F29343FF48C2307249EA6146 0
-# Ed25519 key added on: 2016-12-08 11:23:50
-# MD5 Fingerprint:  0c:a0:e8:2b:e6:ee:69:c0:35:be:03:29:93:df:44:d2
-E2C6E461814D00D1DA4A2FD4CB4C2FC49A48CEBE 0
-# ECDSA key added on: 2023-02-20 18:58:15
-# Fingerprints:  MD5:15:f7:39:e5:25:54:53:c9:0b:09:a8:b8:71:1e:d6:e2
-#                SHA256:yjL2DFGl0FusnN3CgQDABaq33+VHlpF9s7LpWgo+wjk
-778AB256E39EE81A4645EE93DC00282F80BB7264 0
