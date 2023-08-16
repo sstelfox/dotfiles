@@ -9,3 +9,7 @@
 # caching TTL in seconds, and another optional field for arbitrary
 # flags.   Prepend the keygrip with an '!' mark to disable it.
 
+# ECDSA key added on: 2023-07-18 11:46:42
+# Fingerprints:  MD5:15:f7:39:e5:25:54:53:c9:0b:09:a8:b8:71:1e:d6:e2
+#                SHA256:yjL2DFGl0FusnN3CgQDABaq33+VHlpF9s7LpWgo+wjk
+778AB256E39EE81A4645EE93DC00282F80BB7264 0

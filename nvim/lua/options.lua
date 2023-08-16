@@ -41,6 +41,8 @@ opt.signcolumn = "yes"
 -- Show invisible characters
 opt.list = true
 
+opt.mouse = ""
+
 -- Size of an indent, and how many spaces a tab should take up, rounding any
 -- indents to the nearest correct value, and inserting them automatically
 opt.shiftwidth = 2
