@@ -81,3 +81,6 @@ opt.wildmode = "longest:full,full"
 
 -- Minimum window width
 opt.winminwidth = 5
+
+-- The built in mouse support is incredibly frustrating
+opt.mouse = ""
