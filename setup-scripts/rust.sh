@@ -24,7 +24,7 @@ rustup target add wasm32-unknown-unknown
 rustup install stable
 
 # Viu is a sweet terminal image viewer that is super handy
-cargo install cargo-audit cargo-deny starship trunk viu
+cargo install cargo-audit cargo-deny starship trunk viu wasm-pack
 
 # To use: `export RUSTC_WRAPPER=sccache`
 #cargo install sccache

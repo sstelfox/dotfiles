@@ -7,10 +7,12 @@ if [ ${EUID} = 0 ]; then
   exit 1
 fi
 
-# TODO: Actually download and install Obsidian...
+wget -O ~/.dotfiles/in_path/bin/obsidian https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.5/Obsidian-1.4.5.AppImage
+chmod +x ~/.dotfiles/in_path/bin/obsidian
 
 # TODO: Should give it an icon and I think there are some other
 # "required" attributes I should set.
+mkdir -p ~/.local/share/applications
 cat << 'EOF' > ~/.local/share/applications/obsidian.desktop
 [Desktop Entry]
 Name=Obsidian
