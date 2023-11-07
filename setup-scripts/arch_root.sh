@@ -11,7 +11,9 @@ pacman -Sy wireguard-tools nftables podman tcpdump git-lfs graphviz iotop \
   git-crypt jq ripgrep blender inkscape gimp krita zopfli ansible discord \
   libreoffice-fresh screen strace vlc xclip transmission-qt yt-dlp clang \
   cmake nvidia-prime nvidia-utils rsync nvidia-dkms linux-hardened-headers \
-  bluez bluez-utils
+  bluez bluez-utils fuse2
 
 systemctl start bluetooth.service
 systemctl enable bluetooth.service
+
+# yay -S slack
