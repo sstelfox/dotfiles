@@ -56,3 +56,6 @@
   smudge = git-lfs smudge -- %f
   process = git-lfs filter-process
   required = true
+
+#[includeIf "hasconfig:remote.*.url:https://github.com/banyancomputer/"]
+#path = ~/.dotfiles/configs/git/banyan.inc

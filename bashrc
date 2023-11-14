@@ -82,6 +82,10 @@ fi
 
 export PATH="${HOME}/.dotfiles/in_path/bin:${HOME}/.dotfiles/in_path/scripts:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
+if [ -d /opt/cuda/bin ]; then
+  export PATH="${PATH}:/opt/cuda/bin"
+fi
+
 # You know what I really need? An archive of every bash command I ever run...
 if [ ! -f "${HOME}/.dotfiles/bash-histories/.archive_created" ]; then
   mkdir -p "${HOME}/.dotfiles/bash-histories"
