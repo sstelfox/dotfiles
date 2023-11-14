@@ -1,6 +1,7 @@
 /bin/rust-analyzer
 /fonts/.uuid
 /fonts/.uuid
+/nvim/lazy-lock.json
 /ssh/known_hosts
 /tags
 /vim/.netrwhist
