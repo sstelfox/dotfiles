@@ -26,3 +26,4 @@ systemctl start bluetooth.service
 systemctl enable bluetooth.service
 
 # yay -S slack
+# yay -S python-conda
