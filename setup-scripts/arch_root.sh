@@ -22,6 +22,9 @@ pacman -Syy aardvark-dns podman-dnsname
 # This package seemed to massively improve the "lag" I felt on the work laptop
 pacman -Syy xf86-video-amdgpu
 
+# Some tools for interacting with my phone
+pacman -Syy android-tools android-file-transfer android-udev
+
 systemctl start bluetooth.service
 systemctl enable bluetooth.service
 
