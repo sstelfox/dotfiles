@@ -86,6 +86,10 @@ if [ -d /opt/cuda/bin ]; then
 	export PATH="${PATH}:/opt/cuda/bin"
 fi
 
+if [ -d "${HOME}/.miniconda3/bin/" ]; then
+	export PATH="${PATH}:${HOME}/.miniconda3/bin/"
+fi
+
 # You know what I really need? An archive of every bash command I ever run...
 if [ ! -f "${HOME}/.dotfiles/bash-histories/.archive_created" ]; then
 	mkdir -p "${HOME}/.dotfiles/bash-histories"
