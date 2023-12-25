@@ -86,10 +86,6 @@ if [ -d /opt/cuda/bin ]; then
 	export PATH="${PATH}:/opt/cuda/bin"
 fi
 
-if [ -d "${HOME}/.miniconda3/bin/" ]; then
-	export PATH="${PATH}:${HOME}/.miniconda3/bin/"
-fi
-
 # You know what I really need? An archive of every bash command I ever run...
 if [ ! -f "${HOME}/.dotfiles/bash-histories/.archive_created" ]; then
 	mkdir -p "${HOME}/.dotfiles/bash-histories"
@@ -173,20 +169,15 @@ fi
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/sstelfox/.miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+__conda_setup="$('/home/sstelfox/.miniconda3/bin/conda' 'shell.bash' 'hook' 2>/dev/null)"
 if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
+	eval "$__conda_setup"
 else
-    if [ -f "/home/sstelfox/.miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/sstelfox/.miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/sstelfox/.miniforge3/bin:$PATH"
-    fi
+	if [ -f "/home/sstelfox/.miniconda3/etc/profile.d/conda.sh" ]; then
+		. "/home/sstelfox/.miniconda3/etc/profile.d/conda.sh"
+	else
+		export PATH="/home/sstelfox/.miniconda3/bin:$PATH"
+	fi
 fi
 unset __conda_setup
-
-if [ -f "/home/sstelfox/.miniforge3/etc/profile.d/mamba.sh" ]; then
-    . "/home/sstelfox/.miniforge3/etc/profile.d/mamba.sh"
-fi
 # <<< conda initialize <<<
-
