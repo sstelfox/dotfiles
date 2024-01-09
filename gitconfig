@@ -59,3 +59,5 @@
 
 #[includeIf "hasconfig:remote.*.url:https://github.com/banyancomputer/"]
 #path = ~/.dotfiles/configs/git/banyan.inc
+[diff]
+	algorithm = histogram

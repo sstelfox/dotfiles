@@ -135,13 +135,13 @@ module Target
       glacier glade glen gorge grass heart herbs hill home horizon imprecation
       inlet isle isthmus jar karma knell knight lake laurel leaf locus luster
       marble marsh meadow mesa mire moon mountain moss necropolis oasis ocean
-      oubliette overwatch palimpsest paper passage peak phyle picture pine
-      plenum poet pond poignard portent praxis quest rain redoubt reef remnant
-      resonance river road sacrifice scent sea seed shadow shaft shelter shield
-      silence spirit sky smoke snow soldier sorrow sound star staircase sun
-      surf surface swamp tempest thought threshold thunder torment tower
-      treasure tree triptych trove tunnel vacuum valediction vengeance voice
-      volcano water waterfall wave wind wood world zombie
+      oubliette overwatch palimpsest paper passage peak petricor phyle picture
+      pine plenum poet pond poignard portent praxis quest rain redoubt reef
+      remnant resonance river road sacrifice scent sea seed shadow shaft
+      shelter shield silence spirit sky smoke snow soldier sorrow sound star
+      staircase sun surf surface swamp tempest thought threshold thunder
+      torment tower treasure tree triptych trove tunnel vacuum valediction
+      vengeance voice volcano water waterfall wave wind wood world zombie
 
     }.sort
   end
