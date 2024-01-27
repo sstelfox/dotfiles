@@ -7,3 +7,4 @@ channels:
   - conda-forge
   - defaults
 channel_priority: strict
+report_errors: false
