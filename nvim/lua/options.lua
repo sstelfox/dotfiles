@@ -1,6 +1,10 @@
--- Use the very convenient spacebar as our leaders
+-- Use the very convenient spacebar as our leaders, lazy recommends calling this
+-- before calling its own setup.
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
+
+-- Disable perl before it ever gets a chance to load
+vim.g.loaded_perl_provider = 0
 
 local opt = vim.opt
 

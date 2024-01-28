@@ -1,8 +1,9 @@
 auto_activate_base: false
 
 create_default_packages:
-  - pip
   - ipython
+  - neovim
+  - pip
 channels:
   - conda-forge
   - defaults

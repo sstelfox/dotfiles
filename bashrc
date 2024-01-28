@@ -167,6 +167,11 @@ if which -q sccache &>/dev/null; then
 	export RUSTC_WRAPPER=sccache
 fi
 
+# Only handle this setup when I've installed the conda environment
+if which conda &>/dev/null; then
+  # The formatting of this bothers me so much... but it is whitespace sensitive
+  # so I need to leave it be...
+
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/usr/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -181,3 +186,6 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+
+  conda activate default
+fi
