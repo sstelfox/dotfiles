@@ -67,6 +67,15 @@ require("lazy").setup({
 			-- Also from LazyVim, resets the runtime path to $VIMRUNTIME and my config
 			-- directory
 			reset = true,
+
+			-- Disable various run time path plugins for performance
+			disabled_plugins = {
+				"gzip",
+				"tarPlugin",
+				"tohtml",
+				"tutor",
+				"zipPlugin",
+			},
 		},
 	},
 
