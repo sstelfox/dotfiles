@@ -16,11 +16,6 @@ end
 
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
--- Some of these options need to be configured before we start sourcing plugin
--- modules to ensure they're correctly applied, such as mapleader and
--- maplocalleader.
-require("options")
-
 require("lazy").setup({
 	-- If our neovim config gets changed, load it up automatically in open
 	-- sessions and let us know that happened. Unlike plugin updates, these are
@@ -87,6 +82,3 @@ require("lazy").setup({
 		{ import = "plugins" },
 	},
 })
-
-require("autocmds")
-require("keymaps")
