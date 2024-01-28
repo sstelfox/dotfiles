@@ -77,6 +77,9 @@ require('lazy').setup({
   -- Define all the plugins I want to use and their specific configurations,
   -- this doesn't necessarily load them
   spec = {
+    -- Include the package manager itself so it can handle its own updates, LazyVim does this before it includes itself
+    { 'folke/lazy.nvim', version = '*' },
+
     -- Lets start with my preferred theme, no extra functionality or keybinds
     {
       'folke/tokyonight.nvim',
