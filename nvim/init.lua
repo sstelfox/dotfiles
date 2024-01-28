@@ -82,10 +82,11 @@ require("lazy").setup({
 	-- Define all the plugins I want to use and their specific configurations,
 	-- this doesn't necessarily load them
 	spec = {
-		-- Yeah I'm going to still bring in LazyVim, but I'm going to selectively
-		-- bring in their plugins instead of all of them. They're problematic
-		-- overall.
-		{ "LazyVim/LazyVim", import = "lazyvim.plugins" },
+		-- Still very not happy about quite a few of LazyVim's options, I've decided
+		-- to inline it and gut it freely down to its minimums until I'm happy with
+		-- the results.
+		{ import = "lazyvim" },
+		{ import = "lazyvim.plugins" },
 
 		-- Include my own plugin systems
 		{ import = "plugins" },
