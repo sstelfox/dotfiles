@@ -28,5 +28,8 @@ pacman -Syy android-tools android-file-transfer android-udev
 systemctl start bluetooth.service
 systemctl enable bluetooth.service
 
+# Used by neovim
+pacman -Syy lazygit
+
 # yay -S slack
 # yay -S python-conda
