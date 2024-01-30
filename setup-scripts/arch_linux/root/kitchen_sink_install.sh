@@ -7,7 +7,7 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Syy wireguard-tools nftables podman tcpdump git-lfs graphviz iotop \
+pacman -Syy fuse2 wireguard-tools nftables podman tcpdump git-lfs graphviz iotop \
 	git-crypt jq ripgrep blender inkscape gimp krita zopfli ansible discord \
 	libreoffice-fresh screen strace vlc xclip transmission-qt yt-dlp clang \
 	cmake nvidia-prime nvidia-utils rsync nvidia-dkms linux-hardened-headers \

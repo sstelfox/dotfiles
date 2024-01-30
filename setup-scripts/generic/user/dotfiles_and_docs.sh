@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -o errexit
+
+if [ ${EUID} = 0 ]; then
+	echo "This setup script is expecting to run as a regular user."
+	exit 1
+fi
+
+if ! which git &>/dev/null; then
+	echo 'Git must be installed before setup can begin'
+	exit 1
+fi
+
+if [ ! -f ~/.dotfiles ]; then
+	git clone https://github.com/sstelfox/dotfiles.git ~/.dotfiles
+fi
+
+~/.dotfiles/install
+
+gpg2 --import ~/.dotfiles/publickey.gpg
+gpg2 --import-ownertrust ~/.dotfiles/trusted_keys.txt
+
+if [ ! -d ~/documentation ]; then
+	git clone hollow-twilight-ocean.stelfox.net:repos/documentation.git ~/documentation
+fi
