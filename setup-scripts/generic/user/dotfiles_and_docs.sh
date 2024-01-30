@@ -21,6 +21,9 @@ fi
 gpg2 --import ~/.dotfiles/publickey.gpg
 gpg2 --import-ownertrust ~/.dotfiles/trusted_keys.txt
 
+# note(sstelfox): restoring the secret key is as easy as copying the contents of a backed up
+# version of the private-keys-v1.d into the newly created one. The past says hello!
+
 if [ ! -d ~/documentation ]; then
 	git clone hollow-twilight-ocean.stelfox.net:repos/documentation.git ~/documentation
 fi
