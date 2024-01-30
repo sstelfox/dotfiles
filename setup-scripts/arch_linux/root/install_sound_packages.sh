@@ -7,5 +7,4 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-systemctl enable bluetooth.service
-systemctl start bluetooth.service
+pacman -Sy --needed --noconfirm pipewire pipewire-audio pipewire-pulse pipewire-v4l2 lib32-pipewire
