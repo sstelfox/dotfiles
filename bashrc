@@ -175,7 +175,7 @@ if which conda &>/dev/null; then
 		eval "$__conda_setup"
 	else
 		if [ -f "/usr/etc/profile.d/conda.sh" ]; then
-			. "/usr/etc/profile.d/conda.sh"
+# . "/usr/etc/profile.d/conda.sh"  # commented out by conda initialize
 		else
 			export PATH="/usr/bin:$PATH"
 		fi
