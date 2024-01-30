@@ -10,8 +10,8 @@ local opt = vim.opt
 
 opt.completeopt = "menu,menuone,noselect"
 
--- Hide '*' markup for bold and italic
-opt.conceallevel = 3
+-- Hide '*' markup for bold and italic, but not markers with substitutions
+opt.conceallevel = 2
 
 -- Confirm saving before exiting a modified buffer instead of just aborting the exit
 opt.confirm = true
@@ -45,8 +45,6 @@ opt.signcolumn = "yes"
 -- Show invisible characters
 opt.list = true
 
-opt.mouse = ""
-
 -- Size of an indent, and how many spaces a tab should take up, rounding any
 -- indents to the nearest correct value, and inserting them automatically
 opt.shiftwidth = 2
@@ -62,7 +60,7 @@ opt.sidescrolloff = 8
 opt.wrap = false
 
 -- Highlight the currently active line
-opt.cursorline = tre
+opt.cursorline = true
 
 -- After running commands in a terminal don't show the exit status
 opt.laststatus = 0
