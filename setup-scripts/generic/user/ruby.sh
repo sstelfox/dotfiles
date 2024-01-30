@@ -13,7 +13,7 @@ gpg2 --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys \
 curl -sSL https://get.rvm.io | bash -s -- --ignore-dotfiles stable
 
 # Re-source our bash profile so we can use RVM
-source ~/.bashrc
+source /home/sstelfox/.rvm/scripts/rvm
 
 rvm install 3.1.0 --no-docs
 rvm gemset create global
