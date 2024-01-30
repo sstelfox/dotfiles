@@ -137,10 +137,6 @@ else
 	setup_prompt
 fi
 
-if which -q rtx &>/dev/null; then
-	eval "$(rtx activate bash)"
-fi
-
 if [[ -f "$HOME/.rvm/scripts/rvm" ]]; then
 	source $HOME/.rvm/scripts/rvm
 	# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
@@ -169,23 +165,23 @@ fi
 
 # Only handle this setup when I've installed the conda environment
 if which conda &>/dev/null; then
-  # The formatting of this bothers me so much... but it is whitespace sensitive
-  # so I need to leave it be...
+	# The formatting of this bothers me so much... but it is whitespace sensitive
+	# so I need to leave it be...
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/usr/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/usr/etc/profile.d/conda.sh" ]; then
-        . "/usr/etc/profile.d/conda.sh"
-    else
-        export PATH="/usr/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+	# >>> conda initialize >>>
+	# !! Contents within this block are managed by 'conda init' !!
+	__conda_setup="$('/usr/bin/conda' 'shell.bash' 'hook' 2>/dev/null)"
+	if [ $? -eq 0 ]; then
+		eval "$__conda_setup"
+	else
+		if [ -f "/usr/etc/profile.d/conda.sh" ]; then
+			. "/usr/etc/profile.d/conda.sh"
+		else
+			export PATH="/usr/bin:$PATH"
+		fi
+	fi
+	unset __conda_setup
+	# <<< conda initialize <<<
 
-  conda activate default
+	conda activate default
 fi

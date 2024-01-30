@@ -7,7 +7,7 @@ if [ ${EUID} = 0 ]; then
 	exit 1
 fi
 
-#~/.dotfiles/install
+~/.dotfiles/install
 
 gpg2 --import ~/.dotfiles/publickey.gpg
 gpg2 --import-ownertrust ~/.dotfiles/trusted_keys.txt
