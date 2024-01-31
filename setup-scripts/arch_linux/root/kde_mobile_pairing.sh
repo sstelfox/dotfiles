@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Sy kdeconnect
+pacman -Sy kdeconnect sshfs
