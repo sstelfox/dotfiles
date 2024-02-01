@@ -22,7 +22,7 @@ mkdir -p ~/.local/share/applications
 cat <<'EOF' >~/.local/share/applications/obsidian.desktop
 [Desktop Entry]
 Name=Obsidian
-Exec=${HOME}/.dotfiles/in_path/bin/obsidian
+Exec=env GDK_BACKEND=x11 ${HOME}/.dotfiles/in_path/bin/obsidian
 Icon=~/.dotfiles/assets/obsidian.svg
 Comment=Obsidian Personal Organizer
 Type=Application
