@@ -167,3 +167,6 @@ fi
 if which conda &>/dev/null; then
 	conda activate default
 fi
+
+# This is a bugfix for wayload that doesn't allow clipboard interactions for some reason
+export QT_QPA_PLATFORM=xcb
