@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Sy --noconfirm nodejs npm typescript yarn
+pacman -Sy --needed --no-confirm nodejs npm typescript yarn
