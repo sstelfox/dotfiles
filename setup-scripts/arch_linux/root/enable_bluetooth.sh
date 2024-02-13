@@ -7,5 +7,7 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
+#pacman -Sy --noconfirm bluez bluez-utils
+
 systemctl enable bluetooth.service
 systemctl start bluetooth.service
