@@ -30,6 +30,7 @@ rustup install stable
 
 # Viu is a sweet terminal image viewer that is super handy
 cargo install cargo-audit cargo-deny starship trunk viu wasm-pack
+cargo install sqlx-cli --no-default-features --features sqlite
 
 # To use: `export RUSTC_WRAPPER=sccache`
 #cargo install sccache
