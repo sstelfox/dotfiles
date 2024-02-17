@@ -4,10 +4,6 @@
 [apply]
   whitespace = nowarn
 
-[branch]
-  autosetupmerge = true
-  autoSetupMerger = always
-
 [color]
   branch      = auto
   interactive = auto
@@ -15,17 +11,20 @@
   status      = auto
   ui          = auto
 
-#[commit]
-#  gpgsign = true
+[commit]
+  gpgsign = true
+  verbose = true
 
 [core]
   autocrlf = input
   safecrlf = false
   editor   = vim
   filemode = true
+  pager = delta
 
 [diff]
-	algorithm = histogram
+  algorithm = histogram
+  submodule = log
 
 [fetch]
   fsckobjects = true
@@ -37,16 +36,28 @@
 [init]
   defaultBranch = main
 
+[merge]
+  conflictStyle = zdiff3
+
 [pull]
   default = current
   rebase = true
 
 [push]
   default = current
-  autoSetupRemote = true
+  autosetupremote = true
 
 [receive]
   fsckobjects = true
+
+[rerere]
+  enabled = true
+
+[status]
+  submoduleSummary = true
+
+[submodule]
+  recurse = true
 
 [transfer]
   fsckobjects = true

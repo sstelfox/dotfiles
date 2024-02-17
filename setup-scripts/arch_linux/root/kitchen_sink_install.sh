@@ -7,23 +7,26 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Sy --noconfirm wireguard-tools nftables podman tcpdump git-lfs graphviz iotop git-crypt \
+pacman -Sy --needed --noconfirm wireguard-tools nftables podman tcpdump git-lfs graphviz iotop git-crypt \
 	jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
 	transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db
 
-#pacman -Sy --noconfirm nvidia-prime nvidia-utils nvidia-dkms linux-hardened-headers
+#pacman -Sy --needed --noconfirm nvidia-prime nvidia-utils nvidia-dkms linux-hardened-headers
+
+# Handy diff tool with syntax highlighting for git
+pacman -Sy --needed --noconfirm git-delta
 
 # Secure boot setup
-pacman -Sy --noconfirm sbctl
+pacman -Sy --needed --noconfirm sbctl
 
 # For podman DNS networking
-pacman -Sy --noconfirm aardvark-dns podman-dnsname
+pacman -Sy --needed --noconfirm aardvark-dns podman-dnsname
 
 # This package seemed to massively improve the "lag" I felt on the work laptop
-#pacman -Syy xf86-video-amdgpu
+#pacman -Sy --needed --noconfirm xf86-video-amdgpu
 
 # Some tools for interacting with my phone
-#pacman -Syy android-tools android-file-transfer android-udev
+#pacman -Sy --needed --noconfirm android-tools android-file-transfer android-udev
 
 # Used by neovim
-pacman -Sy --noconfirm lazygit
+pacman -Sy --needed --noconfirm lazygit
