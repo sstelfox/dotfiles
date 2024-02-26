@@ -12,4 +12,4 @@ if ! which yay &>/dev/null; then
 	exit 1
 fi
 
-yay -S slack-desktop
+yay -S --norebuild --cleanafter slack-desktop
