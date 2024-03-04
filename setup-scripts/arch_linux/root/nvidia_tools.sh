@@ -7,4 +7,7 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Sy cuda nvidia-dkms nvidia-prime nvidia-settings nvidia-utils nvtop
+pacman -Sy nvidia-dkms nvidia-prime nvidia-settings nvidia-utils nvtop
+
+# AI/ML tools
+pacman -Sy --needed --noconfirm cuda cudnn

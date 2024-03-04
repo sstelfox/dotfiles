@@ -38,8 +38,8 @@ reflector --save /etc/pacman.d/mirrorlist --country "United States,Canada" \
 # TODO: graphics drivers? sddm?, pulseaudio?
 
 pacstrap -K /mnt base git kde-graphics-meta kde-network-meta kde-system-meta \
-	kde-utilities-meta linux-hardened linux-firmware lvm2 man-db mdadm neovim \
-	nftables plasma-desktop tmux firefox
+	kde-utilities-meta linux-hardened linux-firmware lvm2 man-db man-pages mdadm \
+	neovim nftables plasma-desktop tmux firefox
 
 echo 'en_US.UTF-8 UTF-8' >/mnt/etc/locale.gen
 arch-chroot /mnt locale-gen

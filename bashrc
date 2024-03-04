@@ -163,10 +163,25 @@ if which -q sccache &>/dev/null; then
 	export RUSTC_WRAPPER=sccache
 fi
 
+# This is a bugfix for wayload that doesn't allow clipboard interactions for some reason
+export QT_QPA_PLATFORM=xcb
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$("${HOME}/.miniconda3/bin/conda" 'shell.bash' 'hook' 2>/dev/null)"
+if [ $? -eq 0 ]; then
+	eval "$__conda_setup"
+else
+	if [ -f "${HOME}/.miniconda3/etc/profile.d/conda.sh" ]; then
+		. "${HOME}/.miniconda3/etc/profile.d/conda.sh"
+	else
+		export PATH="${HOME}/.miniconda3/bin:$PATH"
+	fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
 # Only handle this setup when I've installed the conda environment
 if which conda &>/dev/null; then
 	conda activate default
 fi
-
-# This is a bugfix for wayload that doesn't allow clipboard interactions for some reason
-export QT_QPA_PLATFORM=xcb
