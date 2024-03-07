@@ -19,6 +19,9 @@ pacman -Sy --needed --noconfirm git-delta
 # Secure boot setup
 pacman -Sy --needed --noconfirm sbctl
 
+# Needed for podman to just run
+pacman -Sy --needed --noconfirm fuse-overlayfs
+
 # For podman DNS networking
 pacman -Sy --needed --noconfirm aardvark-dns podman-dnsname
 
