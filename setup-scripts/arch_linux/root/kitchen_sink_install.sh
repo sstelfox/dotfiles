@@ -8,7 +8,7 @@ if [ ${EUID} != 0 ]; then
 fi
 
 pacman -Sy --needed --noconfirm wireguard-tools nftables podman tcpdump git-lfs graphviz iotop git-crypt \
-	jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
+	imagemagick jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
 	transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db
 
 #pacman -Sy --needed --noconfirm nvidia-prime nvidia-utils nvidia-dkms linux-hardened-headers
