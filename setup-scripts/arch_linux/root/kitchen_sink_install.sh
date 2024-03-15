@@ -23,7 +23,7 @@ pacman -Sy --needed --noconfirm sbctl
 pacman -Sy --needed --noconfirm fuse-overlayfs
 
 # For podman DNS networking
-pacman -Sy --needed --noconfirm aardvark-dns podman-dnsname
+#pacman -Sy --needed --noconfirm aardvark-dns podman-dnsname
 
 # This package seemed to massively improve the "lag" I felt on the work laptop
 #pacman -Sy --needed --noconfirm xf86-video-amdgpu

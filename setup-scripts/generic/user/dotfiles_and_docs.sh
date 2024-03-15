@@ -12,7 +12,7 @@ if ! which git &>/dev/null; then
 	exit 1
 fi
 
-if [ ! -f ~/.dotfiles ]; then
+if [ ! -d ~/.dotfiles ]; then
 	git clone https://github.com/sstelfox/dotfiles.git ~/.dotfiles
 fi
 

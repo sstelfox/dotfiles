@@ -12,7 +12,7 @@ if ! which yay &>/dev/null; then
 	exit 1
 fi
 
-sudo pacman -Sy --needed --noconfirm linux-headers linux-hardened-headers
+sudo pacman -Sy --needed --noconfirm linux-hardened-headers
 
 yay -S evdi-git
 yay -S displaylink
