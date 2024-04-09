@@ -3,15 +3,15 @@
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
 if not vim.loop.fs_stat(lazypath) then
-	-- bootstrap the package manager
-	vim.fn.system({
-		"git",
-		"clone",
-		"--filter=blob:none",
-		"--branch=stable",
-		"https://github.com/folke/lazy.nvim.git",
-		lazypath,
-	})
+  -- bootstrap the package manager
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "--branch=stable",
+    "https://github.com/folke/lazy.nvim.git",
+    lazypath,
+  })
 end
 
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
@@ -28,3 +28,7 @@ vim.g.maplocalleader = "\\"
 
 -- Kick of the plugin loading process
 require("lazy").setup(lazy_spec, lazy_settings)
+
+if os.getenv('THEME') == 'light' then
+  vim.o.background = 'light'
+end
