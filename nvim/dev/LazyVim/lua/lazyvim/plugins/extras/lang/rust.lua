@@ -101,6 +101,7 @@ return {
 								allFeatures = true,
 								loadOutDirsFromCheck = true,
 								runBuildScripts = true,
+								--target = "wasm32-unknown-unknown",
 							},
 							-- Add clippy lints for Rust.
 							checkOnSave = {
