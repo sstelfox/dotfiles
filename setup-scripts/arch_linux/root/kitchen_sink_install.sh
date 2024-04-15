@@ -9,7 +9,7 @@ fi
 
 pacman -Sy --needed --noconfirm wireguard-tools nftables podman tcpdump git-lfs graphviz iotop git-crypt \
 	imagemagick jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
-	transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db
+	transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db gwenview
 
 #pacman -Sy --needed --noconfirm nvidia-prime nvidia-utils nvidia-dkms linux-hardened-headers
 
