@@ -7,4 +7,5 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Sy --needed --noconfirm discord
+# A faster compatible linker for Rust
+pacman -Sy --needed --noconfirm mold

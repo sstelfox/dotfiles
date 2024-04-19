@@ -8,4 +8,4 @@ if [ ${EUID} != 0 ]; then
 fi
 
 # Useful for locating which packages contain a specific file (like a library or a binary)
-pacman -Sy --noconfirm pkgfile
+pacman -Sy --needed --noconfirm pkgfile

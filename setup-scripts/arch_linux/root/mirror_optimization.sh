@@ -9,6 +9,6 @@ fi
 
 cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
 
-pacman -Syy reflector
+pacman -Sy --needed --noconfirm reflector
 
 reflector --country 'United States' --latest 25 --age 24 --fastest 5 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
