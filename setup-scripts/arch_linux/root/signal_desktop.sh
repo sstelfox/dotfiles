@@ -7,6 +7,6 @@ if [ ${EUID} != 0 ]; then
 	exit 1
 fi
 
-pacman -Syy signal-desktop
+pacman -Sy --needed --noconfirm signal-desktop
 
 echo 'The signal tray hack fix is included in the user portion of these utilities'
