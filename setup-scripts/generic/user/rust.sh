@@ -33,7 +33,18 @@ cargo install cargo-audit cargo-deny sccache starship trunk viu wasm-pack
 cargo install sqlx-cli --no-default-features --features sqlite
 
 # To use: `export RUSTC_WRAPPER=sccache`
-#cargo install sccache
+cargo install sccache
+
+# This should be handled by my dotfiles but needs to be reworked...
+mkdir -p $HOME/.cargo
+cat <<EOF >$HOME/.cargo/config.toml
+[build]
+rustc-wrapper = "sccache"
+
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=/sbin/mold"]
+EOF
 
 if [ "${EMBEDDED_DEVELOPMENT}" = "y" ]; then
 	rustup target add --toolchain stable thumbv6m-none-eabi
