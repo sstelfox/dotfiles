@@ -12,4 +12,4 @@ if ! grep -q -E "^\[multilib\]$" /etc/pacman.conf; then
 	exit 0
 fi
 
-pacman -Syy steam lib32-nvidia-utils lib32-amdvlk
+pacman -Sy --needed --noconfirm steam lib32-nvidia-utils lib32-amdvlk
