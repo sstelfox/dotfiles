@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -o errexit
 
 if [ ${EUID} = 0 ]; then
@@ -5,6 +7,4 @@ if [ ${EUID} = 0 ]; then
 	exit 1
 fi
 
-balooctl6 suspend
-balooctl6 disable
-balooctl6 purge
+curl -fsSL https://ollama.com/install.sh | sh
