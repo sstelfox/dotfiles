@@ -57,7 +57,7 @@ opt.scrolloff = 5
 opt.sidescrolloff = 8
 
 -- Disable line wrapping
-opt.wrap = true
+opt.wrap = false
 
 -- Highlight the currently active line
 opt.cursorline = true
