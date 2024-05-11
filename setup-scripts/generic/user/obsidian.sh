@@ -7,7 +7,7 @@ if [ ${EUID} = 0 ]; then
 	exit 1
 fi
 
-PINNED_OBSIDIAN_VERSION="${PINNED_OBSIDIAN_VERSION:-1.5.3}"
+PINNED_OBSIDIAN_VERSION="${PINNED_OBSIDIAN_VERSION:-1.5.12}"
 
 if ! which fusermount &>/dev/null; then
 	echo 'AppImages like obsidian require fuse to run'
