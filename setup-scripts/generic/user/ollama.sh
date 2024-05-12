@@ -8,3 +8,12 @@ if [ ${EUID} = 0 ]; then
 fi
 
 curl -fsSL https://ollama.com/install.sh | sh
+
+cat <<EOF | sudo tee /etc/systemd/system/ollama.service.d/cors.conf
+[Service]
+Environment="OLLAMA_ORIGINS=*"
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable ollama.service
+sudo systemctl restart ollama.service
