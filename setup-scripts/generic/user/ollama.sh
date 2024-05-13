@@ -9,6 +9,7 @@ fi
 
 curl -fsSL https://ollama.com/install.sh | sh
 
+sudo mkdir -p /etc/systemd/system/ollama.service.d
 cat <<EOF | sudo tee /etc/systemd/system/ollama.service.d/cors.conf
 [Service]
 Environment="OLLAMA_ORIGINS=*"
