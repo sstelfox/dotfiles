@@ -5,6 +5,7 @@ id_*
 *_key*
 *.pem
 !gpg_key.pub
+!id_ecdsa_sk_yubi.pub
 authorized_keys
 config
 environment
