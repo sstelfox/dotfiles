@@ -113,13 +113,6 @@ root       ALL=(ALL)   ALL
 %sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
 EOF
 
-# TODO: signed kernel
-arch-chroot ${ROOT_MNT} sbctl create-keys
-
-cat << EOF > ${ROOT_MNT}/etc/vconsole.conf
-KEYMAP=us
-EOF
-
 echo '[zram0]' > ${ROOT_MNT}/etc/systemd/zram-generator.conf
 
 arch-chroot ${ROOT_MNT} systemctl disable systemd-resolved.service
@@ -131,10 +124,12 @@ arch-chroot ${ROOT_MNT} systemctl enable systemd-timesyncd.service
 arch-chroot ${ROOT_MNT} systemctl enable systemd-zram-setup@zram0.service
 
 # Swap based suspend/resume (resume hook & kernel opts)
-RESUME_UUID=$(findmnt -no UUID -T /mnt/root/swapfile)
-RESUME_OFFSET=$(filefrag -v /mnt/root/swapfile)
+RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
+RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
 
-cp mkinitcpio.conf ${ROOT_MNT}/etc/mkinitcpio.conf
+# TODO: signed kernel
+arch-chroot ${ROOT_MNT} sbctl create-keys
+
 cat<<EOF>${ROOT_MNT}/etc/mkinitcpio.conf
 MODULES=()
 BINARIES=()
