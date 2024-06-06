@@ -41,7 +41,7 @@ reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https --late
 # Core install always present
 pacstrap -K ${ROOT_MNT} base efibootmgr git libfido2 linux-firmware \
 	linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
-	openssh sudo tmux wireguard-tools xfsprogs zram-generator
+	openssh sbctl sudo tmux wireguard-tools xfsprogs zram-generator
 
 genfstab -pU ${ROOT_MNT} >> ${ROOT_MNT}/etc/fstab
 
@@ -82,9 +82,8 @@ cat <<EOF>${ROOT_MNT}/etc/ssh/sshd_config
 AddressFamily any
 
 Port 22
-Port 2200
 
-ClientAliceInterval 10
+ClientAliveInterval 10
 
 UsePAM yes
 PermitEmptyPasswords no
@@ -115,6 +114,7 @@ root       ALL=(ALL)   ALL
 EOF
 
 # TODO: signed kernel
+arch-chroot ${ROOT_MNT} sbctl create-keys
 
 cat << EOF > ${ROOT_MNT}/etc/vconsole.conf
 KEYMAP=us
@@ -169,7 +169,7 @@ EOF
 #fallback_options="-S autodetect"
 #EOF
 
-LUKS_UUID="$(lsblk --json --bytes --output UUID,PATH | jq -r .blockdevices[] | select(.path == "/dev/nvme0n1p2").uuid)"
+LUKS_UUID="$(lsblk --json --bytes --output UUID,PATH | jq -r .blockdevices[] | select(.path == "/dev/sda2").uuid)"
 #LUKS_UUID="$(cryptsetup luksUUID /dev/nvme0n1p2)"
 LUKS_NAME="${LUKS_UUID}:system-crypt"
 
