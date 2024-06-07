@@ -133,10 +133,8 @@ dd if=/dev/zero bs=1M count=16 of=${DISK}2 >/dev/null
 
 mkfs.vfat -F 32 -n EFI ${DISK}1 >/dev/null
 
-echo $DISK_PASSPHRASE | cryptsetup --batch-mode --verbose --type luks3 \
-	--pbkdf argon2id --key-size 512 --hash sha512 --iter-time 2500 \
+echo ${DISK_PASSPHRASE} | cryptsetup --batch-mode --verbose --iter-time 2500 \
 	--use-urandom --force-password luksFormat ${DISK}2
-
 sleep 2
 
 echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-root
