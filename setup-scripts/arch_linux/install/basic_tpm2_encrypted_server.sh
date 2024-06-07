@@ -9,6 +9,7 @@ HOSTNAME="${HOSTNAME:-}"
 DOMAIN="${DOMAIN:-stelfox.net}"
 
 PRIMARY_USERNAME="${PRIMARY_USERNAME:-sstelfox}"
+USER_SSH_PUBKEY="ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGP+2BkRQuX8w+vxoTfqIWCA5JUuulbauL+brKfSjVH15L3cYEQ1O9OtNOe0Hq5YOxHOMyzHDUlAAlpD8/F/blE="
 
 SSID="${SSID:-}"
 SSID_PASSWORD="${SSID_PASSWORD:-}"
@@ -52,23 +53,39 @@ fi
 
 ### LOCAL ENVIRONMENT SETUP
 
-# We'll use this both for the installer's root account as well as the
-# administrative and root user of the installed system.
-read -e -p "User/Root account password: " -s -r USER_PASSWORD
+HASHED_USER_PASSWORD=
+HASHED_ROOT_PASSWORD=
 
-# Generate unique hashes for both accounts, but use the same initial password
-# until it can be changed
-HASHED_USER_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
-HASHED_ROOT_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
-unset USER_PASSWORD
+if [ -r /root/user-pw-hash -a -r /root/root-pw-hash ]; then
+	HASHED_USER_PASSWORD="$(cat /root/user-pw-hash)"
+	HASHED_ROOT_PASSWORD="$(cat /root/root-pw-hash)"
+else
+	# We'll use this both for the installer's root account as well as the
+	# administrative and root user of the installed system.
+	read -e -p "User/Root account password: " -s -r USER_PASSWORD
+
+	# Generate unique hashes for both accounts, but use the same initial password
+	# until it can be changed
+	HASHED_USER_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
+	HASHED_ROOT_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
+	unset USER_PASSWORD
+fi
+
+DISK_PASSPHRASE=
+if [ -r /root/disk-pw ]; then
+	DISK_PASSPHRASE="$(cat /root/disk-pw)"
+else
+	read -e -p "Encryption Passphrase: " -s -r DISK_PASSPHRASE
+	echo
+fi
 
 usermod --password ${HASHED_ROOT_PASSWORD} root
 
 # Also throw in some SSH keys to make access a tad easier
 mkdir -p /root/.ssh
 chmod 0700 /root/.ssh
-cat <<'EOF' >/root/.ssh/authorized_keys
-ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGP+2BkRQuX8w+vxoTfqIWCA5JUuulbauL+brKfSjVH15L3cYEQ1O9OtNOe0Hq5YOxHOMyzHDUlAAlpD8/F/blE=
+cat <<EOF >/root/.ssh/authorized_keys
+${USER_SSH_PUBKEY}
 EOF
 chmod 0600 /root/.ssh/authorized_keys
 
@@ -97,9 +114,6 @@ dd if=/dev/zero bs=1M count=16 of=${DISK}2 >/dev/null
 ### DISK FORMATTING & ENCRYPTION
 
 mkfs.vfat -F 32 -n EFI ${DISK}1 >/dev/null
-
-read -e -p "Encryption Passphrase: " -s -r DISK_PASSPHRASE
-echo
 
 echo $DISK_PASSPHRASE | cryptsetup --batch-mode --verbose --type luks3 \
 	--pbkdf argon2id --key-size 512 --hash sha512 --iter-time 2500 \
@@ -190,6 +204,22 @@ arch-chroot ${ROOT_MNT} groupadd -r sshers
 arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root
 arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME}
 
+PRIOR_UMASK="$(umask)"
+umask 0700
+
+mkdir --parents ${ROOT_MNT}/home/${PRIMARY_USERNAME}/.ssh
+cat <<EOF >${ROOT_MNT}/home/${PRIMARY_USERNAME}/.ssh/authorized_keys
+${USER_SSH_PUBKEY}
+EOF
+arch-chroot ${ROOT_MNT} chown -R ${PRIMARY_USERNAME}:${PRIMARY_USERNAME} /home/${PRIMARY_USERNAME}/.ssh
+
+mkdir --parents ${ROOT_MNT}/root/.ssh
+cat <<EOF >${ROOT_MNT}/root/.ssh/authorized_keys
+${USER_SSH_PUBKEY}
+EOF
+
+umask ${PRIOR_UMASK}
+
 cat <<'EOF' >${ROOT_MNT}/etc/sudoers
 Cmnd_Alias BLACKLIST = /sbin/su
 Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
@@ -243,7 +273,7 @@ if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine
 	echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
 fi
 
-# - Bootloader
+# Bootloader
 arch-chroot ${ROOT_MNT} bootctl install
 
 cat <<'EOF' >${ROOT_MNT}/efi/loader/loader.conf
@@ -251,17 +281,16 @@ editor no
 timeout 3
 EOF
 
-# TODO:
-#
-# - Boot signatures
-#?sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
+# Boot signatures
+arch-chroot ${ROOT_MNT} sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
 arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
-# - mkinitcpio config
+# mkinitcpio config
 
 # Find TPM driver name:
-# systemd-cryptenroll --tpm2-device=list
-
+#
+#systemd-cryptenroll --tpm2-device=list
+#
 # For now I'm just going to assume its using the most common tpm_tis rather than autodetecting it...
 # Add drive name to /etc/mkinitcpio.conf modules:
 cat <<'EOF' >${ROOT_MNT}/etc/mkinitcpio.conf
@@ -312,7 +341,7 @@ reboot
 # Note: may want to adjust the PCRs being used...
 # systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,7
 #
-# - Enroll FIDO2 key
+# - Enroll FIDO3 key
 #
 # Find the device name we need for the next step
 #systemd-cryptenroll --fido2-device=list
