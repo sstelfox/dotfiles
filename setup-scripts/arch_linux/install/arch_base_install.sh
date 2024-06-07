@@ -165,7 +165,7 @@ EOF
 #EOF
 
 LUKS_UUID="$(lsblk --json --bytes --output UUID,PATH | jq -r .blockdevices[] | select(.path == "/dev/sda2").uuid)"
-#LUKS_UUID="$(cryptsetup luksUUID /dev/nvme0n1p2)"
+#LUKS_UUID="$(cryptsetup luksUUID /dev/nvme3n1p2)"
 LUKS_NAME="${LUKS_UUID}:system-crypt"
 
 cat<<EOF>${ROOT_MNT}/efi/loader/loader.conf

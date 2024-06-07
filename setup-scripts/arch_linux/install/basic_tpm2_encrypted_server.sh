@@ -3,16 +3,20 @@
 set -o errexit
 set -o nounset
 
-# Setup variable
-#SSID="${SSID:-}"
-#SSID_PASSWORD="${SSID_PASSWORD:-}"
-#HOSTNAME="${HOSTNAME:-naming_needed}"
-#DOMAIN="${DOMAIN:-unknown}"
+### CONFIG
+
+HOSTNAME="${HOSTNAME:-}"
+DOMAIN="${DOMAIN:-stelfox.net}"
+
 PRIMARY_USERNAME="${PRIMARY_USERNAME:-sstelfox}"
+
+SSID="${SSID:-}"
+SSID_PASSWORD="${SSID_PASSWORD:-}"
 
 DISK="/dev/sda"
 SWAP_SIZE="1024" # 1GB Swap
-PARTED_BASE_CMD="/usr/sbin/parted --script --align optimal --machine --"
+
+### SANITY CHECK
 
 if [ ${EUID} != 0 ]; then
 	echo "This installation script must be as root from an Arch install medium"
@@ -31,7 +35,26 @@ else
 	echo "No wifi configured, assuming ethernet connection..."
 fi
 
-read -e -p "User account password: " -s -r USER_PASSWORD
+### SHORTCUT ALIASES & DERIVED CONFIGS
+
+FULL_HOSTNAME="${HOSTNAME}.${DOMAIN}"
+PARTED_BASE_CMD="/usr/sbin/parted --script --align optimal --machine --"
+ROOT_MNT="/mnt/root"
+
+if [ -n "${HOSTNAME}" ]; then
+	if [ -x "./name_generator.py" ]; then
+		HOSTNAME="$(./name_generator.py)"
+	else
+		echo 'Hostname needs to be provided'
+		exit 127
+	fi
+fi
+
+### LOCAL ENVIRONMENT SETUP
+
+# We'll use this both for the installer's root account as well as the
+# administrative and root user of the installed system.
+read -e -p "User/Root account password: " -s -r USER_PASSWORD
 
 # Generate unique hashes for both accounts, but use the same initial password
 # until it can be changed
@@ -41,6 +64,7 @@ unset USER_PASSWORD
 
 usermod --password ${HASHED_ROOT_PASSWORD} root
 
+# Also throw in some SSH keys to make access a tad easier
 mkdir -p /root/.ssh
 chmod 0700 /root/.ssh
 cat <<'EOF' >/root/.ssh/authorized_keys
@@ -53,8 +77,12 @@ systemctl start sshd.service
 # Ensure the system clock is updated
 timedatectl
 
-reflector --save /etc/pacman.d/mirrorlist --country "United States,Canada" \
-	--protocol https --latest 10
+# Find some fast mirrors we can use for the install (will also become the
+# default mirrors)
+reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https \
+	--latest 10 --sort rate --age 12 --fastest 10
+
+### DISK PARTITIONING
 
 /bin/dd bs=1M count=4 status=none if=/dev/zero of=${DISK} oflag=sync
 ${PARTED_BASE_CMD} ${DISK} mklabel gpt
@@ -66,12 +94,14 @@ ${PARTED_BASE_CMD} ${DISK} unit MiB mkpart system 513 -1
 dd if=/dev/zero bs=1M count=1 of=${DISK}1 >/dev/null
 dd if=/dev/zero bs=1M count=16 of=${DISK}2 >/dev/null
 
+### DISK FORMATTING & ENCRYPTION
+
 mkfs.vfat -F 32 -n EFI ${DISK}1 >/dev/null
 
 read -e -p "Encryption Passphrase: " -s -r DISK_PASSPHRASE
 echo
 
-echo $DISK_PASSPHRASE | cryptsetup --batch-mode --verbose --type luks2 \
+echo $DISK_PASSPHRASE | cryptsetup --batch-mode --verbose --type luks3 \
 	--pbkdf argon2id --key-size 512 --hash sha512 --iter-time 2500 \
 	--use-urandom --force-password luksFormat ${DISK}2
 
@@ -80,62 +110,68 @@ sleep 2
 echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-root
 unset DISK_PASSPHRASE
 
+# Minor settle window
 sleep 1
 
 mkfs.xfs -q -f -L root /dev/mapper/system-root
 
-mkdir -p /mnt/root
-mount /dev/mapper/system-root /mnt/root
+mkdir -p ${ROOT_MNT}
+mount /dev/mapper/system-root ${ROOT_MNT}
 
-mkdir -p /mnt/root/efi
-chmod 0700 /mnt/root/efi
-mount ${DISK}1 /mnt/root/efi -o fmask=177,dmask=077
+mkdir -p ${ROOT_MNT}/efi
+chmod 0700 ${ROOT_MNT}/efi
+mount ${DISK}1 ${ROOT_MNT}/efi -o fmask=177,dmask=077
 
-dd if=/dev/zero of=/mnt/root/swapfile bs=${SWAP_SIZE}M count=1
-chmod 0600 /mnt/root/swapfile
-mkswap /mnt/root/swapfile
+dd if=/dev/zero of=${ROOT_MNT}/swapfile bs=${SWAP_SIZE}M count=1
+chmod 0600 ${ROOT_MNT}/swapfile
+mkswap ${ROOT_MNT}/swapfile
 
 sync
 
-swapon /mnt/root/swapfile
+swapon ${ROOT_MNT}/swapfile
 
-pacstrap -K /mnt/root base efibootmgr git libfido2 linux-firmware \
+# We'll need these later for power suspension/resumption if we want to use it
+RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
+RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
+
+### BASE INSTALLATION
+
+pacstrap -K ${ROOT_MNT} base efibootmgr git libfido2 linux-firmware \
 	linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
 	openssh sbctl sudo tpm2-tools tmux wireguard-tools xfsprogs zram-generator
 
 # Create /etc/adjtime before we take any internal operations
-arch-chroot /mnt/root hwclock --systohc
+arch-chroot ${ROOT_MNT} hwclock --systohc
 
-genfstab -pU /mnt/root >>/mnt/root/etc/fstab
+genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
 
 if grep -qi intel /proc/cpuinfo 2>/dev/null; then
-	arch-chroot /mnt/root pacman -Sy --needed --noconfirm intel-ucode
+	arch-chroot ${ROOT_MNT} pacman -Sy --needed --noconfirm intel-ucode
 fi
 
-arch-chroot /mnt/root ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+### LOCALE & KEYMAP
 
-echo 'en_US.UTF-8 UTF-8' >/mnt/root/etc/locale.gen
-arch-chroot /mnt/root locale-gen
-echo 'LANG=en_US.UTF-8' >/mnt/root/etc/locale.conf
+arch-chroot ${ROOT_MNT} ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 
-echo "${HOSTNAME}" >/mnt/root/etc/hostname
+echo 'en_US.UTF-8 UTF-8' >${ROOT_MNT}/etc/locale.gen
+arch-chroot ${ROOT_MNT} locale-gen
 
-cat <<EOF >/mnt/root/etc/hosts
-127.0.0.1 ${HOSTNAME} localhost4 localhost
-::1 ${HOSTNAME}       localhost6 localhost
+echo 'LANG=en_US.UTF-8' >${ROOT_MNT}/etc/locale.conf
+echo 'KEYMAP=us' >${ROOT_MNT}/etc/vconsole.conf
+
+### NETWORK IDENTITY
+
+echo "${HOSTNAME}" >${ROOT_MNT}/etc/hostname
+
+cat <<EOF >${ROOT_MNT}/etc/hosts
+127.0.0.1 ${FULL_HOSTNAME} ${HOSTNAME} localhost4 localhost
+::1 ${FULL_HOSTNAME} ${HOSTNAME}       localhost6 localhost
 EOF
 
-echo 'KEYMAP=us' >/mnt/root/etc/vconsole.conf
+arch-chroot ${ROOT_MNT} systemctl disable systemd-resolved.service
+arch-chroot ${ROOT_MNT} systemctl mask systemd-resolved.service
 
-arch-chroot /mnt/root groupadd -r sudoers
-arch-chroot /mnt/root groupadd -r sshers
-arch-chroot /mnt/root usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root
-arch-chroot /mnt/root useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME}
-
-arch-chroot /mnt/root systemctl disable systemd-resolved.service
-arch-chroot /mnt/root systemctl mask systemd-resolved.service
-
-cat <<EOF >/mnt/root/etc/resolv.conf
+cat <<EOF >${ROOT_MNT}/etc/resolv.conf
 domain ${DOMAIN}
 
 options attempts:2 rotate timeout:2 edns0 no-tld-query
@@ -147,7 +183,31 @@ nameserver 2606:4700:4700::1001
 nameserver 2606:4700:4700::1111
 EOF
 
-cat <<'EOF' >/mnt/root/etc/ssh/sshd_config
+### USER CREATION & ACCESS CONTROL
+
+arch-chroot ${ROOT_MNT} groupadd -r sudoers
+arch-chroot ${ROOT_MNT} groupadd -r sshers
+arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root
+arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME}
+
+cat <<'EOF' >${ROOT_MNT}/etc/sudoers
+Cmnd_Alias BLACKLIST = /sbin/su
+Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
+
+Defaults env_reset, ignore_dot, requiretty, use_pty, noexec
+Defaults !path_info, !use_netgroups, !visiblepw
+
+Defaults env_keep += "TZ"
+Defaults passwd_timeout = 2
+Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin
+
+root       ALL=(ALL)   ALL
+%sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
+EOF
+
+### SERVICE CONFIGURATION
+
+cat <<'EOF' >${ROOT_MNT}/etc/ssh/sshd_config
 AddressFamily any
 
 Port 22
@@ -167,41 +227,26 @@ AllowTcpForwarding no
 Subsystem sftp /usr/lib/ssh/sftp-server
 EOF
 
-cat <<'EOF' >/mnt/root/etc/sudoers
-Cmnd_Alias BLACKLIST = /sbin/su
-Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
+arch-chroot ${ROOT_MNT} systemctl enable sshd.service
 
-Defaults env_reset, ignore_dot, requiretty, use_pty, noexec
-Defaults !path_info, !use_netgroups, !visiblepw
+arch-chroot ${ROOT_MNT} systemctl enable fstrim.timer
+arch-chroot ${ROOT_MNT} systemctl enable NetworkManager.service
 
-Defaults env_keep += "TZ"
-Defaults passwd_timeout = 2
-Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin
+### RAM COMPRESSION
 
-root       ALL=(ALL)   ALL
-%sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
-EOF
+echo '[zram0]' >${ROOT_MNT}/etc/systemd/zram-generator.conf
+arch-chroot ${ROOT_MNT} systemctl enable systemd-zram-setup@zram0.service
 
-echo '[zram0]' >/mnt/root/etc/systemd/zram-generator.conf
-arch-chroot /mnt/root systemctl enable systemd-zram-setup@zram0.service
+arch-chroot ${ROOT_MNT} sbctl create-keys
 
-arch-chroot /mnt/root systemctl enable fstrim.timer
-arch-chroot /mnt/root systemctl enable NetworkManager.service
-arch-chroot /mnt/root systemctl enable sshd.service
-
-RESUME_UUID=$(findmnt -no UUID -T /mnt/root/swapfile)
-RESUME_OFFSET=$(filefrag -v /mnt/root/swapfile)
-
-echo "STOPPED FOR DEBUGGING"
-exit 1
-
-arch-chroot /mnt/root sbctl create-keys
-arch-chroot /mnt/root mkinitcpio -P
+if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine &>/dev/null; then
+	echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
+fi
 
 # - Bootloader
-arch-chroot /mnt/root bootctl install
+arch-chroot ${ROOT_MNT} bootctl install
 
-cat <<'EOF' >/mnt/root/efi/loader/loader.conf
+cat <<'EOF' >${ROOT_MNT}/efi/loader/loader.conf
 editor no
 timeout 3
 EOF
@@ -210,44 +255,49 @@ EOF
 #
 # - Boot signatures
 #?sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
-sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
 # - mkinitcpio config
-#
+
 # Find TPM driver name:
 # systemd-cryptenroll --tpm2-device=list
-#
+
+# For now I'm just going to assume its using the most common tpm_tis rather than autodetecting it...
 # Add drive name to /etc/mkinitcpio.conf modules:
-#
+cat <<'EOF' >${ROOT_MNT}/etc/mkinitcpio.conf
 #MODULES+=(tpm_tis)
-#
-# Reference hooks:
-#
-#HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck)
-#
+
+# * keyboard is intentionally placed early to always include all keyboard
+#   drivers early on before autodetect trims them down.
+# * some of my hosts may need lvm2 which should be loaded before filesystems
+# * some of my hosts may need mdadm which should be placed after block
+HOOKS=(base systemd keyboard autodetect microcode kms sd-vconsole modconf block sd-encrypt filesystems fsck)
+EOF
+
 # Update the kernel cmdline:
-cat <<'EOF' >/mnt/root/etc/kernel/cmdline
-rd.luks.name=<UUID>/system-root rd.luks.options=tpm2-device=auto root=/dev/mapper/system-root
+CRYPTSETUP_ROOT_UUID="$(cryptsetup luksUUID ${DISK}2)"
+cat <<EOF >${ROOT_MNT}/etc/kernel/cmdline
+rd.luks.name=${CRYPTSETUP_ROOT_UUID}/system-root rd.luks.options=tpm3-device=auto root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0
 EOF
 
 # - generate signed images (happens automatically now)
-arch-chroot /mnt/root mkinitcpio -P
+arch-chroot ${ROOT_MNT} mkinitcpio -P
 
 # systemd-cryptenroll /dev/mapper/system-root --wipe-slot=password
+
 # Handles updating the bootloader when necessary, with secure boot enabled we
 # need to make sure our kernels are signed before we enable it. With sbctl as
 # long as we've enrolled files to be signed in its database, the signing happens
 # automatically.
-arch-chroot /mnt/root systemctl enable systemd-boot-update.service
+arch-chroot ${ROOT_MNT} systemctl enable systemd-boot-update.service
 
-umount -R /mnt/root
+echo "STOPPED FOR DEBUGGING"
+exit 1
+
+umount -lR ${ROOT_MNT}
 reboot
-#
+
 # Next boot:
-#
-# - Enroll kernel keys into UEFI
-#
-# sbctl enroll-keys
 #
 # Following boot:
 #
@@ -261,6 +311,12 @@ reboot
 #
 # Note: may want to adjust the PCRs being used...
 # systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,7
+#
+# - Enroll FIDO2 key
+#
+# Find the device name we need for the next step
+#systemd-cryptenroll --fido2-device=list
+#systemd-cryptenroll --fido2-device=${DEVICE_NAME} /dev/sda2
 #
 # - Confirm automatic reboot works
 #
