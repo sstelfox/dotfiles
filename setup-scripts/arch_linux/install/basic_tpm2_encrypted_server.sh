@@ -222,7 +222,7 @@ arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_RO
 arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME}
 
 PRIOR_UMASK="$(umask)"
-umask 0700
+umask 0077
 
 mkdir --parents ${ROOT_MNT}/home/${PRIMARY_USERNAME}/.ssh
 cat <<EOF >${ROOT_MNT}/home/${PRIMARY_USERNAME}/.ssh/authorized_keys
@@ -237,41 +237,33 @@ EOF
 
 umask ${PRIOR_UMASK}
 
-cat <<'EOF' >${ROOT_MNT}/etc/sudoers
-Cmnd_Alias BLACKLIST = /sbin/su
+cat <<'EOF' >${ROOT_MNT}/etc/sudoers.d/10-default.conf
+Cmnd_Alias BLACKLIST = /usr/bin/su
 Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
 
 Defaults env_reset, ignore_dot, requiretty, use_pty, noexec
-Defaults !path_info, !use_netgroups, !visiblepw
+Defaults !path_info, !use_netgroups
 
-Defaults env_keep += "TZ"
 Defaults passwd_timeout = 2
 Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin
 
-root       ALL=(ALL)   ALL
-%sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
+%sudoers   ALL=(ALL:ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
 EOF
 
 ### SERVICE CONFIGURATION
 
-cat <<'EOF' >${ROOT_MNT}/etc/ssh/sshd_config
-AddressFamily any
+rm -f /etc/ssh/sshd_config.d/99-archlinux.conf
 
-Port 22
-
-ClientAliveInterval 10
+cat <<'EOF' >${ROOT_MNT}/etc/ssh/sshd_config.d/10-default.conf
+ClientAliveInterval 20
 
 UsePAM yes
-PermitEmptyPasswords no
-PermitRootLogin prohibit-password
+PasswordAuthentication yes
 
 AllowGroups sshers
-AuthorizedKeysFile .ssh/authorized_keys
-PreferredAuthentications publickey,keyboard-interactive,password
 
+AllowAgentForwarding no
 AllowTcpForwarding no
-
-Subsystem sftp /usr/lib/ssh/sftp-server
 EOF
 
 arch-chroot ${ROOT_MNT} systemctl enable sshd.service
@@ -284,23 +276,26 @@ arch-chroot ${ROOT_MNT} systemctl enable NetworkManager.service
 echo '[zram0]' >${ROOT_MNT}/etc/systemd/zram-generator.conf
 arch-chroot ${ROOT_MNT} systemctl enable systemd-zram-setup@zram0.service
 
-arch-chroot ${ROOT_MNT} sbctl create-keys
+### SECURE BOOT
 
+arch-chroot ${ROOT_MNT} sbctl create-keys
 if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine &>/dev/null; then
 	echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
 fi
 
-# Bootloader
-#cat <<'EOF' >${ROOT_MNT}/boot/loader/loader.conf
-#editor no
-#timeout 3
-#EOF
+arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
-arch-chroot ${ROOT_MNT} bootctl install
-
-# Boot signatures
-arch-chroot ${ROOT_MNT} sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
-arch-chroot ${ROOT_MNT} sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+# Create an on-disk disk encryption config
+#
+# The FIDO/TPM options are only useful if we enroll that type of crypto key into
+# the root filesystem. discard is largely ignored during the boot, that needs to
+# be set via a kernel cmdline option its here for consistency and for other
+# tools knowledge, the workqueue options provide better performance on SSDs for
+# encrypted disks.
+CRYPTSETUP_ROOT_UUID="$(cryptsetup luksUUID ${DISK}2)"
+cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
+system-root   ${DISK}2  none  discard,fido2-device=auto,tpm2-device=auto,no-read-workqueue,no-write-workqueue
+EOF
 
 # Initramfs config
 
@@ -320,28 +315,42 @@ MODULES+=(tpm_tis)
 HOOKS=(base systemd keyboard autodetect microcode modconf kms sd-vconsole block sd-encrypt filesystems fsck)
 EOF
 
-# Create an on-disk disk encryption config
-#
-# The FIDO/TPM options are only useful if we enroll that type of crypto key into
-# the root filesystem. discard is largely ignored during the boot, that needs to
-# be set via a kernel cmdline option its here for consistency and for other
-# tools knowledge, the workqueue options provide better performance on SSDs for
-# encrypted disks.
-CRYPTSETUP_ROOT_UUID="$(cryptsetup luksUUID ${DISK}2)"
-cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
-system-root   ${DISK}2  none  discard,fido2-device=auto,tpm2-device=auto,no-read-workqueue,no-write-workqueue
-EOF
-
-# Set our additional cmdline parameters for the linux kernel, the discard needs
-# to be present here if the drive is unlocked by systemd during boot (the one
-# in crypttab is kept for consistency and other tools, but does not work on boot).
-cat <<EOF >${ROOT_MNT}/etc/kernel/cmdline
-rd.luks.options=discard root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0
-EOF
-
 # Regenerate the initramfs entries, now signed and with the configuration for
 # our encrypted system
 arch-chroot ${ROOT_MNT} mkinitcpio -P
+
+arch-chroot ${ROOT_MNT} bootctl install
+
+# Bootloader
+cat <<'EOF' >${ROOT_MNT}/boot/loader/loader.conf
+default linux-hardened
+editor no
+timeout 3
+EOF
+
+# The /etc/kernel/cmdline file is red herring, these files need to contain the
+# kernel options.
+#
+# They also need to be manually created for any entries to show up in the
+# bootctl managed menu.
+#
+# The discard needs to be present here if the drive is unlocked by systemd
+# during boot (the one in crypttab is kept for consistency and other tools, but
+# does not work on boot).
+cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened.conf
+title Hardened Linux
+linux /vmlinuz-linux-hardened
+initrd /intel-ucode.img
+initrd /initramfs-linux-hardened.img
+options rd.luks.options=discard root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0 rw rootfstype=xfs
+EOF
+
+cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened-fallback.conf
+title Hardened Linux (fallback)
+linux /vmlinuz-linux-hardened
+initrd /initramfs-linux-hardened.img
+options root=/dev/mapper/system-root zswap.enabled=0 rw rootfstype=xfs
+EOF
 
 # Handles updating the bootloader when necessary, with secure boot enabled we
 # need to make sure our kernels are signed before we enable it. With sbctl as
