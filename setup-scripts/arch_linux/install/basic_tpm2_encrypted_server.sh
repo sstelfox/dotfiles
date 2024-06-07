@@ -1,7 +1,17 @@
 #!/bin/bash
 
 set -o errexit
+set -o errtrace
+set -o pipefail
 set -o nounset
+
+function error_handler() {
+	echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
+}
+
+if [ "${DEBUG:-}" = "true" ]; then
+	set -o xtrace
+fi
 
 ### CONFIG
 
