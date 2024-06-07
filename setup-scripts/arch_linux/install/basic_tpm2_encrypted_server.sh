@@ -311,25 +311,37 @@ arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.
 # For now I'm just going to assume its using the most common tpm_tis rather than autodetecting it...
 # Add drive name to /etc/mkinitcpio.conf modules:
 cat <<'EOF' >${ROOT_MNT}/etc/mkinitcpio.conf
-#MODULES+=(tpm_tis)
+MODULES+=(tpm_tis)
 
 # * keyboard is intentionally placed early to always include all keyboard
 #   drivers early on before autodetect trims them down.
-# * some of my hosts may need lvm2 which should be loaded before filesystems
-# * some of my hosts may need mdadm which should be placed after block
-HOOKS=(base systemd keyboard autodetect microcode kms sd-vconsole modconf block sd-encrypt filesystems fsck)
+# * some of my hosts may need lvm2 which should be loaded between sd-encrypt
+#   and filesystems
+HOOKS=(base systemd keyboard autodetect microcode modconf kms sd-vconsole block sd-encrypt filesystems fsck)
 EOF
 
-# Update the kernel cmdline:
+# Create an on-disk disk encryption config
+#
+# The FIDO/TPM options are only useful if we enroll that type of crypto key into
+# the root filesystem. discard is largely ignored during the boot, that needs to
+# be set via a kernel cmdline option its here for consistency and for other
+# tools knowledge, the workqueue options provide better performance on SSDs for
+# encrypted disks.
 CRYPTSETUP_ROOT_UUID="$(cryptsetup luksUUID ${DISK}2)"
-cat <<EOF >${ROOT_MNT}/etc/kernel/cmdline
-rd.luks.name=${CRYPTSETUP_ROOT_UUID}/system-root rd.luks.options=tpm3-device=auto root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0
+cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
+system-root   ${DISK}2  none  discard,fido2-device=auto,tpm2-device=auto,no-read-workqueue,no-write-workqueue
 EOF
 
-# - generate signed images (happens automatically now)
-arch-chroot ${ROOT_MNT} mkinitcpio -P
+# Set our additional cmdline parameters for the linux kernel, the discard needs
+# to be present here if the drive is unlocked by systemd during boot (the one
+# in crypttab is kept for consistency and other tools, but does not work on boot).
+cat <<EOF >${ROOT_MNT}/etc/kernel/cmdline
+rd.luks.options=discard root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0
+EOF
 
-# systemd-cryptenroll /dev/mapper/system-root --wipe-slot=password
+# Regenerate the initramfs entries, now signed and with the configuration for
+# our encrypted system
+arch-chroot ${ROOT_MNT} mkinitcpio -P
 
 # Handles updating the bootloader when necessary, with secure boot enabled we
 # need to make sure our kernels are signed before we enable it. With sbctl as
@@ -347,25 +359,32 @@ reboot
 #
 # Following boot:
 #
-# - Enable secure boot
-# - Confirm secure boot status
-# - Add recovery key to LUKS keystore & transfer it elsewhere
+# TODO(manual): Enable secure boot
+#
+# Confirm secure boot status
+#
+#sbctl status
+#
+# Add recovery key to LUKS keystore & transfer it elsewhere
 #
 # systemd-cryptenroll /dev/mapper/system-root --recovery-key
 #
-# - Enroll TPM state into LUKS keystore:
+# TODO(optional): Enroll TPM state into LUKS keystore:
 #
 # Note: may want to adjust the PCRs being used...
 # systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,7
 #
-# - Enroll FIDO3 key
+# TODO(optional): Enroll FIDO3 key
 #
 # Find the device name we need for the next step
 #systemd-cryptenroll --fido2-device=list
-#systemd-cryptenroll --fido2-device=${DEVICE_NAME} /dev/sda2
 #
-# - Confirm automatic reboot works
+#systemd-cryptenroll --fido2-device=${DEVICE_NAME} ${DISK}2
+#
+# TODO(optional): Confirm automatic reboot works
 #
 # Following boot:
 #
-# - Remove manual passphrase
+# TODO(optional): Remove manual passphrase
+#
+#systemd-cryptenroll /dev/mapper/system-root --wipe-slot=password
