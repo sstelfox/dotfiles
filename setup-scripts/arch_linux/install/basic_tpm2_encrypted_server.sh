@@ -53,8 +53,11 @@ PARTED_BASE_CMD="/usr/sbin/parted --script --align optimal --machine --"
 ROOT_MNT="/mnt/root"
 
 if [ -n "${HOSTNAME}" ]; then
-	if [ -x "./name_generator.py" ]; then
+	if [ -r /root/gen-hostname ]; then
+		HOSTNAME="$(cat /root/gen-hostname)"
+	elif [ -x "./name_generator.py" ]; then
 		HOSTNAME="$(./name_generator.py)"
+		echo "${HOSTNAME}" >/root/gen-hostname
 	else
 		echo 'Hostname needs to be provided'
 		exit 127
@@ -79,6 +82,9 @@ else
 	HASHED_USER_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
 	HASHED_ROOT_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
 	unset USER_PASSWORD
+
+	echo "${HASHED_USER_PASSWORD}" >/root/user-pw-hash
+	echo "${HASHED_ROOT_PASSWORD}" >/root/root-pw-hash
 fi
 
 DISK_PASSPHRASE=
@@ -87,6 +93,8 @@ if [ -r /root/disk-pw ]; then
 else
 	read -e -p "Encryption Passphrase: " -s -r DISK_PASSPHRASE
 	echo
+
+	echo "${DISK_PASSPHRASE}" >/root/disk-pw
 fi
 
 usermod --password ${HASHED_ROOT_PASSWORD} root
