@@ -166,9 +166,10 @@ RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
 
 ### BASE INSTALLATION
 
-pacstrap -K ${ROOT_MNT} base efibootmgr git libfido2 linux-firmware \
-	linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
-	openssh sbctl sudo tpm2-tools tmux wireguard-tools xfsprogs zram-generator
+pacstrap -K ${ROOT_MNT} base dbus-broker-units efibootmgr git libfido2 \
+	linux-firmware linux-hardened lvm2 man-db man-pages mdadm mkinitcpio neovim \
+	networkmanager nftables openssh sbctl sudo tpm2-tools tmux wireguard-tools \
+	xfsprogs zram-generator
 
 # Create /etc/adjtime before we take any internal operations
 arch-chroot ${ROOT_MNT} hwclock --systohc
