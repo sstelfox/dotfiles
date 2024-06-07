@@ -148,9 +148,9 @@ mkfs.xfs -q -f -L root /dev/mapper/system-root
 mkdir -p ${ROOT_MNT}
 mount /dev/mapper/system-root ${ROOT_MNT}
 
-mkdir -p ${ROOT_MNT}/efi
-chmod 0700 ${ROOT_MNT}/efi
-mount ${DISK}1 ${ROOT_MNT}/efi -o fmask=177,dmask=077
+mkdir -p ${ROOT_MNT}/boot
+chmod 0700 ${ROOT_MNT}/boot
+mount ${DISK}1 ${ROOT_MNT}/boot -o fmask=177,dmask=077
 
 dd if=/dev/zero of=${ROOT_MNT}/swapfile bs=${SWAP_SIZE}M count=1
 chmod 0600 ${ROOT_MNT}/swapfile
@@ -291,23 +291,23 @@ if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine
 fi
 
 # Bootloader
+#cat <<'EOF' >${ROOT_MNT}/boot/loader/loader.conf
+#editor no
+#timeout 3
+#EOF
+
 arch-chroot ${ROOT_MNT} bootctl install
 
-cat <<'EOF' >${ROOT_MNT}/efi/loader/loader.conf
-editor no
-timeout 3
-EOF
-
 # Boot signatures
-arch-chroot ${ROOT_MNT} sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
-arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+arch-chroot ${ROOT_MNT} sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
+arch-chroot ${ROOT_MNT} sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
 
-# mkinitcpio config
+# Initramfs config
 
-# Find TPM driver name:
+# Find TPM driver module name for inclusion in mkinitcpio.conf modules:
 #
 #systemd-cryptenroll --tpm2-device=list
-#
+
 # For now I'm just going to assume its using the most common tpm_tis rather than autodetecting it...
 # Add drive name to /etc/mkinitcpio.conf modules:
 cat <<'EOF' >${ROOT_MNT}/etc/mkinitcpio.conf
