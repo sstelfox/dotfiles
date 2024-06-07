@@ -41,11 +41,17 @@ unset USER_PASSWORD
 
 usermod --password ${HASHED_ROOT_PASSWORD} root
 
+mkdir -p /root/.ssh
+chmod 0700 /root/.ssh
+cat <<'EOF' >/root/.ssh/authorized_keys
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGP+2BkRQuX8w+vxoTfqIWCA5JUuulbauL+brKfSjVH15L3cYEQ1O9OtNOe0Hq5YOxHOMyzHDUlAAlpD8/F/blE=
+EOF
+chmod 0600 /root/.ssh/authorized_keys
+
 systemctl start sshd.service
 
-sleep 2
-echo 'IP Addresses:'
-ip -4 addr
+# Ensure the system clock is updated
+timedatectl
 
 reflector --save /etc/pacman.d/mirrorlist --country "United States,Canada" \
 	--protocol https --latest 10
@@ -71,16 +77,8 @@ echo $DISK_PASSPHRASE | cryptsetup --batch-mode --verbose --type luks2 \
 
 sleep 2
 
-echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-crypt
+echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-root
 unset DISK_PASSPHRASE
-
-pvcreate -ff -y --zero y /dev/mapper/system-crypt >/dev/null
-vgcreate system /dev/mapper/system-crypt >/dev/null
-
-lvcreate -l 100%FREE --wipesignatures y --yes -n root system >/dev/null
-
-# Just in case refresh our logical lists
-lvscan >/dev/null
 
 sleep 1
 
@@ -91,8 +89,7 @@ mount /dev/mapper/system-root /mnt/root
 
 mkdir -p /mnt/root/efi
 chmod 0700 /mnt/root/efi
-
-mount ${DISK}1 /mnt/root/efi
+mount ${DISK}1 /mnt/root/efi -o fmask=177,dmask=077
 
 dd if=/dev/zero of=/mnt/root/swapfile bs=${SWAP_SIZE}M count=1
 chmod 0600 /mnt/root/swapfile
@@ -104,9 +101,16 @@ swapon /mnt/root/swapfile
 
 pacstrap -K /mnt/root base efibootmgr git libfido2 linux-firmware \
 	linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
-	openssh sbctl sudo tmux wireguard-tools xfsprogs zram-generator
+	openssh sbctl sudo tpm2-tools tmux wireguard-tools xfsprogs zram-generator
+
+# Create /etc/adjtime before we take any internal operations
+arch-chroot /mnt/root hwclock --systohc
 
 genfstab -pU /mnt/root >>/mnt/root/etc/fstab
+
+if grep -qi intel /proc/cpuinfo 2>/dev/null; then
+	arch-chroot /mnt/root pacman -Sy --needed --noconfirm intel-ucode
+fi
 
 arch-chroot /mnt/root ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 
@@ -116,14 +120,12 @@ echo 'LANG=en_US.UTF-8' >/mnt/root/etc/locale.conf
 
 echo "${HOSTNAME}" >/mnt/root/etc/hostname
 
-cat <<EOF >${ROOT_MNT}/etc/hosts
+cat <<EOF >/mnt/root/etc/hosts
 127.0.0.1 ${HOSTNAME} localhost4 localhost
 ::1 ${HOSTNAME}       localhost6 localhost
 EOF
 
-echo 'KEYMAP=us' >${ROOT_MNT}/etc/vconsole.conf
-
-# TODO: swapfile & zram
+echo 'KEYMAP=us' >/mnt/root/etc/vconsole.conf
 
 arch-chroot /mnt/root groupadd -r sudoers
 arch-chroot /mnt/root groupadd -r sshers
@@ -193,10 +195,75 @@ RESUME_OFFSET=$(filefrag -v /mnt/root/swapfile)
 echo "STOPPED FOR DEBUGGING"
 exit 1
 
-# TODO: bootloader & unified kernel images
+arch-chroot /mnt/root sbctl create-keys
+arch-chroot /mnt/root mkinitcpio -P
+
+# - Bootloader
 arch-chroot /mnt/root bootctl install
 
+cat <<'EOF' >/mnt/root/efi/loader/loader.conf
+editor no
+timeout 3
+EOF
+
+# TODO:
+#
+# - Boot signatures
+#?sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
+sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+
+# - mkinitcpio config
+#
+# Find TPM driver name:
+# systemd-cryptenroll --tpm2-device=list
+#
+# Add drive name to /etc/mkinitcpio.conf modules:
+#
+#MODULES+=(tpm_tis)
+#
+# Reference hooks:
+#
+#HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck)
+#
+# Update the kernel cmdline:
+cat <<'EOF' >/mnt/root/etc/kernel/cmdline
+rd.luks.name=<UUID>/system-root rd.luks.options=tpm2-device=auto root=/dev/mapper/system-root
+EOF
+
+# - generate signed images (happens automatically now)
 arch-chroot /mnt/root mkinitcpio -P
+
+# systemd-cryptenroll /dev/mapper/system-root --wipe-slot=password
+# Handles updating the bootloader when necessary, with secure boot enabled we
+# need to make sure our kernels are signed before we enable it. With sbctl as
+# long as we've enrolled files to be signed in its database, the signing happens
+# automatically.
+arch-chroot /mnt/root systemctl enable systemd-boot-update.service
 
 umount -R /mnt/root
 reboot
+#
+# Next boot:
+#
+# - Enroll kernel keys into UEFI
+#
+# sbctl enroll-keys
+#
+# Following boot:
+#
+# - Enable secure boot
+# - Confirm secure boot status
+# - Add recovery key to LUKS keystore & transfer it elsewhere
+#
+# systemd-cryptenroll /dev/mapper/system-root --recovery-key
+#
+# - Enroll TPM state into LUKS keystore:
+#
+# Note: may want to adjust the PCRs being used...
+# systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,7
+#
+# - Confirm automatic reboot works
+#
+# Following boot:
+#
+# - Remove manual passphrase
