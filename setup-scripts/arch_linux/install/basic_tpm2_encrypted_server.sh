@@ -137,33 +137,10 @@ echo ${DISK_PASSPHRASE} | cryptsetup --batch-mode --verbose --iter-time 2500 \
 	--use-urandom --force-password luksFormat ${DISK}2
 sleep 2
 
-echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-crypt
+echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-root
 unset DISK_PASSPHRASE
 
-pvcreate -ff -y --zero y /dev/mapper/system-crypt >/dev/null
-vgcreate system /dev/mapper/system-crypt >/dev/null
-
-AVAILABLE_VG_SPACE="$(vgdisplay --units m system | grep 'VG Size' | awk '{ print $(NF-1) }')"
-ROOT_SIZE="$((${AVAILABLE_VG_SPACE%.*} - ${SWAP_SIZE}))"
-
-# TODO: Probably should switch swap to per-boot encryption key and take it out
-# of the crypt
-
-# Note to self, I added the --yes flag based on a comment in the man page but
-# it wasn't actually listed in the available options for lvcreate. This hasn't
-# been tested and may break. I was trying to deal with the script still
-# interactively asking me if I wanted to wipe the swap signature even with
-# --wipesignatures y
-lvcreate -L ${ROOT_SIZE}M --wipesignatures y --yes -n root system >/dev/null
-lvcreate -l 100%FREE --wipesignatures y --yes -n swap system >/dev/null
-
-# Just in case refresh our logical lists
-lvscan >/dev/null
-
 mkfs.xfs -q -f -L root /dev/mapper/system-root
-mkswap -f /dev/mapper/system-swap >/dev/null
-
-swapon /dev/mapper/system-swap
 
 sync
 
@@ -177,17 +154,22 @@ mkdir -p ${ROOT_MNT}/boot
 chmod 0700 ${ROOT_MNT}/boot
 mount ${DISK}1 ${ROOT_MNT}/boot -o fmask=177,dmask=077
 
-# We'll need these later for power suspension/resumption if we want to use it
-# todo: this was for the swap file but I've switched back to a swap logical volume
-#RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
-#RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
+dd if=/dev/zero of=${ROOT_MNT}/swapfile bs=${SWAP_SIZE}M count=1
+chmod 0600 ${ROOT_MNT}/swapfile
+mkswap ${ROOT_MNT}/swapfile
+
+sync
+
+swapon ${ROOT_MNT}/swapfile
 
 ### BASE INSTALLATION
 
-pacstrap -K ${ROOT_MNT} base dbus-broker-units efibootmgr git libfido2 \
-	linux-firmware linux-hardened lvm2 man-db man-pages mdadm mkinitcpio neovim \
-	networkmanager nftables openssh sbctl sudo tpm2-tools tmux wireguard-tools \
-	xfsprogs zram-generator
+pacstrap -K ${ROOT_MNT} base dbus-broker-units efibootmgr libfido2 \
+	linux-firmware linux-hardened man-db man-pages mkinitcpio networkmanager \
+	nftables openssh sbctl sudo tmux vim wireguard-tools xfsprogs \
+	zram-generator
+
+# Other packages that I may want to include in my base: git lvm mdadm neovim tpm2-tools
 
 # Create /etc/adjtime before we take any internal operations
 arch-chroot ${ROOT_MNT} hwclock --systohc
@@ -261,11 +243,11 @@ cat <<'EOF' >${ROOT_MNT}/etc/sudoers.d/10-default
 Cmnd_Alias BLACKLIST = /usr/bin/su
 Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
 
-Defaults env_reset, ignore_dot, requiretty, use_pty, noexec
+Defaults env_reset, ignore_dot, requiretty, use_pty
 Defaults !path_info, !use_netgroups
 
 Defaults passwd_timeout = 2
-Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin
+Defaults secure_path = /usr/local/sbin:/usr/local/bin:/usr/bin
 
 %sudoers   ALL=(ALL:ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
 EOF
@@ -322,22 +304,14 @@ EOF
 
 # Initramfs config
 
-# Find TPM driver module name for inclusion in mkinitcpio.conf modules:
-#
-#systemd-cryptenroll --tpm2-device=list
-
-# For now I'm just going to assume its using the most common tpm_tis rather than autodetecting it...
-# Add drive name to /etc/mkinitcpio.conf modules:
 cat <<'EOF' >${ROOT_MNT}/etc/mkinitcpio.conf
-MODULES+=(tpm_tis)
+MODULES+=()
 
 # * keyboard is intentionally placed early to always include all keyboard
 #   drivers early on before autodetect trims them down.
 # * some of my hosts may need lvm2 which should be loaded between sd-encrypt
 #   and filesystems
-# * inside the encrypted drive lives lvm2 volumes, so the lvm2 hook needs to be
-#   after we unlock the root drive but before we do filesystem detection.
-HOOKS=(base systemd keyboard autodetect microcode modconf kms sd-vconsole block sd-encrypt lvm2 filesystems fsck)
+HOOKS=(base systemd keyboard autodetect microcode modconf sd-vconsole block sd-encrypt filesystems fsck)
 EOF
 
 # Regenerate the initramfs entries, now signed and with the configuration for
@@ -418,7 +392,9 @@ reboot
 # 1: BIOS Config
 # 7: Secure Boot Chain
 #
-#systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,1,7
+# This needs
+#systemd-cryptenroll --tpm2-device=list
+#systemd-cryptenroll ${DISK}2 --tpm2-device=auto --tpm2-pcrs=0,1,7
 #
 # TODO(optional): Enroll FIDO2 key
 #
@@ -428,7 +404,7 @@ reboot
 #
 # Full auto no-human presence required:
 #
-#systemd-cryptenroll --fido2-device=auto ${DISK}2 --fido2-with-client-pin=no --fido2-with-user-presence=no
+#systemd-cryptenroll ${DISK}2 --fido2-device=auto --fido2-with-client-pin=no --fido2-with-user-presence=no
 #
 # TODO(optional): Confirm automatic reboot works
 #
