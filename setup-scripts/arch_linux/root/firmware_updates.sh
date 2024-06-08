@@ -3,8 +3,8 @@
 set -o errexit
 
 if [ ${EUID} != 0 ]; then
-	echo "This setup script should only be run by root."
-	exit 1
+  echo "This setup script should only be run by root."
+  exit 1
 fi
 
 # This handles the install but its setup is a bit fiddly (check the UEFI upgrade section):
