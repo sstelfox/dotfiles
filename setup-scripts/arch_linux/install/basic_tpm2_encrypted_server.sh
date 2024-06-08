@@ -218,7 +218,7 @@ EOF
 
 arch-chroot ${ROOT_MNT} groupadd -r sudoers
 arch-chroot ${ROOT_MNT} groupadd -r sshers
-arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root
+arch-chroot ${ROOT_MNT} usermod --append --groups sshers --password ${HASHED_ROOT_PASSWORD} root
 arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME}
 
 PRIOR_UMASK="$(umask)"
@@ -237,7 +237,9 @@ EOF
 
 umask ${PRIOR_UMASK}
 
-cat <<'EOF' >${ROOT_MNT}/etc/sudoers.d/10-default.conf
+# Note: this file can't end in .conf like I'd like it to as any file that
+# contains any period is ignored by sudo
+cat <<'EOF' >${ROOT_MNT}/etc/sudoers.d/10-default
 Cmnd_Alias BLACKLIST = /usr/bin/su
 Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
 
@@ -312,7 +314,9 @@ MODULES+=(tpm_tis)
 #   drivers early on before autodetect trims them down.
 # * some of my hosts may need lvm2 which should be loaded between sd-encrypt
 #   and filesystems
-HOOKS=(base systemd keyboard autodetect microcode modconf kms sd-vconsole block sd-encrypt filesystems fsck)
+# * inside the encrypted drive lives lvm2 volumes, so the lvm2 hook needs to be
+#   after we unlock the root drive but before we do filesystem detection.
+HOOKS=(base systemd keyboard autodetect microcode modconf kms sd-vconsole block sd-encrypt lvm2 filesystems fsck)
 EOF
 
 # Regenerate the initramfs entries, now signed and with the configuration for
@@ -374,21 +378,33 @@ reboot
 #
 #sbctl status
 #
-# Add recovery key to LUKS keystore & transfer it elsewhere
+# LUKS recovery key:
 #
-# systemd-cryptenroll /dev/mapper/system-root --recovery-key
+#systemd-cryptenroll --recovery-key /dev/sda2
+#
+# This will produce a string of characters that can be used to recover access
+# to the paritions should the passphrase or security token be lost. Should be
+# protected and stored along-side the UUID of the LUKS drive itself.
 #
 # TODO(optional): Enroll TPM state into LUKS keystore:
 #
 # Note: may want to adjust the PCRs being used...
-# systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,7
 #
-# TODO(optional): Enroll FIDO3 key
+# 0: BIOS (Code/Data)
+# 1: BIOS Config
+# 7: Secure Boot Chain
 #
-# Find the device name we need for the next step
+#systemd-cryptenroll /dev/mapper/system-root --tpm2-device=auto --tpm2-pcrs=0,1,7
+#
+# TODO(optional): Enroll FIDO2 key
+#
+# For an explicit device:
 #systemd-cryptenroll --fido2-device=list
-#
 #systemd-cryptenroll --fido2-device=${DEVICE_NAME} ${DISK}2
+#
+# Full auto no-human presence required:
+#
+#systemd-cryptenroll --fido2-device=auto ${DISK}2 --fido2-with-client-pin=no --fido2-with-user-presence=no
 #
 # TODO(optional): Confirm automatic reboot works
 #
@@ -396,4 +412,4 @@ reboot
 #
 # TODO(optional): Remove manual passphrase
 #
-#systemd-cryptenroll /dev/mapper/system-root --wipe-slot=password
+#systemd-cryptenroll --wipe-slot=password ${DISK}2
