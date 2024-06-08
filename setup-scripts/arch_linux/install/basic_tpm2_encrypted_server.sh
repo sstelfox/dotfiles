@@ -137,13 +137,38 @@ echo ${DISK_PASSPHRASE} | cryptsetup --batch-mode --verbose --iter-time 2500 \
 	--use-urandom --force-password luksFormat ${DISK}2
 sleep 2
 
-echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-root
+echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-crypt
 unset DISK_PASSPHRASE
+
+pvcreate -ff -y --zero y /dev/mapper/system-crypt >/dev/null
+vgcreate system /dev/mapper/system-crypt >/dev/null
+
+AVAILABLE_VG_SPACE="$(vgdisplay --units m system | grep 'VG Size' | awk '{ print $(NF-1) }')"
+ROOT_SIZE="$((${AVAILABLE_VG_SPACE%.*} - ${SWAP_SIZE}))"
+
+# TODO: Probably should switch swap to per-boot encryption key and take it out
+# of the crypt
+
+# Note to self, I added the --yes flag based on a comment in the man page but
+# it wasn't actually listed in the available options for lvcreate. This hasn't
+# been tested and may break. I was trying to deal with the script still
+# interactively asking me if I wanted to wipe the swap signature even with
+# --wipesignatures y
+lvcreate -L ${ROOT_SIZE}M --wipesignatures y --yes -n root system >/dev/null
+lvcreate -l 100%FREE --wipesignatures y --yes -n swap system >/dev/null
+
+# Just in case refresh our logical lists
+lvscan >/dev/null
+
+mkfs.xfs -q -f -L root /dev/mapper/system-root
+mkswap -f /dev/mapper/system-swap >/dev/null
+
+swapon /dev/mapper/system-swap
+
+sync
 
 # Minor settle window
 sleep 1
-
-mkfs.xfs -q -f -L root /dev/mapper/system-root
 
 mkdir -p ${ROOT_MNT}
 mount /dev/mapper/system-root ${ROOT_MNT}
@@ -152,17 +177,10 @@ mkdir -p ${ROOT_MNT}/boot
 chmod 0700 ${ROOT_MNT}/boot
 mount ${DISK}1 ${ROOT_MNT}/boot -o fmask=177,dmask=077
 
-dd if=/dev/zero of=${ROOT_MNT}/swapfile bs=${SWAP_SIZE}M count=1
-chmod 0600 ${ROOT_MNT}/swapfile
-mkswap ${ROOT_MNT}/swapfile
-
-sync
-
-swapon ${ROOT_MNT}/swapfile
-
 # We'll need these later for power suspension/resumption if we want to use it
-RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
-RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
+# todo: this was for the swap file but I've switched back to a swap logical volume
+#RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
+#RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
 
 ### BASE INSTALLATION
 
@@ -296,8 +314,11 @@ arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.
 # encrypted disks.
 CRYPTSETUP_ROOT_UUID="$(cryptsetup luksUUID ${DISK}2)"
 cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
-system-root   ${DISK}2  none  discard,fido2-device=auto,tpm2-device=auto,no-read-workqueue,no-write-workqueue
+system-root   ${DISK}2  none  discard,fido2-device=auto,no-read-workqueue,no-write-workqueue
 EOF
+
+# With TPM unlocking as well:
+#system-root   ${DISK}2  none  discard,fido2-device=auto,tpm2-device=auto,no-read-workqueue,no-write-workqueue
 
 # Initramfs config
 
@@ -332,7 +353,7 @@ editor no
 timeout 3
 EOF
 
-# The /etc/kernel/cmdline file is red herring, these files need to contain the
+# The /etc/kernel/cmdline file is a red herring, these files need to contain the
 # kernel options.
 #
 # They also need to be manually created for any entries to show up in the
@@ -346,8 +367,11 @@ title Hardened Linux
 linux /vmlinuz-linux-hardened
 initrd /intel-ucode.img
 initrd /initramfs-linux-hardened.img
-options rd.luks.options=discard root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0 rw rootfstype=xfs
+options rd.luks.options=discard root=/dev/mapper/system-root zswap.enabled=0 rw rootfstype=xfs
 EOF
+
+# resume options were for the swapfile and I need to update them for
+#options rd.luks.options=discard root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0 rw rootfstype=xfs
 
 cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened-fallback.conf
 title Hardened Linux (fallback)
