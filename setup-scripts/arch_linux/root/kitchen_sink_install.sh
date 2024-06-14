@@ -11,6 +11,9 @@ pacman -Sy --needed --noconfirm wireguard-tools nftables podman tcpdump git-lfs 
 	imagemagick jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
 	transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db gwenview
 
+# Attempt at improving the default Linux spell checking facility as its rubbish by default
+pacman -Sy --needed --noconfirm hunspell-en_us
+
 #pacman -Sy --needed --noconfirm nvidia-prime nvidia-utils nvidia-dkms linux-hardened-headers
 
 # Handy diff tool with syntax highlighting for git
