@@ -185,3 +185,7 @@ unset __conda_setup
 if which conda &>/dev/null; then
 	conda activate default
 fi
+
+if [ -r ~/.kube/config ]; then
+  export KUBECONFIG=~/.kube/config
+fi
