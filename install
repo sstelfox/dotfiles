@@ -67,6 +67,10 @@ fi
 	cd ~/.dotfiles/
 	git remote | grep -q noauth || git remote add noauth https://github.com/sstelfox/dotfiles.git
 )
+(
+	cd ~/.dotfiles/
+	git remote | grep -q hollow || git remote add hollow hollow-twilight-ocean.stelfox.net:repos/dotfiles.git
+)
 
 # Mark the git file as untracked locally so we can make changes without
 # affecting what's in the repo
