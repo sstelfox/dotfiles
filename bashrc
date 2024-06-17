@@ -187,5 +187,9 @@ if which conda &>/dev/null; then
 fi
 
 if [ -r ~/.kube/config ]; then
-  export KUBECONFIG=~/.kube/config
+	export KUBECONFIG="${HOME}/.kube/config"
+fi
+
+if [ -d ~/documentation/credentials ]; then
+	export PASSWORD_STORE_DIR="${HOME}/documentation/credentials"
 fi
