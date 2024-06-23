@@ -48,7 +48,6 @@ fi
 
 ### SHORTCUT ALIASES & DERIVED CONFIGS
 
-FULL_HOSTNAME="${HOSTNAME}.${DOMAIN}"
 PARTED_BASE_CMD="/usr/sbin/parted --script --align optimal --machine --"
 ROOT_MNT="/mnt/root"
 
@@ -63,6 +62,8 @@ if [ -n "${HOSTNAME}" ]; then
 		exit 127
 	fi
 fi
+
+FULL_HOSTNAME="${HOSTNAME}.${DOMAIN}"
 
 ### LOCAL ENVIRONMENT SETUP
 
@@ -192,7 +193,7 @@ echo 'KEYMAP=us' >${ROOT_MNT}/etc/vconsole.conf
 
 ### NETWORK IDENTITY
 
-echo "${HOSTNAME}" >${ROOT_MNT}/etc/hostname
+echo "${FULL_HOSTNAME}" >${ROOT_MNT}/etc/hostname
 
 cat <<EOF >${ROOT_MNT}/etc/hosts
 127.0.0.1 ${FULL_HOSTNAME} ${HOSTNAME} localhost4 localhost
