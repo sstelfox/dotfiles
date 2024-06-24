@@ -186,10 +186,14 @@ if which conda &>/dev/null; then
 	conda activate default
 fi
 
-if [ -r ~/.kube/config ]; then
+if [ -r "${HOME}/.kube/config" ]; then
 	export KUBECONFIG="${HOME}/.kube/config"
 fi
 
-if [ -d ~/documentation/credentials ]; then
+if [ -d "${HOME}/documentation/credentials" ]; then
 	export PASSWORD_STORE_DIR="${HOME}/documentation/credentials"
 fi
+
+# This still isn't working, I need to work on it further...
+export DICPATH="${HOME}/.dotfiles/dictionaries"
+export DICTIONARY="en_US,corrections"
