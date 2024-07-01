@@ -71,5 +71,9 @@
   process = git-lfs filter-process
   required = true
 
+[diff "pass-gpg"]
+  binary = true
+  textconv = gpg2 -d --quiet --yes --compress-algo=none --no-encrypt-to --batch --use-agent
+
 #[includeIf "hasconfig:remote.*.url:https://github.com/banyancomputer/"]
 #path = ~/.dotfiles/configs/git/banyan.inc
