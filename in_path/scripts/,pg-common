@@ -8,12 +8,12 @@ PG_SOURCE_DIR="${HOME}/.local/share/pg-common"
 PG_PASSWORD="proud-ornate-precise"
 
 if [ "${1:-}" = "-q" ]; then
-	echo "Stopping existing common PG server..."
-	podman stop $(podman ps -q --filter name=pg-common) &>/dev/null
-	exit 0
+  echo "Stopping existing common PG server..."
+  podman stop $(podman ps -q --filter name=pg-common) &>/dev/null
+  exit 0
 fi
 
 mkdir -p ${PG_SOURCE_DIR}
-podman run -d --security-opt label=disable -p 7432:5432 --name pg-common \
-	--replace -v ${PG_SOURCE_DIR}:/var/lib/postgresql/data:rw -e POSTGRES_PASSWORD=${PG_PASSWORD} \
-	docker.io/library/postgres:16-alpine
+podman run -d --userns=keep-id --security-opt label=disable -p 7432:5432 --name pg-common \
+  --replace -v ${PG_SOURCE_DIR}:/var/lib/postgresql/data:rw -e POSTGRES_PASSWORD=${PG_PASSWORD} \
+  docker.io/library/postgres:16-alpine
