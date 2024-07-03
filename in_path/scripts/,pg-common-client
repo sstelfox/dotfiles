@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+if [ -z "$(podman ps -q --filter name=pg-common)" ]; then
+	echo "Common postgres container doesn't appear to be running"
+	exit 0
+fi
+
+podman exec -it pg-common /usr/local/bin/psql -U postgres
