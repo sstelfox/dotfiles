@@ -3,13 +3,13 @@
 set -o errexit
 
 if [ ${EUID} != 0 ]; then
-	echo "This setup script should only be run by root."
-	exit 1
+  echo "This setup script should only be run by root."
+  exit 1
 fi
 
 pacman -Sy --needed --noconfirm wireguard-tools nftables podman tcpdump git-lfs graphviz iotop git-crypt \
-	imagemagick jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
-	transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db gwenview
+  imagemagick jq ripgrep blender inkscape gimp krita zopfli libreoffice-fresh screen strace vlc xclip \
+  transmission-qt yt-dlp clang cmake rsync fuse2 okular fd man-db gwenview
 
 # Attempt at improving the default Linux spell checking facility as its rubbish by default
 pacman -Sy --needed --noconfirm hunspell-en_us
@@ -34,5 +34,5 @@ pacman -Sy --needed --noconfirm fuse-overlayfs
 # Some tools for interacting with my phone
 #pacman -Sy --needed --noconfirm android-tools android-file-transfer android-udev
 
-# Used by neovim
-pacman -Sy --needed --noconfirm lazygit
+# Used by neovim config
+pacman -Sy --needed --noconfirm lazygit luarocks unzip

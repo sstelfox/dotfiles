@@ -28,6 +28,11 @@ return {
     "mfussenegger/nvim-lint",
     optional = true,
     opts = {
+      linters = {
+        markdownlint = {
+          args = { "--disable", "MD013", "--" },
+        },
+      },
       linters_by_ft = {
         markdown = { "markdownlint" },
       },
