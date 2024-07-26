@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -o errexit
+set -o errtrace
+set -o pipefail
+set -o nounset
+
+SITE_CONTENT_DIR="${HOME}/workspace/sites/stelfox.net/content/blog"
+
+function error_handler() {
+  if [ "${DEBUG:-}" = "true" ]; then
+    echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
+  fi
+}
+
+trap 'error_handler ${LINENO} $?' ERR
+
+# Diagnostic logging when necessary
+if [ "${DEBUG:-}" = "true" ]; then
+  set -o xtrace
+fi
+
+if [ ! -d "${SITE_CONTENT_DIR}" ]; then
+  echo "Blog site doesn't seem to be checked out, aborting"
+  exit 1
+fi
+
+read -e -p "New Post Title (not slug): " TITLE
+if [ -z "{TITLE}" ]; then
+  echo "No title provided aborting"
+  exit 1
+fi
+
+SLUG="$(echo "${TITLE}" |
+  iconv -c -f utf-8 -t ascii//TRANSLIT |
+  tr -cd '[:alnum:] ' |
+  tr '[:upper:]' '[:lower:]' |
+  tr ' ' '-' |
+  sed -e 's/[^[:alnum:]-]//g' -e 's/--/-/g' -e 's/^-//' -e 's/-$//')"
+
+TRIMMED_SLUG="${SLUG:0:40}"
+if [ "${#TRIMMED_SLUG}" -ne "${#SLUG}" ]; then
+  SLUG="$(echo "${TRIMMED_SLUG}" | sed -e 's/-[^-]*$//')"
+fi
+
+# Get a timestamp we'll use for everything to ensure our seconds are consistent
+REFERENCE_TS="$(date +%s)"
+FILE_PATH="${SITE_CONTENT_DIR}/$(date --date=@${REFERENCE_TS} --iso-8601=date)-${SLUG}.md"
+
+cat <<EOF >"${FILE_PATH}"
+---
+created_at: $(date --date=@${REFERENCE_TS} --iso-8601=seconds)
+updated_at: $(date --date=@${REFERENCE_TS} --iso-8601=seconds)
+public: true
+evergreen: true
+draft: true
+tags:
+  - needs-refinement
+title: ${TITLE}
+---
+
+# ${TITLE}
+
+EOF
+
+nvim "${FILE_PATH}"
