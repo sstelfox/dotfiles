@@ -7,6 +7,6 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-pacman -Sy --noconfirm --needed edk2-ovmf libvirt qemu-desktop swtpm virt-manager
+pacman -Sy --noconfirm --needed dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
 
 systemctl enable libvirtd.service
