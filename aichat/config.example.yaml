@@ -1,0 +1,305 @@
+# ---- llm ----
+model: openai:gpt-4o             # Specify the LLM to use
+temperature: null                # Set default temperature parameter
+top_p: null                      # Set default top-p parameter, range (0, 1)
+
+# ---- behavior ----
+stream: true                     # Controls whether to use the stream-style API.
+save: true                       # Indicates whether to persist the message
+keybindings: emacs               # Choose keybinding style (emacs, vi)
+editor: null                     # Specifies the command used to edit input buffer or session. (e.g. vim, emacs, nano).
+wrap: no                         # Controls text wrapping (no, auto, <max-width>)
+wrap_code: false                 # Enables or disables wrapping of code blocks
+
+# ---- prelude ----
+prelude: null                    # Set a default role or session to start with (e.g. role:<name>, session:<name>)
+repl_prelude: null               # Overrides the `prelude` setting specifically for conversations started in REPL
+agent_prelude: null              # Set a session to use when starting a agent. (e.g. temp, default)
+
+# ---- session ----
+# Controls the persistence of the session. if true, auto save; if false, not save; if null, asking the user
+save_session: null
+# Compress session when token count reaches or exceeds this threshold
+compress_threshold: 4000
+# Text prompt used for creating a concise summary of session message
+summarize_prompt: 'Summarize the discussion briefly in 200 words or less to use as a prompt for future context.'
+# Text prompt used for including the summary of the entire session
+summary_prompt: 'This is a summary of the chat history as a recap: '
+
+# ---- function-calling ----
+# Visit https://github.com/sigoden/llm-functions for setup instructions
+function_calling: true           # Enables or disables function calling (Globally).
+mapping_tools:                   # Alias for a tool or toolset
+  fs: 'fs_cat,fs_ls,fs_mkdir,fs_rm,fs_write'
+use_tools: null                  # Which tools to use by default. (e.g. 'fs,web_search')
+
+# ---- RAG ----
+# See [RAG-Guide](https://github.com/sigoden/aichat/wiki/RAG-Guide) for more details.
+rag_embedding_model: null                   # Specifies the embedding model to use
+rag_reranker_model: null                    # Specifies the rerank model to use
+rag_top_k: 4                                # Specifies the number of documents to retrieve
+rag_chunk_size: null                        # Specifies the chunk size
+rag_chunk_overlap: null                     # Specifies the chunk overlap
+rag_min_score_vector_search: 0              # Specifies the minimum relevance score for vector-based searching
+rag_min_score_keyword_search: 0             # Specifies the minimum relevance score for keyword-based searching
+rag_min_score_rerank: 0                     # Specifies the minimum relevance score for reranking
+# Defines the query structure using variables like __CONTEXT__ and __INPUT__ to tailor searches to specific needs
+rag_template: |
+  Use the following context as your learned knowledge, inside <context></context> XML tags.
+  <context>
+  __CONTEXT__
+  </context>
+
+  When answer to user:
+  - If you don't know, just say that you don't know.
+  - If you don't know when you are not sure, ask for clarification.
+  Avoid mentioning that you obtained the information from the context.
+  And answer according to the language of the user's question.
+
+  Given the context information, answer the query.
+  Query: __INPUT__
+# Define document loaders to control how RAG and `.file`/`--file` load files of specific formats.
+document_loaders:
+  # You can add custom loaders using the following syntax:
+  #   <file-extension>: <command-to-load-the-file>
+  # Note: Use `$1` for input file and `$2` for output file. If `$2` is omitted, use stdout as output.
+  pdf: 'pdftotext $1 -'                         # Load .pdf file, see https://poppler.freedesktop.org to set up pdftotext
+  docx: 'pandoc --to plain $1'                  # Load .docx file, see https://pandoc.org to set up pandoc
+
+# ---- apperence ----
+highlight: true                  # Controls syntax highlighting
+light_theme: false               # Activates a light color theme when true. env: AICHAT_LIGHT_THEME
+# Custom REPL left/right prompts, see https://github.com/sigoden/aichat/wiki/Custom-REPL-Prompt for more details
+left_prompt:
+  '{color.green}{?session {?agent {agent}>}{session}{?role /}}{!session {?agent {agent}>}}{role}{?rag @{rag}}{color.cyan}{?session )}{!session >}{color.reset} '
+right_prompt:
+  '{color.purple}{?session {?consume_tokens {consume_tokens}({consume_percent}%)}{!consume_tokens {consume_tokens}}}{color.reset}'
+
+# ---- clients ----
+clients:
+  # All clients have the following configuration:
+  # - type: xxxx
+  #   name: xxxx                                      # Only use it to distinguish clients with the same client type. Optional
+  #   models:
+  #     - name: xxxx                                  # Chat model
+  #       max_input_tokens: 100000
+  #       supports_vision: true
+  #       supports_function_calling: true
+  #     - name: xxxx                                  # Embedding model
+  #       type: embedding
+  #       # max_input_tokens: 2048
+  #       default_chunk_size: 1500                        
+  #       max_batch_size: 100
+  #     - name: xxxx                                  # Reranker model
+  #       type: reranker 
+  #       # max_input_tokens: 2048
+  #   patch:                                          # Patch api
+  #     chat_completions:                             # Api type, possible values: chat_completions, embeddings, and rerank
+  #       <regex>:                                    # The regex to match model names, e.g. '.*' 'gpt-4o' 'gpt-4o|gpt-4-.*'
+  #         url:  ''                                  # Patch request url
+  #         body:                                     # Patch request body
+  #           <json>
+  #         headers:                                  # Patch request headers
+  #           <key>: <value>
+  #   extra:
+  #     proxy: socks5://127.0.0.1:1080                # Set proxy
+  #     connect_timeout: 10                           # Set timeout in seconds for connect to api
+
+  # See https://platform.openai.com/docs/quickstart
+  - type: openai
+    api_key: sk-xxx
+    api_base: https://api.openai.com/v1               # Optional
+    organization_id: org-xxx                          # Optional
+
+  # For any platform compatible with OpenAI's API
+  - type: openai-compatible
+    name: local
+    api_base: http://localhost:8080/v1
+    api_key: xxx                                      # Optional
+    chat_endpoint: /chat/completions                  # Optional
+    models:
+      - name: llama3
+        max_input_tokens: 8192
+
+  # See https://ai.google.dev/docs
+  - type: gemini
+    api_key: xxx
+    api_base: https://generativelanguage.googleapis.com/v1beta # Optional
+    patch:
+      chat_completions:
+        '.*':
+          body:
+            safetySettings:
+              - category: HARM_CATEGORY_HARASSMENT
+                threshold: BLOCK_NONE
+              - category: HARM_CATEGORY_HATE_SPEECH
+                threshold: BLOCK_NONE
+              - category: HARM_CATEGORY_SEXUALLY_EXPLICIT
+                threshold: BLOCK_NONE
+              - category: HARM_CATEGORY_DANGEROUS_CONTENT
+                threshold: BLOCK_NONE
+
+  # See https://docs.anthropic.com/claude/reference/getting-started-with-the-api
+  - type: claude
+    api_key: sk-ant-xxx
+    api_base: https://api.anthropic.com/v1            # Optional
+
+  # See https://docs.mistral.ai/
+  - type: openai-compatible
+    name: mistral
+    api_base: https://api.mistral.ai/v1
+    api_key: xxx
+
+  # See https://docs.cohere.com/docs/the-cohere-platform
+  - type: cohere
+    api_key: xxx
+    api_base: https://api.cohere.ai/v1                # Optional
+
+  # See https://docs.perplexity.ai/docs/getting-started
+  - type: openai-compatible
+    name: perplexity
+    api_key: pplx-xxx
+    api_base: https://api.perplexity.ai
+
+  # See https://console.groq.com/docs/quickstart
+  - type: openai-compatible
+    name: groq
+    api_key: gsk_xxx
+    api_base: https://api.groq.com/openai/v1
+
+  # See https://github.com/jmorganca/ollama
+  - type: ollama
+    api_base: http://localhost:11434
+    api_auth: Basic xxx                               # optional
+    models:
+      - name: llama3.1
+        max_input_tokens: 8192
+        supports_function_calling: true
+      - name: nomic-embed-text:latest
+        type: embedding
+        default_chunk_size: 1000
+        max_batch_size: 50
+
+  # See https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart
+  - type: azure-openai
+    api_key: xxx
+    api_base: https://{RESOURCE}.openai.azure.com
+    models:
+      - name: gpt-4o                                  # Model deployment name
+        max_input_tokens: 128000
+        supports_vision: true
+        supports_function_calling: true
+
+  # See https://cloud.google.com/vertex-ai
+  - type: vertexai
+    project_id: xxx
+    location: xxx
+    # Specifies a application-default-credentials (adc) file, Optional field
+    # Run `gcloud auth application-default login` to init the adc file
+    # see https://cloud.google.com/docs/authentication/external/set-up-adc
+    adc_file: <path-to/gcloud/application_default_credentials.json> 
+    patch:
+      chat_completions:
+        'gemini-.*':
+          body:
+            safetySettings:
+              - category: HARM_CATEGORY_HARASSMENT
+                threshold: BLOCK_ONLY_HIGH
+              - category: HARM_CATEGORY_HATE_SPEECH
+                threshold: BLOCK_ONLY_HIGH
+              - category: HARM_CATEGORY_SEXUALLY_EXPLICIT
+                threshold: BLOCK_ONLY_HIGH
+              - category: HARM_CATEGORY_DANGEROUS_CONTENT
+                threshold: BLOCK_ONLY_HIGH
+
+  # See https://docs.aws.amazon.com/bedrock/latest/userguide/
+  - type: bedrock
+    access_key_id: xxx
+    secret_access_key: xxx
+    region: xxx
+
+  # See https://developers.cloudflare.com/workers-ai/
+  - type: cloudflare
+    account_id: xxx
+    api_key: xxx
+    api_base: https://api.cloudflare.com/client/v4    # Optional
+
+  # See https://replicate.com/docs
+  - type: replicate
+    api_key: xxx
+
+  # See https://cloud.baidu.com/doc/WENXINWORKSHOP/index.html
+  - type: ernie
+    api_key: xxx
+    secret_key: xxxx
+
+  # See https://help.aliyun.com/zh/dashscope/
+  - type: qianwen
+    api_key: sk-xxx
+    api_base: https://dashscope.aliyuncs.com/api/v1   # Optional
+
+  # See https://platform.moonshot.cn/docs/intro
+  - type: openai-compatible
+    name: moonshot
+    api_key: sk-xxx
+    api_base: https://api.moonshot.cn/v1
+
+  # See https://platform.deepseek.com/api-docs/
+  - type: openai-compatible
+    name: deepseek
+    api_key: sk-xxx
+    api_base: https://api.deepseek.com
+
+  # See https://open.bigmodel.cn/dev/howuse/introduction
+  - type: openai-compatible
+    name: zhipuai
+    api_key: xxx
+    api_base: https://open.bigmodel.cn/api/paas/v4
+
+  # See https://platform.lingyiwanwu.com/docs
+  - type: openai-compatible
+    name: lingyiwanwu
+    api_key: xxx
+    api_base: https://api.lingyiwanwu.com/v1
+
+  # See https://deepinfra.com/docs
+  - type: openai-compatible
+    name: deepinfra
+    api_key: xxx
+    api_base: https://api.deepinfra.com/v1/openai
+
+  # See https://readme.fireworks.ai/docs/quickstart
+  - type: openai-compatible
+    name: fireworks
+    api_key: xxx
+    api_base: https://api.fireworks.ai/inference/v1
+
+  # See https://openrouter.ai/docs#quick-start
+  - type: openai-compatible
+    name: openrouter
+    api_key: xxx
+    api_base: https://openrouter.ai/api/v1
+
+  # See https://octo.ai/docs/getting-started/quickstart
+  - type: openai-compatible
+    name: octoai
+    api_key: xxx
+    api_base: https://text.octoai.run/v1
+
+  # See https://docs.together.ai/docs/quickstart
+  - type: openai-compatible
+    name: together
+    api_key: xxx
+    api_base: https://api.together.xyz/v1
+
+  # See https://jina.ai
+  - type: openai-compatible
+    name: jina
+    api_key: xxx
+    api_base: https://api.jina.ai/v1
+
+  # See https://docs.voyageai.com/docs/introduction
+  - type: openai-compatible
+    name: voyageai
+    api_key: xxx
+    api_base: https://api.voyageai.ai/v1
