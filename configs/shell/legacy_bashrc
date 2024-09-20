@@ -1,7 +1,3 @@
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-  source /etc/bashrc
-fi
 
 # When a command was run that spanned multiple lines, merge that into a single
 # history entry for the purposes of looking back.
@@ -23,13 +19,6 @@ fi
 unset command_not_found_handle
 unset LESSOPEN
 unset SSH_ASKPASS
-
-# Hidden environment variable to disable telemetry tracking in the Azure CLI
-export AZURE_CORE_COLLECT_TELEMETRY=0
-
-# Likely not adopted by anyone, but for the apps that do I definitely want to opt-out
-# https://consoledonottrack.com/
-export DO_NOT_TRACK=1
 
 export DOTFILES_DIR="$HOME/.dotfiles"
 export EDITOR="vim"
@@ -61,13 +50,6 @@ for FILE in $HOME/.dotfiles/system-specific/*.sh; do
   fi
 done
 
-alias ga='git log --diff-filter=A --follow --format=%aI -- '
-alias gb='git branch --sort=-committerdate | head -n 20'
-alias gl='git log --graph --pretty=format:"%Cred%h%Creset - %G? %C(yellow)%d%Creset%s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --date=rfc'
-alias gr='git fetch && git rebase origin/master'
-alias gs='git status'
-alias gt='git log --tags --simplify-by-decoration --pretty="format:%ai %d"'
-
 alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
 alias ap='$(which -a vim 2>&1 | grep -e '^/' | head -n 1 || /bin/false) ~/documentation/passwords.txt'
@@ -79,8 +61,6 @@ if which nvim &>/dev/null; then
 
   export EDITOR="nvim"
 fi
-
-export PATH="${HOME}/.dotfiles/in_path/bin:${HOME}/.dotfiles/in_path/scripts:/home/sstelfox/.local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 
 if [ -d /opt/cuda/bin ]; then
   export PATH="${PATH}:/opt/cuda/bin"

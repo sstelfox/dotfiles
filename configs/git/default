@@ -1,0 +1,23 @@
+[user]
+  name = "Sam Stelfox"
+  email = "sstelfox@bedroomprogrammers.net"
+
+# I can check what the currently applied config is and where the config items are coming from by
+# running the following command while in a directory I want to check the config for (such as a
+# specific repo):
+#
+# git config --list --includes --show-origin
+
+
+# These are all the settings I previously left as defaults. They'll almost all
+# come in here but I want to get creative where I'm overriding custom tool calls.
+[include]
+  path = "~/.dotfiles/configs/git/legacy.inc"
+
+
+# Tulip local checkouts and anything using the Tulip org as an upstream
+[includeIf "gitdir/i:~/workspace/tulip/"]
+  path = ~/.dotfiles/configs/git/tulip.inc
+
+[includeIf "hasconfig:remote.*.url:https://github.com/tulip/"]
+  path = ~/.dotfiles/configs/git/tulip.inc

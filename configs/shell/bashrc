@@ -1,0 +1,19 @@
+#!/usr/bin/env false
+
+# I may want to remove this in the future, but for now if there is a system wide configuration we'll
+# use it as our configuration starting point. MacOS actually does some neat stuff in their
+# system-wide script including per-application shell configuration, save/restoring shell sessions,
+# and history recording (weak auditing).
+if [ -f /etc/bashrc ]; then
+  source /etc/bashrc
+fi
+
+__DOTFILE_ROOT="${HOME}/.dotfiles"
+__SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
+
+source ${__SHELL_CFG_ROOT}/common/dotfiles_path.sh
+
+source ${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh
+source ${__SHELL_CFG_ROOT}/common/git_helpers.sh
+
+#source ${__SHELL_CFG_ROOT}/legacy_bashrc

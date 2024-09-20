@@ -1,0 +1,13 @@
+#!/usr/bin/env false
+
+if [ -f /etc/zshrc ]; then
+  source /etc/zshrc
+fi
+
+__DOTFILE_ROOT="${HOME}/.dotfiles"
+__SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
+
+source ${__SHELL_CFG_ROOT}/common/dotfiles_path.sh
+
+source ${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh
+source ${__SHELL_CFG_ROOT}/common/git_helpers.sh
