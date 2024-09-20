@@ -19,3 +19,19 @@ fi
 if [ ! -f ${HOME}/.tmux.conf ]; then
   ln -s ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
 fi
+
+# Switch to the authenticated access for my dotfiles, I most likely cloned over
+# the public HTTPS endpoint to get these here. Leave a noauth version in case I
+# want to update without creds available...
+(
+  cd ~/.dotfiles/
+  git remote set-url origin git@github.com:sstelfox/dotfiles.git
+)
+(
+  cd ~/.dotfiles/
+  git remote | grep -q noauth || git remote add noauth https://github.com/sstelfox/dotfiles.git
+)
+(
+  cd ~/.dotfiles/
+  git remote | grep -q hollow || git remote add hollow hollow-twilight-ocean.stelfox.net:repos/dotfiles.git
+)
