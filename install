@@ -4,34 +4,42 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [ ! -f ${HOME}/.bashrc ]; then
-  ln -s ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
-fi
+function safe_symlink() {
+  local src_path=$1
+  local dst_path=$2
 
-if [ ! -f ${HOME}/.zshrc ]; then
-  ln -s ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
-fi
+  # If it's already a link delete it to make sure we're pointing at the correct directory, if its a
+  # link and pointing at an invalid location it will show up as if there is no file present but
+  # will cause issues when creating a new one. We'll bypass the issue by accepting that we may
+  # occasionally recreate a duplicate link.
+  if [ -L "${dst_path}" ]; then
+    rm "${dst_path}"
+  fi
 
-if [ ! -f ${HOME}/.gitconfig ]; then
-  ln -s ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
-fi
+  # If it already exists we don't want to blindly override it, we'll simply return an error the
+  # caller can act on
+  if [ -f "${dst_path}" -o -d "${dst_path}" ]; then
+    return 1;
+  fi
 
-if [ ! -f ${HOME}/.tmux.conf ]; then
-  ln -s ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
-fi
+  # Preflight passed, setup the link and return a positive response
+  ln -s "${src_path}" "${dst_path}"
+
+  return 0
+}
+
+safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
+safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
+safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over
 # the public HTTPS endpoint to get these here. Leave a noauth version in case I
 # want to update without creds available...
 (
   cd ~/.dotfiles/
+
   git remote set-url origin git@github.com:sstelfox/dotfiles.git
-)
-(
-  cd ~/.dotfiles/
   git remote | grep -q noauth || git remote add noauth https://github.com/sstelfox/dotfiles.git
-)
-(
-  cd ~/.dotfiles/
   git remote | grep -q hollow || git remote add hollow hollow-twilight-ocean.stelfox.net:repos/dotfiles.git
 )
