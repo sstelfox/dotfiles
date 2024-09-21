@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-pacman -Sy --noconfirm arm-none-eabi-gdb openocd stlink zig
+pacman -Sy --noconfirm arm-none-eabi-binutils arm-none-eabi-gdb openocd stlink zig
