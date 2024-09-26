@@ -4,6 +4,24 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+function detect_shell() {
+  local base_shell=$(basename "${SHELL:-}")
+
+  case "${base_shell}" in
+  bash)
+    echo "bash"
+    ;;
+  zsh)
+    echo "zsh"
+    ;;
+  *)
+    # If we don't recognize what this is assume its the barest bones core shell experience like
+    # you'd get from busybox. Should still be POSIX compliant but that's about all we can assume.
+    echo "sh"
+    ;;
+  esac
+}
+
 function safe_symlink() {
   local src_path=$1
   local dst_path=$2
@@ -19,7 +37,7 @@ function safe_symlink() {
   # If it already exists we don't want to blindly override it, we'll simply return an error the
   # caller can act on
   if [ -f "${dst_path}" -o -d "${dst_path}" ]; then
-    return 1;
+    return 1
   fi
 
   # Preflight passed, setup the link and return a positive response
@@ -28,8 +46,19 @@ function safe_symlink() {
   return 0
 }
 
-safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
-safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+# Detect which shell the user is currently running and only install the relevant configurations for
+# it. Just keeping things tidy and I can always run this script again in the VERY RARE chance I
+# switch shells...
+current_shell=$(detect_shell)
+case "${current_shell}" in
+  bash)
+    safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
+    ;;
+  zsh)
+    safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+    ;;
+ease
+
 safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
 safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
 
