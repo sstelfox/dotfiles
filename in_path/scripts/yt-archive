@@ -8,31 +8,31 @@ set -o nounset
 DESTINATION_DIR="/var/run/media/$(whoami)/TLPRed-TS+/organized/videos/archived_youtube/"
 
 function error_handler() {
-	if [ "${DEBUG:-}" = "true" ]; then
-		echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
-	fi
+  if [ "${DEBUG:-}" = "true" ]; then
+    echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
+  fi
 }
 
 trap 'error_handler ${LINENO} $?' ERR
 
 # Diagnostic logging when necessary
 if [ "${DEBUG:-}" = "true" ]; then
-	set -o xtrace
+  set -o xtrace
 fi
 
 if [ ! -d "${DESTINATION_DIR}" ]; then
-	echo "Expected destination isn't mounted or otherwise available"
-	exit 1
+  echo "Expected destination isn't mounted or otherwise available"
+  exit 1
 fi
 
-YT_URL="${1:-}"
-if [ -z "${YT_URL}" ]; then
-	echo "A youtube URL needs to be provided to put into the archive"
-	exit 2
+YT_ARGS="${@:-}"
+if [ -z "${YT_ARGS}" ]; then
+  echo "A youtube URL (or '-a ./file-with-vid-links') needs to be provided to put into the archive"
+  exit 2
 fi
 
 yt-dlp --restrict-filenames --xattrs \
-	--paths ${DESTINATION_DIR} --output "%(upload_date)s-%(title)s/%(id)s.%(ext)s" \
-	--write-description --write-info-json --write-thumbnail --write-desktop-link --write-subs --write-auto-subs \
-	--embed-subs --embed-thumbnail --embed-metadata --embed-chapters \
-	"${YT_URL}"
+  --paths ${DESTINATION_DIR} --output "%(upload_date)s-%(title)s/%(id)s.%(ext)s" \
+  --write-description --write-info-json --write-thumbnail --write-desktop-link --write-subs --write-auto-subs \
+  --embed-subs --embed-thumbnail --embed-metadata --embed-chapters \
+  ${YT_ARGS}
