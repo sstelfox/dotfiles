@@ -11,9 +11,9 @@ fi
 __DOTFILE_ROOT="${HOME}/.dotfiles"
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
-source ${__SHELL_CFG_ROOT}/common/dotfiles_path.sh
+source ${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc
 
-source ${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh
-source ${__SHELL_CFG_ROOT}/common/git_helpers.sh
+source ${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc
+source ${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc
 
 source ${__SHELL_CFG_ROOT}/legacy_bashrc
