@@ -2,10 +2,6 @@
 
 set -euo pipefail
 
-# An example hook script to verify what is about to be committed. Called by "git commit" with no
-# arguments. The hook should exit with non-zero status after issuing an appropriate message if it
-# wants to stop the commit.
-
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
   COMMIT_REFERENCE=HEAD
 else
@@ -15,21 +11,31 @@ fi
 
 PRECOMMIT_CHECK_FAILED="false"
 
+
 # Redirect all output to STDERR
 exec 1>&2
 
-# Whitespace at the end of files can be both invisible, as well as problematic not too mention
-# generally rude.
-function reject_trailing_whitespace() {
-  local invalid_filenames="$(git diff-index --check --cached ${COMMIT_REFERENCE} --)"
-  local check_result=$?
 
-  if [ ! ${check_result} ]; then
+# Diagnostic function allowing the confirmation that failures are working in the global git hooks
+function always_fail() {
+  echo "Precommit Error 000: Test failure triggered"
+  PRECOMMIT_CHECK_FAILED=true
+}
+
+
+# Whitespace at the end of files can be invisible, problematic, and frankly rude.
+#
+# This relies on the git built in `--check` mechanism which is controlled by the `core.whitespace`
+# git config parameter.
+function reject_trailing_whitespace() {
+  if ! git diff-index --check --cached ${COMMIT_REFERENCE} -- &>/dev/null; then
     echo "Precommit Error 001: Found trailing whitespace in the following files:"
-    echo "${invalid_filenames}"
+    git diff-index --check --cached ${COMMIT_REFERENCE} -- || true
+
     PRECOMMIT_CHECK_FAILED=true
   fi
 }
+
 
 # Cross platform projects tend to avoid non-ASCII filenames, validate they aren't present.
 #
@@ -54,10 +60,15 @@ function reject_nonascii_filenames() {
   fi
 }
 
+
+# Choose which of our triggered checks to run
+#always_fail
 reject_nonascii_filenames
 reject_trailing_whitespace
 
+
 if [ "${PRECOMMIT_CHECK_FAILED}" != "false" ]; then
+  echo
   echo "Commit rejected due too one or more precommit check failures"
   exit 1
 fi
