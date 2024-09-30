@@ -51,13 +51,13 @@ function safe_symlink() {
 # switch shells...
 current_shell=$(detect_shell)
 case "${current_shell}" in
-  bash)
-    safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
-    ;;
-  zsh)
-    safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
-    ;;
-ease
+bash)
+  safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
+  ;;
+zsh)
+  safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+  ;;
+esac
 
 safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
 safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
