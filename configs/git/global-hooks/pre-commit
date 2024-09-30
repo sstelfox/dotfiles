@@ -1,47 +1,63 @@
 #!/bin/sh
 
+set -euo pipefail
+
 # An example hook script to verify what is about to be committed. Called by "git commit" with no
 # arguments. The hook should exit with non-zero status after issuing an appropriate message if it
 # wants to stop the commit.
 
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
-  against=HEAD
+  COMMIT_REFERENCE=HEAD
 else
   # Initial commit: diff against an empty tree object
-  against=$(git hash-object -t tree /dev/null)
+  COMMIT_REFERENCE=$(git hash-object -t tree /dev/null)
 fi
 
-# If you want to allow non-ASCII filenames set this variable to true.
-allownonascii=$(git config --type=bool hooks.allownonascii)
+PRECOMMIT_CHECK_FAILED="false"
 
 # Redirect all output to STDERR
 exec 1>&2
 
-# Cross platform projects tend to avoid non-ASCII filenames; prevent them from being added to the
-# repository. We exploit the fact that the printable range starts at the space character and ends
-# with tilde.
-if [ "$allownonascii" != "true" ] &&
-  # Note that the use of brackets around a tr range is ok here, (it's even required, for
-  # portability to Solaris 10's /usr/bin/tr), since the square bracket bytes happen to fall in the
-  # designated range.
-  test $(git diff --cached --name-only --diff-filter=A -z $against |
-    LC_ALL=C tr -d '[ -~]\0' | wc -c) != 0
-then
-  cat <<\EOF
-Error: Attempt to add a non-ASCII file name.
+# Whitespace at the end of files can be both invisible, as well as problematic not too mention
+# generally rude.
+function reject_trailing_whitespace() {
+  local invalid_filenames="$(git diff-index --check --cached ${COMMIT_REFERENCE} --)"
+  local check_result=$?
 
-This can cause problems if you want to work with people on other platforms.
+  if [ ! ${check_result} ]; then
+    echo "Precommit Error 001: Found trailing whitespace in the following files:"
+    echo "${invalid_filenames}"
+    PRECOMMIT_CHECK_FAILED=true
+  fi
+}
 
-To be portable it is advisable to rename the file.
+# Cross platform projects tend to avoid non-ASCII filenames, validate they aren't present.
+#
+# If you want to allow non-ASCII filenames set this variable to true in the specific repository
+# where they're needed. The global default I'll use is to err on the side of interoperability.
+function reject_nonascii_filenames() {
+  local allow_non_ascii=$(git config --type=bool hooks.allownonascii)
 
-If you know what you are doing you can disable this check using:
+  if [ "${allow_non_ascii}" != "true" ]; then
+    # This exploits the fact that the printable range starts at the space character and ends with
+    # tilde. The use of brackets around a tr range is ok here, (it's even required, for portability
+    # to Solaris 10's tr), since the square bracket bytes happen to fall in the designated range.
+    local nonascii_char_count=$(git diff --cached --name-only --diff-filter=A -z ${COMMIT_REFERENCE} |
+      LC_ALL=C tr -d '[ -~]\0' |
+      wc -c |
+      awk '{ print $1 }')
 
-  git config hooks.allownonascii true
-EOF
+    if [ "${nonascii_char_count}" != 0 ]; then
+      echo "Precommit Error 002: Found non-ASCII file name in cached changes '${nonascii_char_count}'"
+      PRECOMMIT_CHECK_FAILED="true"
+    fi
+  fi
+}
+
+reject_nonascii_filenames
+reject_trailing_whitespace
+
+if [ "${PRECOMMIT_CHECK_FAILED}" != "false" ]; then
+  echo "Commit rejected due too one or more precommit check failures"
   exit 1
 fi
-
-# If there are whitespace errors, print the offending file names and fail.
-exec git diff-index --check --cached $against --
-
-echo 'Global PreCommit Ran: ' $GIT_DIR
