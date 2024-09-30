@@ -14,6 +14,6 @@ __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 source ${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc
 
 source ${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc
-source ${__SHELL_CFG_ROOT}/common/git_helpers.sh.inc
+source ${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc
 
 #source ${__SHELL_CFG_ROOT}/legacy_bashrc
