@@ -1,70 +1,57 @@
 #!/usr/bin/env bash
 
-set -o errexit
-set -o nounset
-set -o pipefail
+__DOTFILE_ROOT="${HOME}/.dotfiles"
 
-function detect_shell() {
-  local base_shell=$(basename "${SHELL:-}")
+# Quick shim to call into my POSIX shell library for any supporting functions without loading the
+# whole thing into ALL of my active shells (plc is short for POSIX lib call).
+function plc() {
+  local func_name="$1"
+  shift
 
-  case "${base_shell}" in
-  bash)
-    echo "bash"
-    ;;
-  zsh)
-    echo "zsh"
-    ;;
-  *)
-    # If we don't recognize what this is assume its the barest bones core shell experience like
-    # you'd get from busybox. Should still be POSIX compliant but that's about all we can assume.
-    echo "sh"
-    ;;
-  esac
-}
+  (
+    # We can be stricter about our shell usage within the calls, fail early & fast
+    set -euo pipefail
 
-function safe_symlink() {
-  local src_path=$1
-  local dst_path=$2
+    # Source my common shell library from my dotfiles
+    . "${__DOTFILE_ROOT}/lib/posix.sh.inc"
 
-  # If it's already a link delete it to make sure we're pointing at the correct directory, if its a
-  # link and pointing at an invalid location it will show up as if there is no file present but
-  # will cause issues when creating a new one. We'll bypass the issue by accepting that we may
-  # occasionally recreate a duplicate link.
-  if [ -L "${dst_path}" ]; then
-    rm "${dst_path}"
-  fi
+    # Sanity check on the function call, if it isn't a function call or isn't defined we want to
+    # produce a human friendly error rather than blindly calling it
+    if declare -f "${func_name}" > /dev/null; then
+      "${func_name}" "$@"
 
-  # If it already exists we don't want to blindly override it, we'll simply return an error the
-  # caller can act on
-  if [ -f "${dst_path}" -o -d "${dst_path}" ]; then
-    return 1
-  fi
+      # propagate the function's exit code to the caller
+      return $?
+    else
+      echo "error: function '${func_name}' not found in the posix shell library" >&2
+      return 230
+    fi
+  )
 
-  # Preflight passed, setup the link and return a positive response
-  ln -s "${src_path}" "${dst_path}"
-
-  return 0
+  # propagate the exit code from the subshell
+  return $?
 }
 
 # Detect which shell the user is currently running and only install the relevant configurations for
 # it. Just keeping things tidy and I can always run this script again in the VERY RARE chance I
 # switch shells...
-current_shell=$(detect_shell)
+current_shell=$(plc detect_shell)
+
 case "${current_shell}" in
 bash)
-  safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
+  plc safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
   ;;
 zsh)
-  safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+  plc safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
   ;;
 esac
 
-safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
-safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
+plc safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
+plc safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
 
-# Switch to the authenticated access for my dotfiles, I most likely cloned over
-# the public HTTPS endpoint to get these here. Leave a noauth version in case I
-# want to update without creds available...
+# Switch to the authenticated access for my dotfiles, I most likely cloned over the public HTTPS
+# endpoint to get these here. Leave a noauth version in case I want to update without creds
+# available...
 (
   cd ~/.dotfiles/
 
