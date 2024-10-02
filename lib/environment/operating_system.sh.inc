@@ -2,7 +2,7 @@
 
 function detect_os() {
   if [ -n "${TERMUX_VERSION:-}" ]; then
-    echo "android-termux"
+    echo "termux"
     return 0
   fi
 

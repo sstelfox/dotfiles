@@ -18,6 +18,6 @@ source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc"
 
-if [ "$(basename ${SHELL})" = "bash" ]; then
+if [ "$(plc detect_os)" != "termux" -a "$(plc detect_shell)" = "bash" ]; then
   source "${__SHELL_CFG_ROOT}/legacy_bashrc"
 fi
