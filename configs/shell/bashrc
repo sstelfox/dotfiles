@@ -11,11 +11,13 @@ fi
 __DOTFILE_ROOT="${HOME}/.dotfiles"
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
-source ${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc
+# Allow access to our plc() library shell and redirection
+source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
 
-source ${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc
-source ${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc
+source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
+source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
+source "${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc"
 
 if [ "$(basename ${SHELL})" = "bash" ]; then
-  source ${__SHELL_CFG_ROOT}/legacy_bashrc
+  source "${__SHELL_CFG_ROOT}/legacy_bashrc"
 fi

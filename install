@@ -1,53 +1,25 @@
 #!/usr/bin/env bash
 
-__DOTFILE_ROOT="${HOME}/.dotfiles"
+__DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 
-# Quick shim to call into my POSIX shell library for any supporting functions without loading the
-# whole thing into ALL of my active shells (plc is short for POSIX lib call).
-function plc() {
-  local func_name="$1"
-  shift
-
-  (
-    # We can be stricter about our shell usage within the calls, fail early & fast
-    set -euo pipefail
-
-    # Source my common shell library from my dotfiles
-    . "${__DOTFILE_ROOT}/lib/posix.sh.inc"
-
-    # Sanity check on the function call, if it isn't a function call or isn't defined we want to
-    # produce a human friendly error rather than blindly calling it
-    if declare -f "${func_name}" > /dev/null; then
-      "${func_name}" "$@"
-
-      # propagate the function's exit code to the caller
-      return $?
-    else
-      echo "error: function '${func_name}' not found in the posix shell library" >&2
-      return 230
-    fi
-  )
-
-  # propagate the exit code from the subshell
-  return $?
-}
+source "${__DOTFILE_ROOT}/lib/posix.sh.inc"
 
 # Detect which shell the user is currently running and only install the relevant configurations for
 # it. Just keeping things tidy and I can always run this script again in the VERY RARE chance I
 # switch shells...
-current_shell=$(plc detect_shell)
+current_shell=$(detect_shell)
 
 case "${current_shell}" in
 bash)
-  plc safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
+  safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
   ;;
 zsh)
-  plc safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+  safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
   ;;
 esac
 
-plc safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
-plc safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
+safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
+safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over the public HTTPS
 # endpoint to get these here. Leave a noauth version in case I want to update without creds

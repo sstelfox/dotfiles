@@ -1,13 +1,19 @@
 #!/usr/bin/env false
 
-function detect_os() {
-  if [ -n "${TERMUX_VERSION}" ]; then
-    echo "android-termux"
-    return 0
-  fi
+function detect_shell() {
+  local base_shell=$(basename "${SHELL:-}")
 
-  # Fall back on the least common denominator, we know we're at least on a POSIX system by the
-  # nature of us running
-  echo "posix"
-  return 0
+  case "${base_shell}" in
+  bash)
+    echo "bash"
+    ;;
+  zsh)
+    echo "zsh"
+    ;;
+  *)
+    # If we don't recognize what this is assume its the barest bones core shell experience like
+    # you'd get from busybox. Should still be POSIX compliant but that's about all we can assume.
+    echo "sh"
+    ;;
+  esac
 }
