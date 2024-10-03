@@ -11,15 +11,22 @@ current_shell=$(detect_shell)
 
 case "${current_shell}" in
 bash)
-  safe_symlink ${HOME}/.dotfiles/configs/shell/bashrc ${HOME}/.bashrc
+  safe_symlink ${__DOTFILE_ROOT}/configs/shell/bashrc ${HOME}/.bashrc
   ;;
 zsh)
-  safe_symlink ${HOME}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+  safe_symlink ${__DOTFILE_ROOT}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
   ;;
 esac
 
-safe_symlink ${HOME}/.dotfiles/configs/git/default ${HOME}/.gitconfig
-safe_symlink ${HOME}/.dotfiles/configs/tmux/default.conf ${HOME}/.tmux.conf
+safe_symlink ${__DOTFILE_ROOT}/configs/git/default ${HOME}/.gitconfig
+safe_symlink ${__DOTFILE_ROOT}/configs/tmux/default.conf ${HOME}/.tmux.conf
+
+# Run OS/environment specific setup scripts
+case "$(detect_os)" in
+termux)
+  source ${__DOTFILE_ROOT}/scripts/shell_environment/termux/setup.sh.inc
+  ;;
+esac
 
 # Switch to the authenticated access for my dotfiles, I most likely cloned over the public HTTPS
 # endpoint to get these here. Leave a noauth version in case I want to update without creds
