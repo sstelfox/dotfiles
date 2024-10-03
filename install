@@ -14,7 +14,7 @@ bash)
   safe_symlink ${__DOTFILE_ROOT}/configs/shell/bashrc ${HOME}/.bashrc
   ;;
 zsh)
-  safe_symlink ${__DOTFILE_ROOT}/.dotfiles/configs/shell/zshrc ${HOME}/.zshrc
+  safe_symlink ${__DOTFILE_ROOT}/configs/shell/zshrc ${HOME}/.zshrc
   ;;
 esac
 
