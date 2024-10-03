@@ -11,13 +11,13 @@ fi
 __DOTFILE_ROOT="${HOME}/.dotfiles"
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
-# Allow access to our plc() library shell and redirection
+# Allow access to our ,plc() library shell and redirection
 source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
 
 source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc"
 
-if [ "$(plc detect_os)" != "termux" -a "$(plc detect_shell)" = "bash" ]; then
+if [ "$(,plc detect_os)" != "termux" -a "$(,plc detect_shell)" = "bash" ]; then
   source "${__SHELL_CFG_ROOT}/legacy_bashrc"
 fi

@@ -6,7 +6,7 @@ fi
 
 __DOTFILE_ROOT="${HOME}/.dotfiles"
 
-# Allow access to our plc() library shell and redirection
+# Allow access to our ,plc() library shell and redirection
 source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
 
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"

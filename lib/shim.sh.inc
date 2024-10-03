@@ -4,7 +4,14 @@ __DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 
 # Quick shim to call into my POSIX shell library for any supporting functions without loading the
 # whole thing into ALL of my active shells (plc is short for POSIX lib call).
-function plc() {
+#
+# This is using a special prefix of `,` which should be used for exposing any custom functionality
+# or binaries I put into my PATH via dotfiles. This does not apply to public tooling I install (I
+# don't rename other tools).
+#
+# The library functions do not follow this standard as they are intended to be accessed via this in
+# shell environments that may have conflicts.
+function ,plc() {
   local func_name="$1"
   shift
 
