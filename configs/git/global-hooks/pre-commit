@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -euo pipefail
+set -eu
 
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
   COMMIT_REFERENCE=HEAD
@@ -10,14 +10,14 @@ else
 fi
 
 PRECOMMIT_CHECK_FAILED="false"
-
+OVERRIDE_PRECOMMIT="${OVERRIDE_PRECOMMIT:-false}"
 
 # Redirect all output to STDERR
 exec 1>&2
 
 
 # Diagnostic function allowing the confirmation that failures are working in the global git hooks
-function always_fail() {
+always_fail() {
   echo "Precommit Error 000: Test failure triggered"
   PRECOMMIT_CHECK_FAILED=true
 }
@@ -27,7 +27,7 @@ function always_fail() {
 #
 # This relies on the git built in `--check` mechanism which is controlled by the `core.whitespace`
 # git config parameter.
-function reject_trailing_whitespace() {
+reject_trailing_whitespace() {
   if ! git diff-index --check --cached ${COMMIT_REFERENCE} -- &>/dev/null; then
     echo "Precommit Error 001: Found trailing whitespace in the following files:"
     git diff-index --check --cached ${COMMIT_REFERENCE} -- || true
@@ -41,7 +41,7 @@ function reject_trailing_whitespace() {
 #
 # If you want to allow non-ASCII filenames set this variable to true in the specific repository
 # where they're needed. The global default I'll use is to err on the side of interoperability.
-function reject_nonascii_filenames() {
+reject_nonascii_filenames() {
   local allow_non_ascii=$(git config --type=bool hooks.allownonascii)
 
   if [ "${allow_non_ascii}" != "true" ]; then
@@ -66,8 +66,7 @@ function reject_nonascii_filenames() {
 reject_nonascii_filenames
 reject_trailing_whitespace
 
-
-if [ "${PRECOMMIT_CHECK_FAILED}" != "false" ]; then
+if [ "${OVERRIDE_PRECOMMIT}" = "false" -a "${PRECOMMIT_CHECK_FAILED}" != "false" ]; then
   echo
   echo "Commit rejected due too one or more precommit check failures"
   exit 1
