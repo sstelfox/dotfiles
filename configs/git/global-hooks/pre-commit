@@ -28,7 +28,7 @@ always_fail() {
 # This relies on the git built in `--check` mechanism which is controlled by the `core.whitespace`
 # git config parameter.
 reject_trailing_whitespace() {
-  if ! git diff-index --check --cached ${COMMIT_REFERENCE} -- &>/dev/null; then
+  if ! git diff-index --check --cached ${COMMIT_REFERENCE} -- >/dev/null 2>&1; then
     echo "Precommit Error 001: Found trailing whitespace in the following files:"
     git diff-index --check --cached ${COMMIT_REFERENCE} -- || true
 
