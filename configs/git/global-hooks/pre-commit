@@ -15,13 +15,33 @@ OVERRIDE_PRECOMMIT="${OVERRIDE_PRECOMMIT:-false}"
 # Redirect all output to STDERR
 exec 1>&2
 
-
 # Diagnostic function allowing the confirmation that failures are working in the global git hooks
 always_fail() {
   echo "Precommit Error 000: Test failure triggered"
   PRECOMMIT_CHECK_FAILED=true
 }
 
+fix_trailing_whitespace() {
+  # Pass the files present in the commit to sed to strip trailing whitespace
+  git diff-index --cached --name-only ${COMMIT_REFERENCE} | xargs sed -i 's/[[:space:]]*$//'
+
+  # Update the outstanding changes in our commit
+  git add -u
+}
+
+# Checks whether it is safe to attempt to automatically fix trailing whitespace. If this passes by
+# returning and exit status of 0, the appropriate fix function will be called.
+is_trailing_whitespace_fix_safe() {
+  # If this is a partial commit of the outstanding changes, we won't be able to necessarily add our
+  # whitespace fixes selectively to the pending commit.
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "!> Unable to automatically fix trailing whitespace with unstaged changes present"
+    return 1
+  fi
+
+  # Passed our checks, safe to auto-fix
+  return 0
+}
 
 # Whitespace at the end of files can be invisible, problematic, and frankly rude.
 #
@@ -29,13 +49,25 @@ always_fail() {
 # git config parameter.
 reject_trailing_whitespace() {
   if ! git diff-index --check --cached ${COMMIT_REFERENCE} -- >/dev/null 2>&1; then
-    echo "Precommit Error 001: Found trailing whitespace in the following files:"
+    echo "Precommit Error 001: Found trailing whitespace"
+
+    if is_trailing_whitespace_fix_safe; then
+      echo "-> Attempting to automatically correct..."
+      fix_trailing_whitespace
+
+      # Perform a re-check, if it passes we can bail out early as the issue isn't present anymore
+      if git diff-index --check --cached ${COMMIT_REFERENCE} -- >/dev/null 2>&1; then
+        echo "-> Whitespace removed, continuing with commit"
+        return 0
+      fi
+    fi
+
+    echo "-> Files with trailing whitespace:"
     git diff-index --check --cached ${COMMIT_REFERENCE} -- || true
 
     PRECOMMIT_CHECK_FAILED=true
   fi
 }
-
 
 # Cross platform projects tend to avoid non-ASCII filenames, validate they aren't present.
 #
@@ -59,7 +91,6 @@ reject_nonascii_filenames() {
     fi
   fi
 }
-
 
 # Choose which of our triggered checks to run
 #always_fail
