@@ -92,6 +92,9 @@ reject_nonascii_filenames() {
   fi
 }
 
+#ROOT=$(current_git_root)
+#echo "Detected root of current git repo: ${ROOT}"
+
 # Choose which of our triggered checks to run
 #always_fail
 reject_nonascii_filenames
