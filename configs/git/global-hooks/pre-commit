@@ -97,6 +97,8 @@ reject_nonascii_filenames() {
 if declare -f ,plc >/dev/null; then
   # Just a placeholder for now
   echo "Detected root of current git repo: $(,plc current_git_root)"
+else
+  echo "WARN: Private shell library unavailable for additional checks"
 fi
 
 # Choose which of our triggered checks to run
