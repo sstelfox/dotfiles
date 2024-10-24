@@ -2,6 +2,12 @@
 
 set -eu
 
+# Attempt to load up my private library if its available.
+__DOTFILE_ROOT="${HOME}/.dotfiles"
+if [ -f "${__DOTFILE_ROOT}/lib/shim.sh.inc" ]; then
+  source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
+fi
+
 if git rev-parse --verify HEAD >/dev/null 2>&1; then
   COMMIT_REFERENCE=HEAD
 else
@@ -94,9 +100,9 @@ reject_nonascii_filenames() {
 
 # Check if my shell library is available, if so we can do additional checks and chain into a repo's
 # own pre-commit hooks if they're setup.
-if declare -f ,plc >/dev/null; then
+if declare -f __plc >/dev/null; then
   # Just a placeholder for now
-  echo "Detected root of current git repo: $(,plc current_git_root)"
+  echo "Detected root of current git repo: $(__plc current_git_root)"
 else
   echo "WARN: Private shell library unavailable for additional checks"
 fi

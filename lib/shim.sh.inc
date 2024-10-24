@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env false
 
 __DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 
@@ -11,7 +11,7 @@ __DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 #
 # The library functions do not follow this standard as they are intended to be accessed via this in
 # shell environments that may have conflicts.
-function ,plc() {
+__plc() {
   local func_name="$1"
   shift
 

@@ -4,12 +4,10 @@ if [ -f /etc/zshrc ]; then
   source /etc/zshrc
 fi
 
-__DOTFILE_ROOT="${HOME}/.dotfiles"
+export __DOTFILE_ROOT="${HOME}/.dotfiles"
 
-# Allow access to our ,plc() library shell and redirection
-source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
-
-__SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
+# Needed by other sourced inclusions, provides __plc and other functions
+source "${__SHELL_CFG_ROOT}/common/personal_posix_lib.sh.inc"
 
 source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
