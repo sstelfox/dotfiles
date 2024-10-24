@@ -8,8 +8,11 @@ if [ -f /etc/bashrc ]; then
   source /etc/bashrc
 fi
 
-# Needed by other sourced inclusions
-source "${__SHELL_CFG_ROOT}/common/personal_posix_lib.sh.inc"
+# Setup my private shell library
+__DOTFILE_ROOT="${HOME}/.dotfiles"
+source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
+
+__SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
 source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
