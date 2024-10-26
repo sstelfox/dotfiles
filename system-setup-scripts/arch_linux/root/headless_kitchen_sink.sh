@@ -7,5 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-pacman -Sy --needed --noconfirm podman tcpdump git-lfs iotop git-crypt jq \
-  ripgrep zopfli strace clang rsync fuse2 fd git-delta fuse-overlayfs lazygit
+pacman -Sy --needed --noconfirm iotop zopfli strace clang rsync fuse2

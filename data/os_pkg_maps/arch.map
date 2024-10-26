@@ -9,6 +9,19 @@
 #
 #common-name    os-pkg1 os-pk2
 
-# High Level Groupings
+## High Level Groupings ##
+
+# `git-delta`: A better tool for viewing diffs that includes handy things like syntax highlighting
+# `fd`: A faster alternative to `find`
+development           fd git git-crypt git-delta git-lfs graphviz jq ripgrep
+
 graphical-terminal    alacritty
+neovim                neovim lazygit luarocks unzip
+network-tools         bind tcpdump
+
+# `aardvark-dns,podman-dnsname`: For podman's networking to support local DNS
+podman                fuse-overlayfs aardvark-dns podman-dnsname
 wayland-tools         wl-clipboard
+
+graphical-vmhost      dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
+vmguest-tools         qemu-guest-agent spice-vdagent xf86-video-qxl
