@@ -10,10 +10,11 @@ ensure_os_pkg_present() {
 
   # All our package specific operations are OS dependent so we need to identify what we're running
   # on.
-  local os_name="$(detect_os)"
+  local os_name
+  os_name="$(detect_os)"
   local os_status=$?
 
-  if "${os_status}" != 0; then
+  if [ "${os_status}" -ne 0 ]; then
     echo "failed to detect OS for package mapping and installation (err:${os_status})" >&2
     return 2
   fi
@@ -22,10 +23,11 @@ ensure_os_pkg_present() {
   # several packages. This managed function will ONLY attempt to install packages where we have an
   # explicit mapping for that OS. We never try to fall back on just trying the name as that may have
   # unintended consequences.
-  local os_pkgs="$(get_os_pkg_equivalent "${os_name}" "${common_pkg_name}")"
+  local os_pkgs
+  os_pkgs="$(get_os_pkg_equivalent "${os_name}" "${common_pkg_name}")"
   local os_pkgs_status=$?
 
-  if "${os_pkgs_status}" != 0; then
+  if [ "${os_pkgs_status}" -ne 0 ]; then
     echo "unable to perform package equivalence lookup for ${common_pkg_name} on ${os_name} (err:${os_pkgs_status})" >&2
     return 3
   fi
@@ -43,10 +45,10 @@ ensure_os_pkg_present() {
     cmd_prefix="sudo"
   fi
 
-  local pkg_install_cmd=""
+  local pkg_install_cmd
   case "${os_name}" in
     arch)
-      pkg_install_cmd="pacman -Sy --needed --noconfirm ${ok_pkgs}"
+      pkg_install_cmd="${cmd_prefix} pacman -Sy --needed --noconfirm ${os_pkgs}"
       ;;
     *)
       echo "no package installation command available for ${os_name}" >&2
@@ -54,7 +56,7 @@ ensure_os_pkg_present() {
       ;;
   esac
 
-  if ! ${cmd_prefix} ${pkg_install_cmd} 2>&1 >/dev/null; then
+  if ! eval "${pkg_install_cmd}" >/dev/null 2>&1; then
     echo "failed to install ${os_pkgs} on ${os_name}" >&2
     return 5
   fi
@@ -80,7 +82,8 @@ get_os_pkg_equivalent() {
     fi
 
     # Look for lines starting with the package name followed by a space...
-    local pkg_line="$(grep "^${pkg_name} " "$map_file" || true)"
+    local pkg_line
+    pkg_line="$(grep "^${pkg_name} " "$map_file" || true)"
 
     if [ -z "$pkg_line" ]; then
         echo "no package mapping found for '${pkg_name}' on ${os_name}" >&2
