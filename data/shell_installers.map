@@ -1,0 +1,13 @@
+# Mapping file between my common higher level shell installer names and the specific details
+# required to pull in and run the installer for curl | shell download sources.
+#
+# The format of this file consists of a an alpha-numeric key, as well as hyphens, periods, and
+# underscores. Following the key is one or more space characters (to allow for columnar alignment)
+# and a pipe delimited set of arguments needed to download, verify, and run the installers with
+# my preferred arguments.
+#
+# If the specific installer needs packages before this is run they need to be handled elsewhere but
+# usually these are fairly self-sufficient.
+#
+# Format: name url|sha256|default_args
+rust https://sh.rustup.rs||-y --default-toolchain nightly --no-modify-path
