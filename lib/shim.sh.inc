@@ -11,7 +11,7 @@ __DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 #
 # The library functions do not follow this standard as they are intended to be accessed via this in
 # shell environments that may have conflicts.
-__plc() {
+_plc() {
   local func_name="$1"
   shift
 

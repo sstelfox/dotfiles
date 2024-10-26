@@ -7,6 +7,7 @@ fi
 
 __LIBRARY_PATH="${__DOTFILE_ROOT}/lib"
 
+source "${__LIBRARY_PATH}/environment/access.sh.inc"
 source "${__LIBRARY_PATH}/environment/git.sh.inc"
 source "${__LIBRARY_PATH}/environment/operating_system.sh.inc"
 source "${__LIBRARY_PATH}/environment/shell.sh.inc"

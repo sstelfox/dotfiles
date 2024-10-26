@@ -100,9 +100,9 @@ reject_nonascii_filenames() {
 
 # Check if my shell library is available, if so we can do additional checks and chain into a repo's
 # own pre-commit hooks if they're setup.
-if declare -f __plc >/dev/null; then
+if declare -f _plc >/dev/null; then
   # Just a placeholder for now
-  echo "Detected root of current git repo: $(__plc current_git_root)"
+  echo "Detected root of current git repo: $(_plc current_git_root)"
 else
   echo "WARN: Private shell library unavailable for additional checks"
 fi
