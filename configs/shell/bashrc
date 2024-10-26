@@ -14,12 +14,7 @@ source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
 
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
-# Environment setup
-source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
-source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
-
-# Convenience setup
-source "${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc"
+source "${__SHELL_CFG_ROOT}/common.sh.inc"
 
 if [ "$(_plc detect_os)" != "termux" -a "$(_plc detect_shell)" = "bash" ]; then
   source "${__SHELL_CFG_ROOT}/legacy_bashrc"
