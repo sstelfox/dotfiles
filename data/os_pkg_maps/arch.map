@@ -1,0 +1,11 @@
+# Mapping file between my common higher level task oriented package names and the specific list of
+# packages on this OS that provides the tools I want for that task.
+#
+# The format of this file consists of a an alpha-numeric key, as well as hyphens, periods, and
+# underscores. Following the key is one or more space characters (to allow for columnar alignment)
+# and the list of packages that will be provided directly to the OS's package manager.
+#
+# Example:
+#
+#common-name    os-specific-packages
+graphical-terminal    alacritty

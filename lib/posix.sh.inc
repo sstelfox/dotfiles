@@ -6,9 +6,11 @@ if [ -z "${__DOTFILE_ROOT}" ]; then
 fi
 
 __LIBRARY_PATH="${__DOTFILE_ROOT}/lib"
+__DATA_PATH="${__DOTFILE_ROOT}/data"
 
 source "${__LIBRARY_PATH}/environment/access.sh.inc"
 source "${__LIBRARY_PATH}/environment/git.sh.inc"
 source "${__LIBRARY_PATH}/environment/operating_system.sh.inc"
 source "${__LIBRARY_PATH}/environment/shell.sh.inc"
 source "${__LIBRARY_PATH}/filesystem/utils.sh.inc"
+source "${__LIBRARY_PATH}/pkg/operating_system.sh.inc"
