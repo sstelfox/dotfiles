@@ -10,4 +10,7 @@
 # usually these are fairly self-sufficient.
 #
 # Format: name url|sha256|default_args
+
 rust https://sh.rustup.rs||-y --default-toolchain nightly --no-modify-path
+
+talosctl https://talos.dev/install|bc3605c6aa184581fff668a2c002969477b25b7f5cce8a68ca4d847ea64c8244|
