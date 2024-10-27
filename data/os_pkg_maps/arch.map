@@ -9,6 +9,13 @@
 #
 #common-name    os-pkg1 os-pk2
 
+## Specific packages or services
+
+neovim                neovim lazygit luarocks unzip
+
+# `aardvark-dns,podman-dnsname`: For podman's networking to support local DNS
+podman                fuse-overlayfs aardvark-dns podman-dnsname
+
 ## High Level Groupings ##
 
 # `git-delta`: A better tool for viewing diffs that includes handy things like syntax highlighting
@@ -16,11 +23,8 @@
 development           fd git git-crypt git-delta git-lfs graphviz jq ripgrep
 
 graphical-terminal    alacritty
-neovim                neovim lazygit luarocks unzip
 network-tools         bind tcpdump
 
-# `aardvark-dns,podman-dnsname`: For podman's networking to support local DNS
-podman                fuse-overlayfs aardvark-dns podman-dnsname
 wayland-tools         wl-clipboard
 
 graphical-vmhost      dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
