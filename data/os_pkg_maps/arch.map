@@ -13,8 +13,9 @@
 
 neovim                neovim lazygit luarocks unzip
 
-# `aardvark-dns,podman-dnsname`: For podman's networking to support local DNS
-podman                fuse-overlayfs aardvark-dns podman-dnsname
+# `aardvark-dns`: For podman's networking to support local DNS
+# `skopeo`: A container image swiss army knife
+podman                fuse-overlayfs aardvark-dns skopeo
 
 ## High Level Groupings ##
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env false
 
-os_install() {
+os_pkg_install() {
   local common_pkg_name="${1:-}"
 
   if [ -z "$common_pkg_name" ]; then
