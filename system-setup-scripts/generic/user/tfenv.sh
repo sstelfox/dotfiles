@@ -8,3 +8,5 @@ if [ ${EUID} = 0 ]; then
 fi
 
 git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
+
+# PATH / shell setup happens in my proper dotfiles
