@@ -52,14 +52,8 @@ done
 
 alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
-alias ap='$(which -a vim 2>&1 | grep -e '^/' | head -n 1 || /bin/false) ~/documentation/passwords.txt'
 
 if which nvim &>/dev/null; then
-  alias vi='nvim'
-  alias vim='nvim'
-  alias sync_nvim_plugins='nvim --headless -c "lua require('packer').sync()" -c "quitall"'
-
-  export EDITOR="nvim"
 fi
 
 if [ -d /opt/cuda/bin ]; then
