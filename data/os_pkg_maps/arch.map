@@ -21,7 +21,7 @@ podman                fuse-overlayfs aardvark-dns skopeo
 
 # `git-delta`: A better tool for viewing diffs that includes handy things like syntax highlighting
 # `fd`: A faster alternative to `find`
-development           fd git git-crypt git-delta git-lfs graphviz jq ripgrep
+development           fd git git-crypt git-delta git-lfs graphviz jq ripgrep shellcheck yamllint
 
 graphical-terminal    alacritty
 network-tools         bind tcpdump
