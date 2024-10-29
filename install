@@ -21,6 +21,11 @@ esac
 safe_symlink ${__DOTFILE_ROOT}/configs/git/default ${HOME}/.gitconfig
 safe_symlink ${__DOTFILE_ROOT}/configs/tmux/default.conf ${HOME}/.tmux.conf
 
+if which nvim &>/dev/null; then
+  mkdir -p ${HOME}/.config
+  safe_symlink ${__DOTFILE_ROOT}/configs/nvim ${HOME}/.config/nvim
+fi
+
 # Run OS/environment specific setup scripts
 case "$(detect_os)" in
 termux)
