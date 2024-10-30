@@ -1,7 +1,8 @@
 #!/usr/bin/env false
 
-# otpauth://totp/${account_name}?issuer=${company}&secret=${otp_secret}
+# issuer=${company}&secret=${otp_secret}
 
+# WARNING: Does not do URL encoding for you, avoid spaces and symbols!
 otp_qr() {
   local account_name="${1:-}"
   local otp_secret="${2:-}"
@@ -12,7 +13,20 @@ otp_qr() {
     return 1
   fi
 
-  local qr_string=""
+  if ! which qrencode 2>&1 >/dev/null; then
+    echo "otp_qr needs qrencode binary to be present to function"
+    return 2
+  fi
+
+  local qr_string="otpauth://totp/${account_name}?"
+
+  if [ -n "${account_service}" ]; then
+    qr_string="${qr_string}issuer=${account_service}&"
+  fi
+
+  qr_string="${otp_secret}"
+
+  echo "${qr_string}" | qrencode
 
   return 0
 }
