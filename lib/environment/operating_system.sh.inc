@@ -45,6 +45,12 @@ function detect_os() {
     esac
   fi
 
+  # Silly Apple devices, can't follow a single standard...
+  if [ "x$(uname)" = "xDarwin" ]; then
+    echo "macos"
+    return 0
+  fi
+
   # Fall back on the least common denominator, we know we're at least on a POSIX system by the
   # nature of these scripts running
   echo "posix"
