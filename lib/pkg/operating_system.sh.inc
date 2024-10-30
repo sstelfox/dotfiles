@@ -1,5 +1,34 @@
 #!/usr/bin/env false
 
+arch_linux_pkg_install() {
+  local pkg_list="${1:-}"
+
+  if [ -z "${pkg_list}" ]; then
+    echo "must provide a package list to install to arch_linux_pkg_install"
+    return 1
+  fi
+
+  local cmd_prefix=""
+
+  # We need to escalate our privileges to perform the package installation, but only do so if we
+  # aren't already running with privileges.
+  if ! is_privileged; then
+    cmd_prefix="sudo"
+  fi
+
+  pkg_install_cmd="${cmd_prefix} pacman -Sy --needed --noconfirm ${pkg_list}"
+
+  return 0
+}
+
+macos_pkg_install() {
+  # This is a hard one as the packages can come from a few different locations and may need to
+  # fallback on a shell installer. At the beginning we'll only support homebrew
+
+  echo 'macos package instllation is incomplete!'
+  return 1
+}
+
 os_pkg_install() {
   local common_pkg_name="${1:-}"
 
@@ -38,17 +67,10 @@ os_pkg_install() {
 
   echo "ensuring ${common_pkg_name} packages are present..." >&2
 
-  # We may need to escalate our privileges to perform the package installation, but only due so if
-  # we aren't already.
-  local cmd_prefix=""
-  if ! is_privileged; then
-    cmd_prefix="sudo"
-  fi
-
   local pkg_install_cmd
   case "${os_name}" in
     arch)
-      pkg_install_cmd="${cmd_prefix} pacman -Sy --needed --noconfirm ${os_pkgs}"
+      arch_linux_pkg_install "${os_pkgs}"
       ;;
     *)
       echo "no package installation command available for ${os_name}" >&2
