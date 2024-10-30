@@ -53,9 +53,6 @@ done
 alias dig='dig +nocmd +noall +answer'
 alias gdb='gdb -q'
 
-if which nvim &>/dev/null; then
-fi
-
 if [ -d /opt/cuda/bin ]; then
   export PATH="${PATH}:/opt/cuda/bin"
 fi
@@ -156,10 +153,6 @@ unset __conda_setup
 # Only handle this setup when I've installed the conda environment
 if which conda &>/dev/null; then
   conda activate default
-fi
-
-if [ -r "${HOME}/.kube/config" ]; then
-  export KUBECONFIG="${HOME}/.kube/config"
 fi
 
 export PAISA_CONFIG="${HOME}/documentation/data/finances/paisa.yaml"
