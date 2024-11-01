@@ -10,7 +10,6 @@ live_config_reload = false
 ipc_socket = false
 
 [window]
-decorations = "Full"
-startup_mode = "SimpleFullScreen"
+startup_mode = "Maximized"
 resize_increments = true
 option_as_alt = "Both"
