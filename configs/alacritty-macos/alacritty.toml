@@ -1,0 +1,16 @@
+[general]
+import = [
+  "~/.dotfiles/configs/alacritty/common.toml"
+]
+
+# I only want these to be enabled when I'm actively playing with the config. There is some
+# messaging feature that might be useful when available using the IPC socket but I don't use it yet
+# and don't care yet.
+live_config_reload = false
+ipc_socket = false
+
+[window]
+decorations = "Full"
+startup_mode = "SimpleFullScreen"
+resize_increments = true
+option_as_alt = "Both"

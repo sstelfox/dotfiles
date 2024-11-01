@@ -1,0 +1,6 @@
+[window]
+decorations_theme_variant = "Dark"
+
+[scrolling]
+history = 5000
+multiplier = 5

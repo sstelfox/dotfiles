@@ -21,13 +21,22 @@ esac
 safe_symlink ${__DOTFILE_ROOT}/configs/git/default ${HOME}/.gitconfig
 safe_symlink ${__DOTFILE_ROOT}/configs/tmux/default.conf ${HOME}/.tmux.conf
 
-safe_symlink_when_available alacritty ${__DOTFILE_ROOT}/configs/alacritty ${HOME}/.config/alacritty
 safe_symlink_when_available nvim ${__DOTFILE_ROOT}/configs/nvim ${HOME}/.config/nvim
 
-# Run OS/environment specific setup scripts
+# Handle variations between different OS/environment specific setup scripts
 case "$(detect_os)" in
+macos)
+  # Alacritty has OS specific options and no way to set alternatives in other environments so we
+  # have to manage these ourselves. It's also on a different version that has an incompatible
+  # configuration format...
+  safe_symlink_when_available alacritty ${__DOTFILE_ROOT}/configs/alacritty-macos ${HOME}/.config/alacritty
+  ;;
 termux)
   source ${__DOTFILE_ROOT}/scripts/shell_environment/termux/setup.sh.inc
+  ;;
+*)
+  # Our standard and core config on anything that isn't a Mac
+  safe_symlink_when_available alacritty ${__DOTFILE_ROOT}/configs/alacritty ${HOME}/.config/alacritty
   ;;
 esac
 
