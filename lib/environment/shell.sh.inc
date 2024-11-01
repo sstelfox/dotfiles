@@ -17,3 +17,12 @@ function detect_shell() {
     ;;
   esac
 }
+
+# Determines whether or not the environment the function is called in is a user's interactive shell
+# or inside a script.
+function is_interactive_shell() {
+  case $- in
+    *i*) return 0 ;; # Interactive
+    *) return 1 ;;   # Non-interactive
+  esac
+}
