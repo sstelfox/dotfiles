@@ -1,3 +1,4 @@
+[general]
 import = [
   "~/.dotfiles/configs/alacritty/common.toml"
 ]
