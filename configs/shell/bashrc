@@ -14,8 +14,14 @@ source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
 
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
+# Common should always precede a specific shell to allow for specific overrides, though
+# incompatibilities like that should instead be pulled into the speecific relevant shells instead
+# of being overwritten.
 source "${__SHELL_CFG_ROOT}/common.sh.inc"
 
-if [ "$(_plc detect_os)" != "termux" -a "$(_plc detect_shell)" = "bash" ]; then
+source "${__SHELL_CFG_ROOT}/bash/shell_prompt.sh.inc"
+
+# The termux environment really doesn't like something in the legacy configs...
+if [ "$(_plc detect_os)" != "termux" ]; then
   source "${__SHELL_CFG_ROOT}/legacy_bashrc"
 fi

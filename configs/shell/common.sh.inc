@@ -5,7 +5,6 @@
 
 # Core experience / UX
 source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
-source "${__SHELL_CFG_ROOT}/common/shell_prompt.sh.inc"
 
 # Environment & path setup
 source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
