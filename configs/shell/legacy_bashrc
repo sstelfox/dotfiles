@@ -74,29 +74,6 @@ RED=$(tput setaf 1)
 BLUE=$(tput setaf 5)
 RST=$(tput sgr0)
 
-function personal_ps1_prompt() {
-  #local __bat_status="\$(${DOTFILES_DIR}/helpers/battery_status.sh)"
-  local __bat_status=""
-  #local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
-  local __exit_status=""
-  #local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
-  local __path="\$(${DOTFILES_DIR}/helpers/shortdir.sh)"
-  local __user_host="[\u@\h]"
-
-  if [ -n "${TMUX_PANE}" ]; then
-    echo "$__bat_status$__exit_status $__path$__git \\$"
-  else
-    echo "$__bat_status$__exit_status $__user_host $__path$__git \\$"
-  fi
-}
-
-function setup_prompt {
-  export PS1="$(personal_ps1_prompt) "
-
-  # Don't expose more than path through the window title...
-  export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
-}
-
 source $HOME/.dotfiles/helpers/gpg-agent.sh
 #source $HOME/.dotfiles/helpers/sagent.sh
 

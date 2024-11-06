@@ -3,8 +3,11 @@
 # These includes expect my personal shell library shim to already be available. Make sure the base
 # shell command, before including this one, has already sourced the shim.
 
-# Shell environment setup
+# Core experience / UX
 source "${__SHELL_CFG_ROOT}/common/dotfiles_path.sh.inc"
+source "${__SHELL_CFG_ROOT}/common/shell_prompt.sh.inc"
+
+# Environment & path setup
 source "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/rust_cargo_environment.sh.inc"
 source "${__SHELL_CFG_ROOT}/common/tfenv_setup.sh.inc"
