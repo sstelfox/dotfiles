@@ -1,0 +1,12 @@
+# Takes a binary name along with an architecture and maps it to the github repo, a pinned version,
+# post-processing steps, and a file that will be used as the binary and placed within the user's
+# path. Optionally takes a sha256 hash to validate the binary is valid.
+#
+# The format of this file consists of a an alpha-numeric key, as well as hyphens, periods, and
+# underscores, one or more space characters followed by an architecture (either amd64 or arm64),
+# one or more spaces and finally a pipe delimited set of arguments.
+#
+# Format: name arch username/repo|tag|filename|sha256
+
+# https://github.com/cilium/hubble/releases/download/v1.16.3/hubble-linux-amd64.tar.gz -> hubble
+hubble  amd64   cilium/hubble|v1.16.3|tar|hubble-linux-amd64.tar.gz|edb6385d3a5042b722b6919e4d81d373e71a762e9f84a71861b9556b80086104
