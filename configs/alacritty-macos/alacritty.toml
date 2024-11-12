@@ -13,3 +13,6 @@ ipc_socket = false
 startup_mode = "Maximized"
 resize_increments = true
 option_as_alt = "Both"
+
+padding.x = 8
+padding.y = 8
