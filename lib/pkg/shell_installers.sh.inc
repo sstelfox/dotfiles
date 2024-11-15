@@ -30,7 +30,7 @@ get_installer_info() {
 }
 
 # Safely handles downloading and executing third-party installer scripts
-run_shell_installer() {
+shell_pkg_install() {
   local installer_name="${1:-}"
   local custom_args="${2:-}"
 

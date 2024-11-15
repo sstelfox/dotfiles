@@ -17,3 +17,5 @@ source "${__SHELL_CFG_ROOT}/common.sh.inc"
 
 source "${__SHELL_CFG_ROOT}/zsh/shell_prompt.sh.inc"
 source "${__SHELL_CFG_ROOT}/zsh/disable_aggressive_autocomplete.sh.inc"
+
+. "$HOME/.local/bin/env"

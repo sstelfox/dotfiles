@@ -20,7 +20,7 @@
   safecrlf = false
   editor   = vim
   filemode = true
-#  pager = delta
+  pager = delta
 
 [diff]
   algorithm = histogram
