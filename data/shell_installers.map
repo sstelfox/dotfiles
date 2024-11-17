@@ -11,6 +11,7 @@
 #
 # Format: name url|sha256|default_args
 
+ollama      https://ollama.com/install.sh||
 rust        https://sh.rustup.rs||-y --default-toolchain nightly --no-modify-path
 talosctl    https://talos.dev/install|bc3605c6aa184581fff668a2c002969477b25b7f5cce8a68ca4d847ea64c8244|
 uv          https://astral.sh/uv/install.sh|a339b4324be6e7bad8906cf7c393027c36c9460bb1ca35c12db7eb2c1b93abf9|
