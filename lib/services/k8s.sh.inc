@@ -2,7 +2,12 @@
 
 # Check if a TCP port is currently listening using passive checks only
 check_tcp_port_listening() {
-  local port="$1"
+  local port="${1:-}"
+
+  if [ -z "${port}" ]; then
+    echo "usage: check_tcp_port_listening PORT" >&2
+    exit 1
+  fi
 
   if command -v ss >/dev/null 2>&1; then
     if ss -tln "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
@@ -65,16 +70,17 @@ wait_tcp_port_listening() {
 # single service in the background so we can utilize it with the command. Does basic sanity checks
 # and ensures the port is available before proceeding.
 cmd_with_k8s_port_forward() {
-  namespace="$1"
-  service="$2"
-  ports="$3"
-
-  shift 3
+  namespace="${1:-}"
+  service="${2:-}"
+  ports="${3:-}"
 
   if [ -z "${namespace}" ] || [ -z "${service}" ] || [ -z "${ports}" ] || [ $# -eq 0 ]; then
     echo "usage: cmd_with_k8s_port_forward NAMESPACE SERVICE LOCAL:REMOTE_PORT COMMAND [ARGS...]" >&2
-    return 1
+    exit 1
   fi
+
+  # Consume the arguments we've extracted
+  shift 3
 
   if ! kubectl get namespace "${namespace}" >/dev/null 2>&1; then
     echo "error: namespace '${namespace}' does not exist\n" >&2
