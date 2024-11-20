@@ -1,6 +1,6 @@
 #!/usr/bin/env false
 
-function detect_shell() {
+detect_shell() {
   local base_shell=$(basename "${SHELL:-}")
 
   case "${base_shell}" in
@@ -20,7 +20,7 @@ function detect_shell() {
 
 # Determines whether or not the environment the function is called in is a user's interactive shell
 # or inside a script.
-function is_interactive_shell() {
+is_interactive_shell() {
   case $- in
     *i*) return 0 ;; # Interactive
     *) return 1 ;;   # Non-interactive
