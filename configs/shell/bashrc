@@ -25,5 +25,3 @@ source "${__SHELL_CFG_ROOT}/bash/shell_prompt.sh.inc"
 if [ "$(_plc detect_os)" != "termux" ]; then
   source "${__SHELL_CFG_ROOT}/legacy_bashrc"
 fi
-
-. "$HOME/.local/bin/env"
