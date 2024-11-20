@@ -133,6 +133,14 @@ shell_pkg_install() {
       return 9
     fi
 
+    # TODO: Should reset the shell runtime configuration files after the install. I handle things
+    # like path modifications and aliases myself and these almost always pollute the environment
+    # unecessarily and universally.
+    #
+    # Supporting this should cause this function to abort early if there are uncommitted changes to
+    # files an install script may modify (just limit it to the ones we'll automatically reset,
+    # which should likely be a single local variable for maintenance purposes).
+
     echo "${installer_name} installation completed successfully" >&2
     rm -rf "${tmp_dir}"
     return 0
