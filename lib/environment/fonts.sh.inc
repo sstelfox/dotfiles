@@ -5,7 +5,7 @@ install_font_macos() {
   local font_path="${2:-}"
 
   if [ -z "${font_path}" ]; then
-    echo "Usage: install_font_macos [-f] <font_path>" >&2
+    echo "usage: install_font_macos [-f] <font_path>" >&2
     return 1
   fi
 
@@ -30,7 +30,7 @@ install_font_linux() {
   local font_path="${2:-}"
 
   if [ -z "${font_path}" ]; then
-    echo "Usage: install_font_linux [-f] <font_path>" >&2
+    echo "usage: install_font_linux [-f] <font_path>" >&2
     return 1
   fi
 
@@ -54,11 +54,18 @@ install_font_linux() {
 }
 
 install_font() {
-  local force="${1:-}"
-  local font_name="${2:-}"
+  local force=""
+  local font_name=""
+
+  if [ "${1:-}" = "-f" ]; then
+    force="-f"
+    font_name="${2:-}"
+  else
+    font_name="${1:-}"
+  fi
 
   if [ -z "${font_name}" ]; then
-    echo "Usage: install_font [-f] <font_name>" >&2
+    echo "usage: install_font [-f] <font_name>" >&2
     exit 1
   fi
 
