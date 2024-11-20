@@ -56,3 +56,24 @@ function detect_os() {
   echo "posix"
   return 0
 }
+
+detect_os_family() {
+  if [ -n "${TERMUX_VERSION:-}" ]; then
+    echo "android"
+    return 0
+  fi
+
+  case "$(uname)" in
+    "Darwin")
+      echo "macos"
+      ;;
+    "Linux")
+      echo "linux"
+      ;;
+    *)
+      echo "unknown"
+      ;;
+  esac
+
+  return 0
+}
