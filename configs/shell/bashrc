@@ -1,5 +1,7 @@
 #!/usr/bin/env false
 
+# TODO: Should untangle bash_profile and bashrc configurations
+
 # I may want to remove this in the future, but for now if there is a system wide configuration we'll
 # use it as our configuration starting point. MacOS actually does some neat stuff in their
 # system-wide script including per-application shell configuration, save/restoring shell sessions,
