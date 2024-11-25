@@ -13,6 +13,7 @@ size = 12.0
 family = "SauceCodePro Nerd Font Mono"
 style = "Regular"
 
-[terminal.shell]
-program = "/usr/bin/env"
-args = ["bash", "-l"]
+# Use the standard environment lookup to execute the shell for support of Nix like environments. Need to fix the following, bash hangs without -l, but -l doesn't initialize my whole environment...
+#[terminal.shell]
+#program = "/usr/bin/env"
+#args = ["-S", "bash", "-l"]
