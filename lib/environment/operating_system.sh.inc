@@ -1,5 +1,20 @@
 #!/usr/bin/env false
 
+function clip() {
+  case "$(detect_os)" in
+    "macos")
+      pbcopy
+      ;;
+    "linux")
+      wl-copy
+      ;;
+    *)
+      echo "unknown OS, unable to copy contents to clipboard" >&2
+      exit 2
+      ;;
+  esac
+}
+
 function detect_os() {
   if [ -n "${TERMUX_VERSION:-}" ]; then
     echo "termux"
