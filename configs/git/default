@@ -9,6 +9,13 @@
 [core]
   hooksPath = ~/.dotfiles/configs/git/global-hooks
 
+# Enable LFS support by default
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
 ## Useful Tip:
 ##
 ## I can check what the currently applied config is and where the config items are coming from by
@@ -28,6 +35,7 @@
 ## Tulip local checkouts and anything using the Tulip org as an upstream
 [includeIf "gitdir/i:~/workspace/tulip/"]
   path = ~/.dotfiles/configs/git/tulip.inc
+
 
 [includeIf "hasconfig:remote.*.url:https://github.com/tulip/"]
   path = ~/.dotfiles/configs/git/tulip.inc
