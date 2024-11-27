@@ -8,6 +8,12 @@ fi
 __LIBRARY_PATH="${__DOTFILE_ROOT}/lib"
 __DATA_PATH="${__DOTFILE_ROOT}/data"
 
+source "${__LIBRARY_PATH}/logging.sh.inc"
+source "${__LIBRARY_PATH}/trace.sh.inc"
+
+# Enable our script tracing mechanism to help locate sources of issues when they occur
+trace_init
+
 source "${__LIBRARY_PATH}/environment/access.sh.inc"
 source "${__LIBRARY_PATH}/environment/fonts.sh.inc"
 source "${__LIBRARY_PATH}/environment/git.sh.inc"
