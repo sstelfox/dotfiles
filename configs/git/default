@@ -8,6 +8,7 @@
 # hooks to the repo's specific hooks if they're configured.
 [core]
   hooksPath = ~/.dotfiles/configs/git/global-hooks
+  symlinks = true
 
 # Enable LFS support by default
 [filter "lfs"]
