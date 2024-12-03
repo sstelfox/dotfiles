@@ -28,7 +28,7 @@ network-tools         bind ipcalc tcpdump
 
 wayland-tools         wl-clipboard
 
-graphical-vmhost      dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
-vmguest-tools         qemu-guest-agent spice-vdagent xf86-video-qxl
+vmguest-internal-tools   qemu-guest-agent spice-vdagent xf86-video-qxl
+vmhost-graphical         cdrtools dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
 
 kubetools             helm kubernetes-tools kustomize
