@@ -35,7 +35,9 @@ trace_enabled() {
 
 trace_init() {
   if [ -z "${__SHELL_TRACE_ID:-}" ]; then
-    export __SHELL_TRACE_ID="$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 16)"
+    # Currently broken... :'(
+    #export __SHELL_TRACE_ID="$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 16)"
+    export __SHELL_TRACE_ID="{random-trace-id}"
     export __SHELL_TRACE="[]"
 
     push_trace
