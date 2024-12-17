@@ -21,7 +21,7 @@ podman                aardvark-dns buildah fuse-overlayfs skopeo
 
 # `git-delta`: A better tool for viewing diffs that includes handy things like syntax highlighting
 # `fd`: A faster alternative to `find`
-development           fd git git-crypt git-delta git-lfs graphviz jq ripgrep shellcheck yamllint yq
+development           age fd libfido2 git git-crypt git-delta git-lfs graphviz jq ripgrep shellcheck yamllint yq
 
 graphical-terminal    alacritty
 network-tools         bind ipcalc tcpdump
@@ -31,4 +31,4 @@ wayland-tools         wl-clipboard
 vmguest-internal-tools   qemu-guest-agent spice-vdagent xf86-video-qxl
 vmhost-graphical         cdrtools dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
 
-kubetools             age helm kubernetes-tools kustomize sops
+kubetools             age helm kubernetes-tools kustomize libfido2 sops
