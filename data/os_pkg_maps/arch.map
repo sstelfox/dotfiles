@@ -31,4 +31,4 @@ wayland-tools         wl-clipboard
 vmguest-internal-tools   qemu-guest-agent spice-vdagent xf86-video-qxl
 vmhost-graphical         cdrtools dnsmasq edk2-ovmf libvirt qemu-desktop swtpm virt-manager
 
-kubetools             helm kubernetes-tools kustomize
+kubetools             age helm kubernetes-tools kustomize sops
