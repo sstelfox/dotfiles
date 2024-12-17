@@ -10,3 +10,4 @@
 
 # https://github.com/cilium/hubble/releases/download/v1.16.3/hubble-linux-amd64.tar.gz -> hubble
 hubble  amd64   cilium/hubble|v1.16.3|tar|hubble-linux-amd64.tar.gz|edb6385d3a5042b722b6919e4d81d373e71a762e9f84a71861b9556b80086104
+age-plugin-fido2-hmac amd64 olastor/age-plugin-fido2-hmac|v0.2.4|tar_gz|age-plugin-fido2-hmac-v0.2.4-linux-amd64.tar.gz|
