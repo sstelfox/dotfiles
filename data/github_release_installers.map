@@ -17,4 +17,4 @@
 age-plugin-fido2-hmac amd64   olastor/age-plugin-fido2-hmac|v0.2.4|tar_gz|age-plugin-fido2-hmac-v0.2.4-linux-amd64.tar.gz|
 
 hubble                amd64   cilium/hubble|v1.16.3|tar|hubble-linux-amd64.tar.gz|edb6385d3a5042b722b6919e4d81d373e71a762e9f84a71861b9556b80086104
-kyverno               amd64   kyverno/kyverno|v1.12.0|tar_gz|kyverno-cli-v1.12_linux_x86_64.tar.gz|
+kyverno               amd64   kyverno/kyverno|v1.13.2|tar_gz|kyverno-cli-v1.13.2_linux_x86_64.tar.gz|
