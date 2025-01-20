@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 import sys
@@ -13,9 +13,9 @@ import re
 def is_git_repository() -> bool:
     try:
         subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'],
-                      stdout=subprocess.DEVNULL,
-                      stderr=subprocess.DEVNULL,
-                      check=True)
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL,
+                       check=True)
         return True
     except subprocess.CalledProcessError:
         return False
@@ -23,9 +23,9 @@ def is_git_repository() -> bool:
 def get_repository_root() -> Optional[Path]:
     try:
         result = subprocess.run(['git', 'rev-parse', '--show-toplevel'],
-                              capture_output=True,
-                              text=True,
-                              check=True)
+                                capture_output=True,
+                                text=True,
+                                check=True)
         return Path(result.stdout.strip())
     except subprocess.CalledProcessError:
         return None
@@ -71,9 +71,26 @@ def get_cache_dir() -> Path:
 
     return base_dir / 'git-file-collector'
 
+def get_unique_filename(target_dir: Path, base_name: str) -> Path:
+    counter = 0
+    name = Path(base_name)
+    stem = name.stem
+    suffix = name.suffix
+
+    while True:
+        if counter == 0:
+            new_name = name
+        else:
+            new_name = Path(f"{stem}_{counter}{suffix}")
+
+        full_path = target_dir / new_name
+        if not full_path.exists():
+            return new_name
+        counter += 1
+
 def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
     """
-    Copy files from git repository to a temporary directory.
+    Copy files from git repository to a temporary directory, flattening the structure.
     Returns (temp_dir_path, files_copied, files_ignored)
     """
     if not is_git_repository():
@@ -111,32 +128,32 @@ def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
                 continue
 
             if file_path.suffix.lower() in extensions:
-                # Preserve directory structure
-                target_path = temp_dir / rel_path
-                target_path.parent.mkdir(parents=True, exist_ok=True)
+                unique_name = get_unique_filename(temp_dir, file)
+                target_path = temp_dir / unique_name
 
                 shutil.copy2(file_path, target_path)
                 files_copied += 1
 
                 file_mappings.append({
-                    'new_file': str(target_path),
+                    'new_file': str(unique_name),
                     'original_path': str(rel_path)
                 })
 
     with open(temp_dir / 'file_map.txt', 'w') as f:
         f.write(f"File Mapping Generated on: {datetime.now()}\n")
-        f.write(f"Source Repository: {repo_root}\n")
+        f.write(f"Source Repository: {repo_root.name}\n")
         f.write("-" * 80 + "\n\n")
 
         for mapping in sorted(file_mappings, key=lambda x: x['original_path']):
-            f.write(f"New location: {mapping['new_file']}\n")
+            f.write(f"New filename: {mapping['new_file']}\n")
             f.write(f"Original path: {mapping['original_path']}\n")
             f.write("-" * 40 + "\n")
 
     return temp_dir, files_copied, files_ignored
 
 def main():
-    extensions = {'.rs', '.md', '.toml', '.py', '.js', '.jsx', '.ts', '.tsx', '.cpp', '.h', '.c'}
+    #extensions = {'.rs', '.md', '.toml', '.py', '.js', '.jsx', '.ts', '.tsx', '.cpp', '.h', '.c', '.zig', '.rb', '.sh'}
+    extensions = {'.rs', '.md', '.toml', '.js', '.html', '.css'}
 
     try:
         temp_dir, files_copied, files_ignored = copy_repository_files(extensions)
