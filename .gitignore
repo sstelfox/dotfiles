@@ -4,3 +4,4 @@
 /ssh/known_hosts
 /tags
 /vim/.netrwhist
+/configs/nvim/lazyvim.json
