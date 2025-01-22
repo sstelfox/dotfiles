@@ -21,6 +21,9 @@ source "${__SHELL_CFG_ROOT}/common/password_store.sh.inc"
 if [ "$(_plc detect_os)" = "macos" ]; then
   source "${__SHELL_CFG_ROOT}/operating_systems/docker_desktop.sh.inc"
 
+  # Needed to provide access to Nix tooling
+  source "${__SHELL_CFG_ROOT}/common/macosx/setup-nix-env.sh.inc"
+
   # Currently I don't have a better way to detect I'm in a Tulip environment but since this is the
   # only place I use a Mac...
   source "${__SHELL_CFG_ROOT}/environments/tulip_development.sh.inc"
