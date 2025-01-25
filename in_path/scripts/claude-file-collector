@@ -153,10 +153,10 @@ def add_path_comment(file_path: Path, original_path: str) -> None:
 
     marker = comment_markers[suffix]
     closer = comment_closers.get(suffix, '')
-    comment = f"{marker} {original_path} {closer}\n"
+    comment = f"{marker} repo_path={original_path} {closer}".strip()
 
     with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(comment + content)
+        f.write(comment + "\n" + content)
 
 def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
     """
@@ -227,7 +227,7 @@ def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
 
 def main():
     #extensions = {'.rs', '.md', '.toml', '.py', '.js', '.jsx', '.ts', '.tsx', '.cpp', '.h', '.c', '.zig', '.rb', '.sh'}
-    extensions = {'.rs', '.md', '.toml', '.js', '.html', '.css'}
+    extensions = {'.rs', '.md'}
 
     try:
         temp_dir, files_copied, files_ignored = copy_repository_files(extensions)
