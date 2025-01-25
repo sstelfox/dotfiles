@@ -5,10 +5,10 @@ import sys
 import shutil
 import tempfile
 import subprocess
+import re
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple, List, Dict
-import re
 
 def is_git_repository() -> bool:
     try:
@@ -71,7 +71,33 @@ def get_cache_dir() -> Path:
 
     return base_dir / 'git-file-collector'
 
-def get_unique_filename(target_dir: Path, base_name: str) -> Path:
+def sanitize_filename(path: Path) -> str:
+    """
+    Convert a path to a flat filename
+    """
+    # Get the file extension
+    suffix = path.suffix
+
+    # Convert the path to a string and replace directory separators
+    path_str = str(path).replace('/', '_').replace('\\', '_')
+
+    # Remove the extension temporarily
+    path_str = path_str[:-len(suffix)] if suffix else path_str
+
+    # Replace non-alphanumeric characters with underscores, except periods
+    path_str = re.sub(r'[^a-zA-Z0-9_]', '_', path_str)
+
+    # Remove consecutive underscores
+    path_str = re.sub(r'_+', '_', path_str)
+
+    # Add the extension back
+    return path_str + suffix
+
+def get_unique_filename(target_dir: Path, path: Path) -> Path:
+    """
+    Generate a unique filename based on the path, ensuring no conflicts in the target directory.
+    """
+    base_name = sanitize_filename(path)
     counter = 0
     name = Path(base_name)
     stem = name.stem
@@ -87,6 +113,50 @@ def get_unique_filename(target_dir: Path, base_name: str) -> Path:
         if not full_path.exists():
             return new_name
         counter += 1
+
+def add_path_comment(file_path: Path, original_path: str) -> None:
+    """
+    Add a comment at the top of the file indicating its original path without breaking syntax. Will
+    assume a hash is a valid comment indicator for unknown file types.
+    """
+    comment_markers = {
+        '_default_': '#',
+        '.py': '#',
+        '.rs': '//',
+        '.js': '//',
+        '.jsx': '//',
+        '.ts': '//',
+        '.tsx': '//',
+        '.cpp': '//',
+        '.h': '//',
+        '.c': '//',
+        '.zig': '//',
+        '.rb': '#',
+        '.sh': '#',
+        '.md': '[//]: #',
+        '.toml': '#',
+        '.html': '<!--',
+        '.css': '/*'
+    }
+
+    comment_closers = {
+        '.html': '-->',
+        '.css': '*/'
+    }
+
+    suffix = file_path.suffix.lower()
+    if suffix not in comment_markers:
+        suffix = '_default_'
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    marker = comment_markers[suffix]
+    closer = comment_closers.get(suffix, '')
+    comment = f"{marker} {original_path} {closer}\n"
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(comment + content)
 
 def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
     """
@@ -123,15 +193,20 @@ def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
             file_path = Path(root) / file
             rel_path = file_path.relative_to(repo_root)
 
+            if str(rel_path).startswith(".git"):
+                continue
+
             if gitignore.should_ignore(str(rel_path)):
                 files_ignored += 1
                 continue
 
             if file_path.suffix.lower() in extensions:
-                unique_name = get_unique_filename(temp_dir, file)
+                unique_name = get_unique_filename(temp_dir, rel_path)
                 target_path = temp_dir / unique_name
 
                 shutil.copy2(file_path, target_path)
+                add_path_comment(target_path, str(rel_path))
+
                 files_copied += 1
 
                 file_mappings.append({
@@ -140,14 +215,13 @@ def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
                 })
 
     with open(temp_dir / 'file_map.txt', 'w') as f:
-        f.write(f"File Mapping Generated on: {datetime.now()}\n")
-        f.write(f"Source Repository: {repo_root.name}\n")
-        f.write("-" * 80 + "\n\n")
+        f.write(f"generated={datetime.now()} repository={repo_root.name}\n\n")
 
         for mapping in sorted(file_mappings, key=lambda x: x['original_path']):
-            f.write(f"New filename: {mapping['new_file']}\n")
-            f.write(f"Original path: {mapping['original_path']}\n")
-            f.write("-" * 40 + "\n")
+            f.write("<file>\n")
+            f.write(f"  <current_file>{mapping['new_file']}</current_file>\n")
+            f.write(f"  <original_path>{mapping['original_path']}</original_path>\n")
+            f.write("</file>\n\n")
 
     return temp_dir, files_copied, files_ignored
 
@@ -157,11 +231,8 @@ def main():
 
     try:
         temp_dir, files_copied, files_ignored = copy_repository_files(extensions)
-        print(f"\nFiles copied successfully!")
-        print(f"Location: {temp_dir}")
-        print(f"Files copied: {files_copied}")
-        print(f"Files ignored: {files_ignored}")
-        print(f"File mapping available in: {temp_dir/'file_map.txt'}")
+        print(f"project flattened successfully")
+        print(f"\tcopied={files_copied} ignored={files_ignored} location={temp_dir}")
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
