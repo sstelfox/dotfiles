@@ -1,7 +1,12 @@
-/bin/rust-analyzer
-/fonts/.uuid
-/fonts/.uuid
-/ssh/known_hosts
-/tags
-/vim/.netrwhist
+# Shell binaries installed to the local path shouldn't be checked in. TODO: I should drop the
+# in_path part and make the scripts into library functions.
+/in_path/bin/
+
+# Let systems manage their own neovim plugin versions
 /configs/nvim/lazyvim.json
+
+# System specific SSH configs, and the actual generated version, are not checked in. This can be
+# updated by running the shell library function (`_plc rebuild_ssh_config`).
+/configs/ssh/config
+/configs/ssh/system/*
+!/configs/ssh/system/.gitkeep

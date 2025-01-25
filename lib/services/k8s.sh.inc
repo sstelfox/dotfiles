@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env false
 
 # Check if a TCP port is currently listening using passive checks only
 check_tcp_port_listening() {

@@ -12,6 +12,7 @@ current_shell=$(detect_shell)
 case "${current_shell}" in
 bash)
   safe_symlink ${__DOTFILE_ROOT}/configs/shell/bashrc ${HOME}/.bashrc
+  safe_symlink ${__DOTFILE_ROOT}/configs/shell/bash_profile ${HOME}/.bash_profile
   ;;
 zsh)
   safe_symlink ${__DOTFILE_ROOT}/configs/shell/zshrc ${HOME}/.zshrc
@@ -21,6 +22,21 @@ esac
 safe_symlink ${__DOTFILE_ROOT}/configs/git/default ${HOME}/.gitconfig
 safe_symlink ${__DOTFILE_ROOT}/configs/tmux/default.conf ${HOME}/.tmux.conf
 
+# SSH configuration, this one is a bit spicy for anyone using my dotfiles downstream of me but
+# they're already using my gitconfig if they haven't set one up themselves. I can at least gate
+# this on my username to make it less likely to bite others.
+if [ "$(whoami)" = "sstelfox" ]; then
+  rebuild_ssh_config
+  safe_symlink ${__DOTFILE_ROOT}/configs/ssh/config ${HOME}/.ssh/config
+fi
+
+# TODO: font installation, I wrote the helpers in the shell library for managing the installation
+# and notification of the presence of new fonts that work across my environments but I don't always
+# want to install/setup fonts (mostly in minimal environments). Before I automatically set them up,
+# I need a way of differentiating my systems then choose a default set of the fonts I keep around
+# to install by default.
+
+# If I don't have neovim around, I can also skip configuring it
 safe_symlink_when_available nvim ${__DOTFILE_ROOT}/configs/nvim ${HOME}/.config/nvim
 
 # Handle variations between different OS/environment specific setup scripts

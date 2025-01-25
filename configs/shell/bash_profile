@@ -1,0 +1,14 @@
+# ~/.bash_profile
+#
+# Configuration for login shells only. Handles persistent environment setup that should apply
+# across all sessions. Keep minimal and source ~/.bashrc for interactive customizations.
+#
+# Configuration that should exist here:
+#
+# * PATH modifications
+# * Environment variables
+# * Shell agent initialization (SSH agent, GPG, etc)
+
+if [ -f ~/.bashrc ]; then
+  . ~/.bashrc
+fi

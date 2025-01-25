@@ -1,4 +1,15 @@
-#!/usr/bin/env false
+# ~/.bashrc
+#
+# Configuration for interactive non-login shells. Contains shell customizations that enhance the
+# interactive experience. Since this may be sourced multiple times, avoid expensive operations.
+#
+# Configuration that should exist here:
+#
+# * Command aliases
+# * Shell functions
+# * Prompt customization
+# * Command completion settings
+# * Shell options (history, etc.)
 
 # TODO: Should untangle bash_profile and bashrc configurations
 

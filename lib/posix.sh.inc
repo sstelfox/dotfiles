@@ -26,4 +26,6 @@ source "${__LIBRARY_PATH}/pkg/operating_system.sh.inc"
 source "${__LIBRARY_PATH}/pkg/shell_installers.sh.inc"
 
 source "${__LIBRARY_PATH}/security/multifactor.sh.inc"
+
 source "${__LIBRARY_PATH}/services/k8s.sh.inc"
+source "${__LIBRARY_PATH}/services/ssh.sh.inc"
