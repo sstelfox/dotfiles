@@ -59,5 +59,5 @@ function trim_whitespace() {
     return 1
   fi
 
-  sed -i 's/[[:space:]]*\$//' "${file_path}"
+  sed -i 's/[[:space:]]*$//' "${file_path}"
 }
