@@ -186,18 +186,20 @@ def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
     files_ignored = 0
     file_mappings: List[Dict[str, str]] = []
 
-    for root, _, files in os.walk(repo_root):
+    for root, dirs, files in os.walk(repo_root):
         rel_root = Path(root).relative_to(repo_root)
+
+        if str(rel_root).startswith(".git"):
+            dirs.clear()
+            continue
+
+        dirs[:] = [d for d in dirs if not gitignore.should_ignore(str(rel_root / d))]
 
         for file in files:
             file_path = Path(root) / file
             rel_path = file_path.relative_to(repo_root)
 
-            if str(rel_path).startswith(".git"):
-                continue
-
             if gitignore.should_ignore(str(rel_path)):
-                files_ignored += 1
                 continue
 
             if file_path.suffix.lower() in extensions:
@@ -213,6 +215,8 @@ def copy_repository_files(extensions: set[str]) -> Tuple[Path, int, int]:
                     'new_file': str(unique_name),
                     'original_path': str(rel_path)
                 })
+            else:
+                files_ignored += 1
 
     with open(temp_dir / 'file_map.txt', 'w') as f:
         f.write(f"generated={datetime.now()} repository={repo_root.name}\n\n")
