@@ -5,7 +5,7 @@ function safe_symlink() {
   local dst_path="${2:-}"
 
   if [ -z "${src_path}" ] || [ -z "${dst_path}" ]; then
-    echo "usage: safe_symlink SYMLINK_SRC SYMLINK_DST"
+    echo "usage: safe_symlink SYMLINK_SRC SYMLINK_DST" >&2
     return 1
   fi
 
@@ -42,11 +42,22 @@ function safe_symlink_when_available() {
   local dst_path="${3:-}"
 
   if [ -z "${conditional_bin}" ] || [ -z "${src_path}" ] || [ -z "${dst_path}" ]; then
-    echo "usage: safe_symlink SYMLINK_SRC SYMLINK_DST"
+    echo "usage: safe_symlink SYMLINK_SRC SYMLINK_DST" >&2
     return 1
   fi
 
   if which "${conditional_bin}" >/dev/null 2>&1; then
     safe_symlink "${src_path}" "${dst_path}"
   fi
+}
+
+function trim_whitespace() {
+  local file_path="${1:-}"
+
+  if [ -z "${file_path}" ] || [ ! -f "${file_path}" ]; then
+    echo "usage: trim_whitespace FILE_PATH" >&2
+    return 1
+  fi
+
+  sed -i 's/[[:space:]]*\$//' "${file_path}"
 }
