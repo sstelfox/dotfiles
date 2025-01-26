@@ -31,7 +31,7 @@ if [ -z "${YT_ARGS}" ]; then
   exit 2
 fi
 
-yt-dlp --restrict-filenames --xattrs \
+yt-dlp --restrict-filenames --xattrs -S vcodec:h264,fps,res:1080,acodec:m4a --merge-output-format mp4 \
   --paths ${DESTINATION_DIR} --output "%(upload_date)s-%(title)s/%(id)s.%(ext)s" \
   --write-description --write-info-json --write-thumbnail --write-desktop-link --write-subs --write-auto-subs \
   --embed-subs --embed-thumbnail --embed-metadata --embed-chapters \
