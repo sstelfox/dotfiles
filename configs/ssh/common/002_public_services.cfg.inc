@@ -1,6 +1,5 @@
 Host github.com
-  IdentityFile ~/.ssh/gpg_key.pub
-  IdentityFile ~/.ssh/fallback_key.pub
+  IdentityFile ~/.ssh/default-system-key
 
 Host hf.co
-  IdentityFile ~/.ssh/fallback_key.pub
+  IdentityFile ~/.ssh/default-system-key
