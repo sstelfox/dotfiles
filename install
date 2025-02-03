@@ -27,6 +27,11 @@ safe_symlink ${__DOTFILE_ROOT}/configs/tmux/default.conf ${HOME}/.tmux.conf
 # this on my username to make it less likely to bite others.
 if [ "$(whoami)" = "sstelfox" ]; then
   rebuild_ssh_config
+
+  if [ ! -L "${HOME}/.ssh/default-ssh-key" ]; then
+    choose_default_ssh_key
+  fi
+
   safe_symlink ${__DOTFILE_ROOT}/configs/ssh/config ${HOME}/.ssh/config
 fi
 
