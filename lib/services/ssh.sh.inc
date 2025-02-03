@@ -8,18 +8,18 @@ rebuild_ssh_config() {
   cat /dev/null > "${ssh_client_cfg}"
 
   # throw in the base common config, general best practices and defaults
-  cat "${ssh_client_cfg_base}/base" > "${ssh_client_cfg}"
+  cat "${ssh_client_cfg_base}/base.cfg.inc" > "${ssh_client_cfg}"
   printf "\n" >> "${ssh_client_cfg}"
 
   # shared configs that live permanently in my repo
-  for file in "${ssh_client_cfg_base}/common/"*; do
+  for file in "${ssh_client_cfg_base}/common/"*.cfg.inc; do
     cat "${file}" >> "${ssh_client_cfg}"
     printf "\n" >> "${ssh_client_cfg}"
   done
 
   # and lastly system specific configurations, we have to do a little dance here as this directory
   # may be empty.
-  set -- "${ssh_client_cfg_base}/system/"*
+  set -- "${ssh_client_cfg_base}/system/"*.cfg.inc
   if [ -e "$1" ]; then
     for file; do
       cat "${file}" >> "${ssh_client_cfg}"

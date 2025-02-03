@@ -22,6 +22,8 @@ source "${__SHELL_CFG_ROOT}/common/password_store.sh.inc"
 if [ "$(_plc detect_os)" = "macos" ]; then
   source "${__SHELL_CFG_ROOT}/operating_systems/docker_desktop.sh.inc"
 
+  source "${__SHELL_CFG_ROOT}/common/macosx/misc-dev-env.sh.inc"
+
   # Needed to provide access to Nix tooling
   source "${__SHELL_CFG_ROOT}/common/macosx/setup-nix-env.sh.inc"
 

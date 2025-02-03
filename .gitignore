@@ -8,8 +8,8 @@
 # System specific SSH configs, and the actual generated version, are not checked in. This can be
 # updated by running the shell library function (`_plc rebuild_ssh_config`).
 /configs/ssh/config
-/configs/ssh/system/*
-!/configs/ssh/system/.gitkeep
+
+/configs/ssh/system/*.cfg.inc
 
 # Still being held over from a legacy way I managed fonts, kind of half-transitioned for now but
 # make sure I don't check these in.
