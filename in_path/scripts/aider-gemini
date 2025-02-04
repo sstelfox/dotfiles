@@ -1,0 +1,57 @@
+#!/usr/bin/env sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+SECRET_NAME="gemini_api_key"
+
+OP_ITEM_PATH="op://Private/Gemini API Key/password"
+
+#GEMINI_MODEL="gemini-2.0-flash-thinking-exp"
+GEMINI_MODEL="gemini-2.0-flash-exp"
+
+check_dependencies() {
+  local missing_deps=0
+
+  for cmd in op podman; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      echo "error: ${cmd} not found in PATH" >&2
+      missing_deps=1
+    fi
+  done
+
+  return "${missing_deps}"
+}
+
+populate_secret() {
+  if ! op whoami >/dev/null 2>&1; then
+    echo "not signed into 1Password CLI. Run 'eval \$(op signin)' first." >&2
+    return 1
+  fi
+
+  if ! op read "${OP_ITEM_PATH}" | podman secret create "${SECRET_NAME}" -; then
+    echo "failed to create podman secret" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+secret_exists() {
+  podman secret exists "${SECRET_NAME}"
+  return $?
+}
+
+check_dependencies
+
+if ! secret_exists; then
+  populate_secret
+fi
+
+exec podman run -it --rm --userns=keep-id --security-opt label=disable --volume $(pwd):/app \
+  -e AIDER_DARK_MODE=true -e AIDER_ATTRIBUTE_COMMITTER=false -e AIDER_ATTRIBUTE_AUTHOR=false \
+  -e AIDER_WATCH_FILES=true -e AIDER_ANALYTICS_DISABLE=true -e AIDER_SHOW_RELEASE_NOTES=false \
+  -e AIDER_GITIGNORE=false -e AIDER_MODEL="gemini/${GEMINI_MODEL}" \
+  --secret "${SECRET_NAME},type=env,target=GEMINI_API_KEY" \
+  docker.io/paulgauthier/aider-full $@
