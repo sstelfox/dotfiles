@@ -9,6 +9,7 @@
 [core]
   hooksPath = ~/.dotfiles/configs/git/global-hooks
   symlinks = true
+  excludesfile = ~/.dotfiles/configs/git/global-gitignore
 
 # Enable LFS support by default
 [filter "lfs"]

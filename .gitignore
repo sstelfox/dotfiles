@@ -14,5 +14,3 @@
 # Still being held over from a legacy way I managed fonts, kind of half-transitioned for now but
 # make sure I don't check these in.
 /fonts/.uuid
-
-/.aider*
