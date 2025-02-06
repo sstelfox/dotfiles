@@ -17,7 +17,7 @@ _plc() {
 
   (
     # We can be stricter about our shell usage within the calls, fail early & fast
-    set -euo pipefail
+    set -eu
 
     # Source my common shell library from my dotfiles
     . "${__DOTFILE_ROOT}/lib/posix.sh.inc"
