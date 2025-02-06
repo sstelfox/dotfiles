@@ -1,6 +1,6 @@
 #!/usr/bin/env false
 
-function clip() {
+clip() {
   case "$(detect_os)" in
     "macos")
       pbcopy
@@ -15,12 +15,11 @@ function clip() {
   esac
 }
 
-function detect_os() {
+detect_os() {
   if [ -n "${TERMUX_VERSION:-}" ]; then
     echo "termux"
     return 0
   fi
-
 
   # If we're on a system that supports the os-release meta, we can learn a lot about where we're
   # running. For this function we only care about one variable it provides.
@@ -73,6 +72,7 @@ function detect_os() {
 }
 
 detect_os_family() {
+  # Odd-ball, we want to detect this more specifically than "linux"
   if [ -n "${TERMUX_VERSION:-}" ]; then
     echo "android"
     return 0

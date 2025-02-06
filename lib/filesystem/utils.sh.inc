@@ -1,6 +1,6 @@
 #!/usr/bin/env false
 
-function safe_symlink() {
+safe_symlink() {
   local src_path="${1:-}"
   local dst_path="${2:-}"
 
@@ -36,7 +36,7 @@ function safe_symlink() {
 
 # Before linking a config in place, checks if the provided program is present anywhere in the
 # user's path. If so it performs the normal safe_symlink() option.
-function safe_symlink_when_available() {
+safe_symlink_when_available() {
   local conditional_bin="${1:-}"
   local src_path="${2:-}"
   local dst_path="${3:-}"
@@ -51,7 +51,7 @@ function safe_symlink_when_available() {
   fi
 }
 
-function trim_whitespace() {
+trim_whitespace() {
   local file_path="${1:-}"
 
   if [ -z "${file_path}" ] || [ ! -f "${file_path}" ]; then
