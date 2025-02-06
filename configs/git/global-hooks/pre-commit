@@ -62,14 +62,14 @@ reject_trailing_whitespace() {
       fix_trailing_whitespace
 
       # Perform a re-check, if it passes we can bail out early as the issue isn't present anymore
-      if git diff-index --check --cached ${COMMIT_REFERENCE} -- >/dev/null 2>&1; then
+      if git diff-index --check --cached "${COMMIT_REFERENCE}" -- >/dev/null 2>&1; then
         echo "-> Whitespace removed, continuing with commit"
         return 0
       fi
     fi
 
     echo "-> Files with trailing whitespace:"
-    git diff-index --check --cached ${COMMIT_REFERENCE} -- || true
+    git diff-index --check --cached "${COMMIT_REFERENCE}" -- || true
 
     PRECOMMIT_CHECK_FAILED=true
   fi
@@ -80,16 +80,16 @@ reject_trailing_whitespace() {
 # If you want to allow non-ASCII filenames set this variable to true in the specific repository
 # where they're needed. The global default I'll use is to err on the side of interoperability.
 reject_nonascii_filenames() {
-  local allow_non_ascii=$(git config --type=bool hooks.allownonascii)
+  local allow_non_ascii="$(git config --type=bool hooks.allownonascii)"
 
   if [ "${allow_non_ascii}" != "true" ]; then
     # This exploits the fact that the printable range starts at the space character and ends with
     # tilde. The use of brackets around a tr range is ok here, (it's even required, for portability
     # to Solaris 10's tr), since the square bracket bytes happen to fall in the designated range.
-    local nonascii_char_count=$(git diff --cached --name-only --diff-filter=A -z ${COMMIT_REFERENCE} |
+    local nonascii_char_count="$(git diff --cached --name-only --diff-filter=A -z ${COMMIT_REFERENCE} |
       LC_ALL=C tr -d '[ -~]\0' |
       wc -c |
-      awk '{ print $1 }')
+      awk '{ print $1 }')"
 
     if [ "${nonascii_char_count}" != 0 ]; then
       echo "Precommit Error 002: Found non-ASCII file name in cached changes '${nonascii_char_count}'"

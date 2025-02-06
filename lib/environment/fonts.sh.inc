@@ -69,38 +69,40 @@ install_font() {
     exit 1
   fi
 
-  local font_files=()
+# TODO: The following isn't posix compatible and is preventing my library from loading in a pure
+# POSIX env. Most likely the array syntax :-/
+#  local font_files=()
 
-  while IFS= read -r font_path; do
-    font_files+=("${font_path}")
-  done < <(find "${__DOTFILE_ROOT}/fonts" -name "${font_name}-*.ttf" 2>/dev/null)
+#  while IFS= read -r font_path; do
+#    font_files+=("${font_path}")
+#  done < <(find "${__DOTFILE_ROOT}/fonts" -name "${font_name}-*.ttf" 2>/dev/null)
 
-  if [ ${#font_files[@]} -eq 0 ]; then
-    echo "No fonts found matching: ${font_name}" >&2
-    return 1
-  fi
+#  if [ ${#font_files[@]} -eq 0 ]; then
+#    echo "No fonts found matching: ${font_name}" >&2
+#    return 1
+#  fi
 
-  local os_family
-  os_family="$(detect_os_family)"
-
-  case "${os_family}" in
-    macos)
-      local font_path
-      for font_path in "${font_files[@]}"; do
-        install_font_macos "${force}" "${font_path}" || return 2
-      done
-      ;;
-    linux)
-      local font_path
-      for font_path in "${font_files[@]}"; do
-        install_font_linux "${force}" "${font_path}" || return 2
-      done
-      ;;
-    *)
-      echo "font installation error: unsupported operating system: ${os_family}" >&2
-      return 1
-      ;;
-  esac
+#  local os_family
+#  os_family="$(detect_os_family)"
+#
+#  case "${os_family}" in
+#    macos)
+#      local font_path
+#      for font_path in "${font_files[@]}"; do
+#        install_font_macos "${force}" "${font_path}" || return 2
+#      done
+#      ;;
+#    linux)
+#      local font_path
+#      for font_path in "${font_files[@]}"; do
+#        install_font_linux "${force}" "${font_path}" || return 2
+#      done
+#      ;;
+#    *)
+#      echo "font installation error: unsupported operating system: ${os_family}" >&2
+#      return 1
+#      ;;
+#  esac
 
   return 0
 }
