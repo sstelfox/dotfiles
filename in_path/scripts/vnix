@@ -19,7 +19,6 @@ build_container() {
 
   if [ ! -f "${hash_file}" ] || [ "$(cat "${hash_file}")" != "${container_hash}" ]; then
     podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
-      --build-arg USER_ID="$(id -u)" --build-arg GROUP_ID="$(id -g)" \
       -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
 
     echo -n "${container_hash}" >"${hash_file}"
@@ -52,5 +51,9 @@ check_dependencies
 build_container
 initialize_nix_cache
 
-exec podman run -it --rm --userns=keep-id --volume "${NIX_CACHE}":/nix:z \
-  --volume "${WORKING_DIR}:/workspace" "${CONTAINER_TAG}" $@
+# We're rootless so need to map initial intermediate ID to the user but maybe this needs to be root?
+# --uidmap 0:10001:1 --gidmap 0:10001:1 \
+
+exec podman run -it --rm --userns=keep-id \
+  --volume "${NIX_CACHE}":/nix:z --volume "${WORKING_DIR}:/workspace" \
+  "${CONTAINER_TAG}" $@
