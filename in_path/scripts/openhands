@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+MAIN_CONTAINER_IMAGE="docker.all-hands.dev/all-hands-ai/openhands:0.23"
+
+SANDBOX_RUNTIME_CONTAINER_IMAGE="docker.all-hands.dev/all-hands-ai/runtime:0.23-nikolaik"
+
+WORKSPACE_BASE="$(pwd)"
+
+podman pull "${SANDBOX_RUNTIME_CONTAINER_IMAGE}"
+
+mkdir -p ${HOME}/.cache/openhands-state
+podman run -it --rm --userns=keep-id --security-opt label=disable \
+  -e SANDBOX_RUNTIME_CONTAINER_IMAGE=${SANDBOX_RUNTIME_CONTAINER_IMAGE} \
+  -e WORKSPACE_MOUNT_PATH=${WORKSPACE_BASE} -e LOG_ALL_EVENTS=true \
+  -v /run/user/$(id -u)/podman/podman.sock:/var/run/docker.sock \
+  -v ${HOME}/.cache/openhands-state:/.openhands-state -p 3000:3000 \
+  --volume ${WORKSPACE_BASE}:/opt/workspace_base \
+  --add-host host.docker.internal:host-gateway \
+  "${MAIN_CONTAINER_IMAGE}"
