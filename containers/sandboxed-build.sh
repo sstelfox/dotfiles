@@ -3,4 +3,4 @@
 set -o errexit
 set -o nounset
 
-vnix ./inner-build.sh test-container
+vnix ./direct-build.sh test-container

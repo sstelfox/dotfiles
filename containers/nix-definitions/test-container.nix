@@ -26,8 +26,8 @@ let
 
   exportScript = pkgs.writeScriptBin "export-${imageName}" ''
     #!${pkgs.bash}/bin/bash
+
     cp ${containerImage} ./${imageName}-${imageTag}.tar.gz
-    chown 1000:1000 ./${imageName}-${imageTag}.tar.gz
     echo "image written to: ./${imageName}-${imageTag}.tar.gz"
   '';
 in
