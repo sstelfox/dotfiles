@@ -1,24 +1,19 @@
-FROM docker.io/nixos/nix:2.26.1
+ARG NIX_OS_VERSION
 
-RUN echo "sandbox = true" >> /etc/nix/nix.conf && \
-    echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
-    echo "keep-outputs = true" >> /etc/nix/nix.conf && \
-    echo "keep-derivations = true" >> /etc/nix/nix.conf
+FROM docker.io/nixos/nix:${NIX_OS_VERSION}
+
+ADD ./nix-wrapper/nix.conf /etc/nix/nix.conf
 
 RUN mkdir -p /workspace && chmod 755 /workspace && chown nobody /workspace
 WORKDIR /workspace
 
-RUN cp /root/.nix-* /var/empty/ && chown -R nobody /var/empty
+#ENV USER=nobody
+#ENV NIX_PATH=/nix/var/nix/profiles/per-user/nobody/channels
+#ENV PATH=/var/empty/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin
 
-ENV USER=nobody
-ENV NIX_PATH=/nix/var/nix/profiles/per-user/nobody/channels
-ENV PATH=/var/empty/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin
+#RUN echo ". /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" > /home/nixuser/.bashrc && \
+#    chown nobody:nobody /home/nixuser/.bashrc
 
-RUN echo ". /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" > /home/nixuser/.bashrc && \
-    chown nobody:nobody /home/nixuser/.bashrc
-
-WORKDIR /workspace
-
-USER nobody
+#USER nobody
 
 #ENTRYPOINT ["/nix/var/nix/profiles/default/bin/bash"]

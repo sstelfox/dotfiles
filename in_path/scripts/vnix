@@ -3,17 +3,21 @@
 set -o errexit
 set -o pipefail
 
+NIX_OS_VERSION="2.26.1"
+
 CONTAINER_BUILD_ROOT="${HOME}/.dotfiles/containers"
 CONTAINER_FILE="${CONTAINER_BUILD_ROOT}/Containerfile-nix-wrapper"
-CONTAINER_TAG="stelfox.net/containers/nix:latest"
+CONTAINER_TAG="stelfox.net/containers/nix:${NIX_OS_VERSION}"
 
 NIX_CACHE="${HOME}/.cache/nix"
+
 WORKING_DIR="$(pwd)"
 
 build_container() {
-  if ! podman images | grep -q "${CONTAINER_TAG%%:*}" &>/dev/null; then
-    podman build -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
-  fi
+  #if ! podman images | grep -q "${CONTAINER_TAG%%:*}" &>/dev/null; then
+  podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} -t "${CONTAINER_TAG}" \
+    -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
+  #fi
 }
 
 check_dependencies() {
@@ -25,10 +29,22 @@ check_dependencies() {
   return 0
 }
 
-check_dependencies
-build_container
+initialize_nix_cache() {
+  if [ ! -d "${NIX_CACHE}" ]; then
+    mkdir -p "${NIX_CACHE}"
 
-mkdir -p "${NIX_CACHE}"
+    podman create --name nix-init nixos/nix:${NIX_OS_VERSION}
+    podman export nix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
+    podman rm nix-init
+  fi
+
+  return 0
+}
+
+check_dependencies
+
+build_container
+initialize_nix_cache
 
 exec podman run -it --rm --userns=keep-id --volume "${NIX_CACHE}":/nix:z \
   --volume "${WORKING_DIR}:/workspace" "${CONTAINER_TAG}" $@
