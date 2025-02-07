@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 set -o errexit
-set -o pipefail
+set -o nounset
 
 NIX_OS_VERSION="2.26.1"
 
