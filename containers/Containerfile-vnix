@@ -4,19 +4,25 @@ FROM docker.io/nixos/nix:${NIX_OS_VERSION}
 
 ADD ./vnix/nix.conf /etc/nix/nix.conf
 
-RUN mkdir -p /workspace && chmod 755 /workspace && chown nobody /workspace
-WORKDIR /workspace
+RUN mkdir -p /workspace && chmod 755 /workspace
 
-# TODO: should be done by the deprivileged user
-RUN git config --global --add safe.directory /workspace
+RUN echo "nixuser:x:10001:10001:nixuser:/home/nixuser:/bin/sh" >> /etc/passwd && \
+    echo "nixuser:x:10001:" >> /etc/group && \
+    mkdir -p /home/nixuser && \
+    chown -R nixuser:nixuser /home/nixuser /workspace
 
-#ENV USER=nobody
-#ENV NIX_PATH=/nix/var/nix/profiles/per-user/nobody/channels
-#ENV PATH=/var/empty/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin
+ENV HOME=/home/nixuser
+ENV NIX_PATH=/nix/var/nix/profiles/per-user/nixuser/channels
+
+#ENV PATH=/home/nixuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin
 
 #RUN echo ". /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" > /home/nixuser/.bashrc && \
-#    chown nobody:nobody /home/nixuser/.bashrc
+#    chown 10001:10001 /home/nixuser/.bashrc
 
-#USER nobody
+VOLUME /nix
 
-#ENTRYPOINT ["/nix/var/nix/profiles/default/bin/bash"]
+WORKDIR /workspace
+#USER nixuser
+
+# May not be needed anymore
+#RUN git config --global --add safe.directory /workspace

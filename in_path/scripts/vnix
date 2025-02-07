@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 set -o errexit
-set -o nounset
+set -o pipefail
 
 NIX_OS_VERSION="2.26.1"
 
@@ -14,10 +14,16 @@ NIX_CACHE="${HOME}/.cache/vnix"
 WORKING_DIR="$(pwd)"
 
 build_container() {
-  #if ! podman images | grep -q "${CONTAINER_TAG%%:*}" &>/dev/null; then
-  podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} -t "${CONTAINER_TAG}" \
-    -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
-  #fi
+  container_hash="$(sha256sum "${CONTAINER_FILE}" | cut -d' ' -f1)"
+  hash_file="${NIX_CACHE}/container.hash"
+
+  if [ ! -f "${hash_file}" ] || [ "$(cat "${hash_file}")" != "${container_hash}" ]; then
+    podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
+      --build-arg USER_ID="$(id -u)" --build-arg GROUP_ID="$(id -g)" \
+      -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
+
+    echo -n "${container_hash}" >"${hash_file}"
+  fi
 }
 
 check_dependencies() {
