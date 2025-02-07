@@ -7,6 +7,9 @@ ADD ./vnix/nix.conf /etc/nix/nix.conf
 RUN mkdir -p /workspace && chmod 755 /workspace && chown nobody /workspace
 WORKDIR /workspace
 
+# TODO: should be done by the deprivileged user
+RUN git config --global --add safe.directory /workspace
+
 #ENV USER=nobody
 #ENV NIX_PATH=/nix/var/nix/profiles/per-user/nobody/channels
 #ENV PATH=/var/empty/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin
