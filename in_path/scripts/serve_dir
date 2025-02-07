@@ -5,17 +5,16 @@ set -o pipefail
 set -o nounset
 
 if [ -n "$(podman ps -q --filter name=simple_dir_server)" ]; then
-	echo "Stopping existing directory server..."
-	podman stop $(podman ps -q --filter name=simple_dir_server) &>/dev/null
+  echo "Stopping existing directory server..."
+  podman stop $(podman ps -q --filter name=simple_dir_server) &>/dev/null
 fi
 
 if [ "${1:-}" = "-q" ]; then
-	# If the argument is to just quit, the above handle would take care of it
-	exit 0
+  # If the argument is to just quit, the above handle would take care of it
+  exit 0
 fi
 
 echo "Serving $(pwd)..."
-podman run -d --rm --security-opt label=disable -p 4250:80 \
-	--name simple_dir_server -v $(pwd):/usr/share/nginx/html:ro docker.io/library/nginx:alpine
-
-#xdg-open http://127.0.0.1:8080
+podman run -d --rm -p 4250:80 --name simple_dir_server \
+  -v $(pwd):/usr/share/nginx/html:roz \
+  docker.io/library/nginx:alpine

@@ -1,8 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 set -o errexit
 set -o pipefail
-set -o nounset
 
 PG_SOURCE_DIR="${HOME}/.local/share/pg-common"
 PG_PASSWORD="proud-ornate-precise"
@@ -14,6 +13,8 @@ if [ "${1:-}" = "-q" ]; then
 fi
 
 mkdir -p ${PG_SOURCE_DIR}
-podman run -d --userns=keep-id --security-opt label=disable -p 7432:5432 --name pg-common \
-  --replace -v ${PG_SOURCE_DIR}:/var/lib/postgresql/data:rw -e POSTGRES_PASSWORD=${PG_PASSWORD} \
+
+podman run -d --userns=keep-id -p 7432:5432 --name pg-common --replace \
+  -v ${PG_SOURCE_DIR}:/var/lib/postgresql/data:rwz \
+  -e POSTGRES_PASSWORD=${PG_PASSWORD} \
   docker.io/library/postgres:16-alpine
