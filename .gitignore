@@ -11,6 +11,9 @@
 
 /configs/ssh/system/*.cfg.inc
 
+# Don't check-in our custom container builds
+/containers/*.tar.gz
+
 # Still being held over from a legacy way I managed fonts, kind of half-transitioned for now but
 # make sure I don't check these in.
 /fonts/.uuid
