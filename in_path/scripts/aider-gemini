@@ -59,4 +59,4 @@ exec podman run -it --rm --userns=keep-id --security-opt label=disable --volume 
   -e AIDER_WATCH_FILES=true -e AIDER_ANALYTICS_DISABLE=true -e AIDER_SHOW_RELEASE_NOTES=false \
   -e AIDER_GITIGNORE=false -e AIDER_MODEL="gemini/${GEMINI_MODEL}" -e GIT_AUTHOR_EMAIL \
   -e GIT_AUTHOR_NAME --secret "${SECRET_NAME},type=env,target=GEMINI_API_KEY" \
-  docker.io/paulgauthier/aider-full $@
+  docker.io/paulgauthier/aider-full:v0.72.3 $@
