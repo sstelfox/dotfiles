@@ -19,4 +19,4 @@ function setup_prompt {
   export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
 }
 
-setup_prompt
+#setup_prompt
