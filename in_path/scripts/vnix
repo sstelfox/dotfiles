@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+
+set -o errexit
+set -o pipefail
+
+CONTAINER_BUILD_ROOT="${HOME}/.dotfiles/containers"
+CONTAINER_FILE="${CONTAINER_BUILD_ROOT}/Containerfile-nix-wrapper"
+CONTAINER_TAG="stelfox.net/containers/nix:latest"
+
+NIX_CACHE="${HOME}/.cache/nix"
+WORKING_DIR="$(pwd)"
+
+build_container() {
+  if ! podman images | grep -q "${CONTAINER_TAG%%:*}" &>/dev/null; then
+    podman build -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
+  fi
+}
+
+check_dependencies() {
+  if ! command -v podman >/dev/null 2>&1; then
+    echo "error: must have podman installed" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+check_dependencies
+build_container
+
+mkdir -p "${NIX_CACHE}"
+
+exec podman run -it --rm --userns=keep-id --volume "${NIX_CACHE}":/nix:z \
+  --volume "${WORKING_DIR}:/workspace" "${CONTAINER_TAG}" $@

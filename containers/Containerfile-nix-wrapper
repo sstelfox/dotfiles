@@ -1,0 +1,13 @@
+FROM docker.io/nixos/nix:2.26.1
+
+RUN echo "sandbox = true" >> /etc/nix/nix.conf && \
+    echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
+    echo "keep-outputs = true" >> /etc/nix/nix.conf && \
+    echo "keep-derivations = true" >> /etc/nix/nix.conf
+
+RUN mkdir -p /workspace && chmod 755 /workspace
+
+WORKDIR /workspace
+
+USER nobody
+ENV USER=nobody
