@@ -9,7 +9,7 @@ current_git_root() {
       if [ "$(basename "${GIT_DIR}")" = ".git" ]; then
         # ... which is not what we want. This little hack is more reliable than just taking the
         # dirname and resolves symlinks as well.
-        echo "$(cd "${GIT_DIR}/.." && pwd)"
+        (cd "${GIT_DIR}/.." && pwd)
         return 0
       elif [ -d "${GIT_DIR}/.git" ]; then
         # Double check the root we were provided actually is a repo, this could probably be more
@@ -22,7 +22,7 @@ current_git_root() {
     # If there wasn't an environment override then we're probably being called from within the
     # target git repo. Annoyingly if you're INSIDE the .git directory it won't recognize itself but
     # that's a pretty hard edge case.
-    local root="$(git rev-parse --show-toplevel 2>/dev/null)"
+    root="$(git rev-parse --show-toplevel 2>/dev/null)"
 
     # And we were in a repo, go ahead and return that
     if [ $? ]; then

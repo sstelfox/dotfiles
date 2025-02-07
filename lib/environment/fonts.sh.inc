@@ -1,17 +1,16 @@
 #!/usr/bin/env false
 
 install_font_macos() {
-  local force="${1:-}"
-  local font_path="${2:-}"
+  force="${1:-}"
+  font_path="${2:-}"
 
   if [ -z "${font_path}" ]; then
     echo "usage: install_font_macos [-f] <font_path>" >&2
     return 1
   fi
 
-  local font_name
   font_name="$(basename "${font_path}")"
-  local dest_path="${HOME}/Library/Fonts/${font_name}"
+  dest_path="${HOME}/Library/Fonts/${font_name}"
 
   if [ -f "${dest_path}" ]; then
     if [ "${force}" = "-f" ]; then
@@ -26,17 +25,16 @@ install_font_macos() {
 }
 
 install_font_linux() {
-  local force="${1:-}"
-  local font_path="${2:-}"
+  force="${1:-}"
+  font_path="${2:-}"
 
   if [ -z "${font_path}" ]; then
     echo "usage: install_font_linux [-f] <font_path>" >&2
     return 1
   fi
 
-  local font_name
   font_name="$(basename "${font_path}")"
-  local dest_path="${HOME}/.fonts/${font_name}"
+  dest_path="${HOME}/.fonts/${font_name}"
 
   mkdir -p "${HOME}/.fonts" 2>/dev/null || return 2
 
@@ -54,8 +52,8 @@ install_font_linux() {
 }
 
 install_font() {
-  local force=""
-  local font_name=""
+  force=""
+  font_name=""
 
   if [ "${1:-}" = "-f" ]; then
     force="-f"
@@ -69,30 +67,30 @@ install_font() {
     exit 1
   fi
 
-  local font_files=""
-  local IFS_SAVE="${IFS}"
+  font_files=""
+  IFS_SAVE="${IFS}"
   IFS="$(printf '\n')"
 
+  # shellcheck disable=SC2154  # Set by source including this file
   font_files="$(find "${__DOTFILE_ROOT}/fonts" -name "${font_name}-*.ttf" 2>/dev/null)"
 
   if [ -z "${font_files}" ]; then
     echo "No fonts found matching: ${font_name}" >&2
-    IFS="$IFS_SAVE"
+    IFS="${IFS_SAVE}"
     return 1
   fi
 
-  local os_family
   os_family="$(detect_os_family)"
 
   case "${os_family}" in
     macos)
       echo "${font_files}" | while IFS= read -r font_path; do
-        install_font_macos "${force}" "${font_path}" || { IFS="$IFS_SAVE"; return 2; }
+        install_font_macos "${force}" "${font_path}" || { IFS="${IFS_SAVE}"; return 2; }
       done
       ;;
     linux)
       echo "${font_files}" | while IFS= read -r font_path; do
-        install_font_linux "${force}" "${font_path}" || { IFS="$IFS_SAVE"; return 2; }
+        install_font_linux "${force}" "${font_path}" || { IFS="${IFS_SAVE}"; return 2; }
       done
       ;;
     *)
