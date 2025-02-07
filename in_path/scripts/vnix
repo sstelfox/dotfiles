@@ -6,10 +6,10 @@ set -o pipefail
 NIX_OS_VERSION="2.26.1"
 
 CONTAINER_BUILD_ROOT="${HOME}/.dotfiles/containers"
-CONTAINER_FILE="${CONTAINER_BUILD_ROOT}/Containerfile-nix-wrapper"
-CONTAINER_TAG="stelfox.net/containers/nix:${NIX_OS_VERSION}"
+CONTAINER_FILE="${CONTAINER_BUILD_ROOT}/Containerfile-vnix"
+CONTAINER_TAG="stelfox.net/containers/vnix:${NIX_OS_VERSION}"
 
-NIX_CACHE="${HOME}/.cache/nix"
+NIX_CACHE="${HOME}/.cache/vnix"
 
 WORKING_DIR="$(pwd)"
 
@@ -33,9 +33,9 @@ initialize_nix_cache() {
   if [ ! -d "${NIX_CACHE}" ]; then
     mkdir -p "${NIX_CACHE}"
 
-    podman create --name nix-init nixos/nix:${NIX_OS_VERSION}
-    podman export nix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
-    podman rm nix-init
+    podman create --name vnix-init nixos/nix:${NIX_OS_VERSION}
+    podman export vnix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
+    podman rm vnix-init
   fi
 
   return 0

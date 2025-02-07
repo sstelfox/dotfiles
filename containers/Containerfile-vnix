@@ -2,7 +2,7 @@ ARG NIX_OS_VERSION
 
 FROM docker.io/nixos/nix:${NIX_OS_VERSION}
 
-ADD ./nix-wrapper/nix.conf /etc/nix/nix.conf
+ADD ./vnix/nix.conf /etc/nix/nix.conf
 
 RUN mkdir -p /workspace && chmod 755 /workspace && chown nobody /workspace
 WORKDIR /workspace
