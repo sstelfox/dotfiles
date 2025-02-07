@@ -33,6 +33,8 @@ if [[ $- != *i* ]]; then
   return
 fi
 
+unset SSH_AUTH_SOCK
+
 # Source all executable files that live the system-specific folder
 #for FILE in $HOME/.dotfiles/system-specific/*.sh; do
 #  if [ -x "$FILE" ]; then
