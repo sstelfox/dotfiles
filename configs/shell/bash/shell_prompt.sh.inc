@@ -7,17 +7,13 @@ personal_ps1_prompt() {
   fi
 
   if [ -n "${__DOTFILE_ROOT}" ]; then
-    exit_status="\$(${__DOTFILE_ROOT}/helpers/exit_status.sh $?)"
-
     #bat_status="\$(${__DOTFILE_ROOT}/helpers/battery_status.sh)"
     bat_status=""
 
-    git="\$(${__DOTFILE_ROOT}/helpers/git-ps1-wrapper.sh)"
-    #git=""
-
     path="\$(${__DOTFILE_ROOT}/helpers/shortdir.sh)"
+    git="\$(${__DOTFILE_ROOT}/helpers/git-ps1-wrapper.sh)"
 
-    echo "${user_host}${bat_status}${exit_status} ${path}${git} \\$ "
+    echo "${user_host}${bat_status} ${path}${git} \\$ "
   else
     echo "${user_host} \\$ "
   fi

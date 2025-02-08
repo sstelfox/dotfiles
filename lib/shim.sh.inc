@@ -5,7 +5,8 @@ __DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 # Quick shim to call into my POSIX shell library for any supporting functions without loading the
 # whole thing into ALL of my active shells (plc is short for POSIX lib call).
 _plc() {
-  local func_name="$1"
+  func_name="$1"
+
   shift
 
   (

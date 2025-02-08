@@ -8,6 +8,8 @@ fi
 __LIBRARY_PATH="${__DOTFILE_ROOT}/lib"
 __DATA_PATH="${__DOTFILE_ROOT}/data"
 
+# shellcheck source-path=./lib
+
 . "${__LIBRARY_PATH}/logging.sh.inc"
 . "${__LIBRARY_PATH}/trace.sh.inc"
 

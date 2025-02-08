@@ -3,6 +3,8 @@
 # These includes expect my personal shell library shim to already be available. Make sure the base
 # shell command, before including this one, has already sourced the shim.
 
+# shellcheck source-path=./configs/shell
+
 if [ -z "${__SHELL_CFG_ROOT}" ]; then
   echo "warning: the environment variable __SHELL_CFG_ROOT needs to be set before the shell library can be used" >&2
 fi
