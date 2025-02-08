@@ -3,21 +3,23 @@
 personal_ps1_prompt() {
   user_host=""
   if [ -z "${TMUX}" ]; then
-    user_host="[\u@\h]"
+    user_host="[\u@\h] "
   fi
 
   if [ -n "${__DOTFILE_ROOT}" ]; then
-    bat_status="\$(${__DOTFILE_ROOT}/helpers/battery_status.sh)"
     exit_status="\$(${__DOTFILE_ROOT}/helpers/exit_status.sh $?)"
 
-    #git="\$(${__DOTFILE_ROOT}/helpers/git-ps1-wrapper.sh)"
-    git=""
+    #bat_status="\$(${__DOTFILE_ROOT}/helpers/battery_status.sh)"
+    bat_status=""
+
+    git="\$(${__DOTFILE_ROOT}/helpers/git-ps1-wrapper.sh)"
+    #git=""
 
     path="\$(${__DOTFILE_ROOT}/helpers/shortdir.sh)"
 
-    echo "${user_host} ${bat_status}${exit_status} ${path}${git}\\$ "
+    echo "${user_host}${bat_status}${exit_status} ${path}${git} \\$ "
   else
-    echo "${user_host}\\$ "
+    echo "${user_host} \\$ "
   fi
 }
 
