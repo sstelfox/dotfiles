@@ -20,7 +20,6 @@ unset command_not_found_handle
 unset LESSOPEN
 unset SSH_ASKPASS
 
-export DOTFILES_DIR="$HOME/.dotfiles"
 export EDITOR="vim"
 
 # NetworkManager is absolute trash and doesn't allow you to set these, so we

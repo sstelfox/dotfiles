@@ -18,23 +18,23 @@
 # system-wide script including per-application shell configuration, save/restoring shell sessions,
 # and history recording (weak auditing).
 if [ -f /etc/bashrc ]; then
-  source /etc/bashrc
+  . /etc/bashrc
 fi
 
 # Setup my private shell library
 __DOTFILE_ROOT="${HOME}/.dotfiles"
-source "${__DOTFILE_ROOT}/lib/shim.sh.inc"
+. "${__DOTFILE_ROOT}/lib/shim.sh.inc"
 
 __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 
 # Common should always precede a specific shell to allow for specific overrides, though
 # incompatibilities like that should instead be pulled into the speecific relevant shells instead
 # of being overwritten.
-source "${__SHELL_CFG_ROOT}/common.sh.inc"
+. "${__SHELL_CFG_ROOT}/common.sh.inc"
 
-source "${__SHELL_CFG_ROOT}/bash/shell_prompt.sh.inc"
+. "${__SHELL_CFG_ROOT}/bash/shell_prompt.sh.inc"
 
 # The termux environment really doesn't like something in the legacy configs...
 if [ "$(_plc detect_os)" != "termux" ]; then
-  source "${__SHELL_CFG_ROOT}/legacy_bashrc"
+  . "${__SHELL_CFG_ROOT}/legacy_bashrc"
 fi

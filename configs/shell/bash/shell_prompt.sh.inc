@@ -1,22 +1,29 @@
-#!/usr/bin/env
+#!/usr/bin/env false
 
-function personal_ps1_prompt() {
-  #local __bat_status="\$(${DOTFILES_DIR}/helpers/battery_status.sh)"
-  local __bat_status=""
-  #local __exit_status="\$(${DOTFILES_DIR}/helpers/exit_status.sh $?)"
-  local __exit_status=""
-  #local __git="\[${BLUE}\]\$(${DOTFILES_DIR}/helpers/git-ps1-wrapper.sh)\[${RST}\]"
-  local __path="\$(${DOTFILES_DIR}/helpers/shortdir.sh)"
-  local __user_host="[\u@\h]"
+personal_ps1_prompt() {
+  user_host=""
+  if [ -z "${TMUX}" ]; then
+    user_host="[\u@\h]"
+  fi
 
-  echo "$__bat_status$__exit_status $__path$__git \\$"
+  if [ -n "${__DOTFILE_ROOT}" ]; then
+    bat_status="\$(${__DOTFILE_ROOT}/helpers/battery_status.sh)"
+    exit_status="\$(${__DOTFILE_ROOT}/helpers/exit_status.sh $?)"
+
+    #git="\$(${__DOTFILE_ROOT}/helpers/git-ps1-wrapper.sh)"
+    git=""
+
+    path="\$(${__DOTFILE_ROOT}/helpers/shortdir.sh)"
+
+    echo "${user_host} ${bat_status}${exit_status} ${path}${git}\\$ "
+  else
+    echo "${user_host}\\$ "
+  fi
 }
 
-function setup_prompt {
-  export PS1="$(personal_ps1_prompt) "
-
-  # Don't expose more than path through the window title...
-  export PROMPT_COMMAND='echo -en "\033]0;${PWD/#${HOME}/\~}\a"'
+setup_prompt() {
+  # shellcheck disable=SC2155 # special variable already declared
+  export PS1="$(personal_ps1_prompt)"
 }
 
-#setup_prompt
+setup_prompt
