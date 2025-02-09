@@ -1,20 +1,25 @@
 #!/bin/bash
 
-COLOR=$(tput setaf 7)
-RST=$(tput sgr0)
-
-if ! which --skip-functions upower &> /dev/null; then
+if ! _plc which upower >/dev/null 2>&1; then
   exit 0
 fi
 
-if [ "$(upower -e | grep -i bat | wc -l)" -gt 0 ]; then
-  relevant_output="$(upower -i $(upower -e | grep -i bat) | grep --color=never -E "state|to\ full|to\ empty|percentage")"
+battery_count="$(upower -e | grep -c bat 2>/dev/null)"
 
-  percentage="$(echo "${relevant_output}" | grep 'percentage' | awk '{ print $2 }')"
-  state="$(echo "${relevant_output}" | grep 'state' | awk '{ print $2 }')"
+if [ "${battery_count}" -gt 0 ]; then
+  primary_battery="$(upower -e | grep -i bat | head -n 1 2>/dev/null)"
+
+  if [ -z "${primary_battery}" ]; then
+    exit 1
+  fi
+
+  relevant_output="$(upower -i "${primary_battery}" | grep --color=never -E "state|to\ full|to\ empty|percentage")"
+
+  percentage="$(echo "${relevant_output}" | grep percentage | awk '{ print $2 }')"
+  state="$(echo "${relevant_output}" | grep state | awk '{ print $2 }')"
 
   # Only show the percentage when we're discharging our battery
   if [ "${state}" = "discharging" ]; then
-    echo "${COLOR}(${percentage})${RST} "
+    echo "(${percentage}) "
   fi
 fi

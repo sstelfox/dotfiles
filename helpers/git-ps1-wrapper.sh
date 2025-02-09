@@ -13,7 +13,8 @@ elif [ -f "/usr/share/git/git-prompt.sh" ]; then
   GIT_PROMPT_LOCATION="/usr/share/git/git-prompt.sh"
 fi
 
-if [ -z "${GIT_PROMPT_LOCATION}" -a -f "${GIT_PROMPT_LOCATION}" ]; then
-  source ${GIT_PROMPT_LOCATION}
+if [ -n "${GIT_PROMPT_LOCATION}" ] && [ -f "${GIT_PROMPT_LOCATION}" ]; then
+  # shellcheck ignore=SC1090 # don't inspect sources outside the repo
+  . "${GIT_PROMPT_LOCATION}"
   __git_ps1
 fi
