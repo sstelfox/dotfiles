@@ -20,8 +20,6 @@ unset command_not_found_handle
 unset LESSOPEN
 unset SSH_ASKPASS
 
-export EDITOR="vim"
-
 # NetworkManager is absolute trash and doesn't allow you to set these, so we
 # have to fallback on env variables
 export RES_OPTIONS="edns0 trust-ad"

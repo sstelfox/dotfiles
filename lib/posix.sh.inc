@@ -23,6 +23,7 @@ trace_init
 . "${__LIBRARY_PATH}/environment/shell.sh.inc"
 
 . "${__LIBRARY_PATH}/filesystem/utils.sh.inc"
+. "${__LIBRARY_PATH}/filesystem/which.sh.inc"
 
 . "${__LIBRARY_PATH}/pkg/operating_system.sh.inc"
 . "${__LIBRARY_PATH}/pkg/shell_installers.sh.inc"
