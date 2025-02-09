@@ -9,6 +9,7 @@ if STOCK_VIM="$(_plc which vim)"; then
   # Some sanity checking along with a useful error messages if I try on a system that doesn't have
   # a copy of my docs
   if [ -d "${HOME}/documentation" ]; then
+    # shellcheck disable=SC2139 # expansion here is intended
     alias ap="${STOCK_VIM} ~/documentation/passwords.txt"
   else
     alias ap="echo 'documentation unavailable on this machine' >&2"
@@ -20,11 +21,15 @@ fi
 
 # If we have our preferred editor available we should use this instead
 if NEO_VIM="$(_plc which nvim)"; then
+  # shellcheck disable=SC2139 # expansion here is intended
   alias vi="${NEO_VIM}"
+
+  # shellcheck disable=SC2139 # expansion here is intended
   alias vim="${NEO_VIM}"
 
   # This is an extra little helper that might be better moved to my shell library and then called...
-  alias sync_nvim_plugins="nvim --headless -c 'lua require(\"packer\").sync()' -c 'quitall'"
+  # shellcheck disable=SC2139 # expansion here is intended
+  alias sync_nvim_plugins="${NEO_VIM} --headless -c 'lua require(\"packer\").sync()' -c 'quitall'"
 
   export EDITOR="${NEO_VIM}"
 fi
