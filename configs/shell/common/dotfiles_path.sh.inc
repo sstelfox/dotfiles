@@ -9,4 +9,8 @@
 # TODO: Include some kind of notification in my terminal in my dotfiles or documentation has
 # uncommitted changes.
 
-export PATH="${__DOTFILE_ROOT}/in_path/bin:${__DOTFILE_ROOT}/in_path/scripts:${PATH}"
+if [ -n "${__DOTFILE_ROOT}" ]; then
+  export PATH="${__DOTFILE_ROOT}/in_path/bin:${__DOTFILE_ROOT}/in_path/scripts:${PATH}"
+else
+  echo "warning: missing __DOTFILE_ROOT environment variable, unable to set bin & script path" >&2
+fi
