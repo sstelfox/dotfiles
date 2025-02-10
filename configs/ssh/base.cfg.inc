@@ -3,6 +3,8 @@
 # record.
 
 Host *
+  AddKeysToAgent yes
+
   ServerAliveInterval 60
   ServerAliveCountMax 10
   ConnectTimeout 30
