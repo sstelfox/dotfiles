@@ -55,21 +55,6 @@ export HISTIGNORE="ls:bg:fg:history"
 export HISTSIZE=-1
 export HISTTIMEFORMAT="%F %T "
 
-# Some color definitions
-#GREEN=$(tput setaf 2)
-#RED=$(tput setaf 1)
-#BLUE=$(tput setaf 5)
-#RST=$(tput sgr0)
-
-#source $HOME/.dotfiles/helpers/gpg-agent.sh
-#source $HOME/.dotfiles/helpers/sagent.sh
-
-#if which -q starship &>/dev/null; then
-#  eval "$(starship init bash)"
-#else
-#  setup_prompt
-#fi
-
 if [[ -f "$HOME/.rvm/scripts/rvm" ]]; then
   source $HOME/.rvm/scripts/rvm
   # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
@@ -97,7 +82,8 @@ if which -q sccache &>/dev/null; then
 fi
 
 # This is a bugfix for wayload that doesn't allow clipboard interactions for some reason
-export QT_QPA_PLATFORM=xcb
+# might not be needed or might be even more broken now as I haven't been having great luck with wayland's clipboard
+#export QT_QPA_PLATFORM=xcb
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
