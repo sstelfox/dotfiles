@@ -17,3 +17,7 @@ source "${__SHELL_CFG_ROOT}/common.sh.inc"
 
 source "${__SHELL_CFG_ROOT}/zsh/shell_prompt.sh.inc"
 source "${__SHELL_CFG_ROOT}/zsh/disable_aggressive_autocomplete.sh.inc"
+
+if _plc posix_which rbenv >/dev/null 2>&1; then
+  eval "$(rbenv init - --no-rehash zsh)"
+fi
