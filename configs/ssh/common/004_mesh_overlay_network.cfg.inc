@@ -8,18 +8,22 @@ Host 3d-printer
 
 Host desktop
   Hostname 172.16.50.3
+  ForwardAgent yes
   IdentityFile ~/.ssh/default-system-key
 
 Host old-laptop
   Hostname 172.16.50.4
+  ForwardAgent yes
   IdentityFile ~/.ssh/default-system-key
 
 Host work-laptop
   Hostname 172.16.50.5
+  ForwardAgent yes
   IdentityFile ~/.ssh/default-system-key
 
 Host framework
   Hostname 172.16.50.11
+  ForwardAgent yes
   IdentityFile ~/.ssh/default-system-key
 
 Host roadwarrior-direct

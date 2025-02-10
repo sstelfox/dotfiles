@@ -5,6 +5,10 @@
 Host *
   AddKeysToAgent yes
 
+  ControlMaster auto
+  ControlPath ~/.ssh/cm-%r@%h:%p
+  ControlPersist 5m
+
   ServerAliveInterval 60
   ServerAliveCountMax 10
   ConnectTimeout 30
