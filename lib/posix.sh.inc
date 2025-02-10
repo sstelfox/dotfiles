@@ -32,3 +32,4 @@ trace_init
 
 . "${__LIBRARY_PATH}/services/k8s.sh.inc"
 . "${__LIBRARY_PATH}/services/ssh.sh.inc"
+. "${__LIBRARY_PATH}/services/ssh_agent.sh.inc"

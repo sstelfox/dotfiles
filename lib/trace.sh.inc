@@ -30,7 +30,7 @@ current_trace_id() {
 
 trace_enabled() {
   # tracing relies on the availability of jq
-  which jq >/dev/null 2>&1 || return 1
+  posix_which jq >/dev/null 2>&1 || return 1
 
   [ -n "${__SHELL_TRACE_ID:-}" ] && return 0
   return 2

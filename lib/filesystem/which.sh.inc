@@ -2,7 +2,7 @@
 
 # There isn't a POSIX compatible function for actually performing this, which can't be guaranteed to
 # be present in my environments, and `type -P` isn't POSIX either.
-which() {
+posix_which() {
   binary="${1:-}"
 
   if [ -z "${binary}" ]; then

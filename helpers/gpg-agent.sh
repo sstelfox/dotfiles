@@ -3,7 +3,7 @@
 # Only attempt to setup the gpg-agent if we're not on an SSH connection
 if [ -z "${SSH_CONNECTION}" ]; then
   unset SSH_AGENT_PID
-  export GPG_TTY=$(tty)
+  export GPG_TTY="$(tty)"
   gpg-connect-agent updatestartuptty /bye >/dev/null 3>&1
 fi
 

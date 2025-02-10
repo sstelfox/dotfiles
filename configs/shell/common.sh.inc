@@ -26,6 +26,7 @@ fi
 . "${__SHELL_CFG_ROOT}/common/editor_config.sh.inc"
 . "${__SHELL_CFG_ROOT}/common/git_aliases.sh.inc"
 . "${__SHELL_CFG_ROOT}/common/password_store.sh.inc"
+. "${__SHELL_CFG_ROOT}/common/ssh_agent_setup.sh.inc"
 
 ## Project / System / Organization environment specific setup
 

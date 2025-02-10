@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if ! _plc which upower >/dev/null 2>&1; then
+if ! _plc posix_which upower >/dev/null 2>&1; then
   exit 0
 fi
 

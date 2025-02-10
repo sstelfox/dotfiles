@@ -46,7 +46,7 @@ safe_symlink_when_available() {
     return 1
   fi
 
-  if which "${conditional_bin}" >/dev/null 2>&1; then
+  if posix_which "${conditional_bin}" >/dev/null 2>&1; then
     safe_symlink "${src_path}" "${dst_path}"
   fi
 }
