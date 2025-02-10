@@ -12,5 +12,4 @@ export GOPATH="${HOME}/workspace/tulip/tulip/environments/cloud/services"
 # development environment is still broken for me...
 #source "${HOME}/workspace/tulip/tulip/scripts/setPaths.source.sh"
 
-# Added by `rbenv init` on Mon Feb 10 20:08:33 UTC 2025
-eval "$(rbenv init - --no-rehash bash)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
