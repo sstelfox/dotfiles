@@ -41,7 +41,8 @@ active_ssh_agent_socket() {
 }
 
 find_ssh_agent_sockets() {
-  find "${AGENT_TMPDIR:-/tmp}" -uid "$(id -u)" -type s -name "agent.*" 2>/dev/null || return 1
+  # /var/tmp is primarily for MacOS, /tmp for the Linux world
+  find /var/tmp /tmp -uid "$(id -u)" -type s -name "agent.*" 2>/dev/null || return 1
 }
 
 test_ssh_agent_socket() {
@@ -58,7 +59,7 @@ test_ssh_agent_socket() {
   fi
 
   if [ ! -e "${socket_path}" ]; then
-    echo "socket provided to ssh_agent_testsocket doesn't exist" >&2
+    echo "socket provided to test_ssh_agent_socket doesn't exist" >&2
     return 3
   fi
 
