@@ -6,7 +6,7 @@ AGENT_TIMEOUT=1800
 
 active_ssh_agent_socket() {
   # Check for an existing and function auth sock
-  case "${SSH_AUTH_SOCK}" in
+  case "${SSH_AUTH_SOCK:-}" in
     # If its the trash one Gnome provides that gets automatically turned back on we ignore that
     /run/user/*/gcr/ssh) : ;;
     # Nothing set...
