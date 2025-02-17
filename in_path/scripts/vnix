@@ -17,12 +17,16 @@ build_container() {
   container_hash="$(sha256sum "${CONTAINER_FILE}" | cut -d' ' -f1)"
   hash_file="${NIX_CACHE}/container.hash"
 
-  if [ ! -f "${hash_file}" ] || [ "$(cat "${hash_file}")" != "${container_hash}" ]; then
-    podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
-      -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
-
-    echo -n "${container_hash}" >"${hash_file}"
+  if [ -f "${hash_file}" ] && [ "$(cat "${hash_file}")" == "${container_hash}" ]; then
+    if podman image exists "${CONTAINER_TAG}"; then
+      return 0
+    fi
   fi
+
+  podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
+    -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
+
+  echo -n "${container_hash}" >"${hash_file}"
 }
 
 check_dependencies() {
