@@ -59,7 +59,9 @@ test_ssh_agent_socket() {
   fi
 
   if [ ! -e "${socket_path}" ]; then
-    echo "socket provided to test_ssh_agent_socket doesn't exist" >&2
+    # This happens when the agent has timed out and closed down but the socket is still referenced
+    # in the environment. Fairly common might make a good debug message but I don't want to see it
+    # every time this occurs
     return 3
   fi
 
