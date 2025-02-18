@@ -9,12 +9,14 @@ CONTAINER_BUILD_ROOT="${HOME}/.dotfiles/containers"
 CONTAINER_FILE="${CONTAINER_BUILD_ROOT}/Containerfile-vnix"
 CONTAINER_TAG="stelfox.net/containers/vnix:${NIX_OS_VERSION}"
 
+EXTRA_CONTENT_FILES="${CONTAINER_BUILD_ROOT}/vnix/nix.conf"
+
 NIX_CACHE="${HOME}/.cache/vnix"
 
 WORKING_DIR="$(pwd)"
 
 build_container() {
-  container_hash="$(sha256sum "${CONTAINER_FILE}" | cut -d' ' -f1)"
+  container_hash="$(cat "${CONTAINER_FILE}" "${EXTRA_CONTENT_FILES}" | sha256sum | cut -d' ' -f1)"
   hash_file="${NIX_CACHE}/container.hash"
 
   if [ -f "${hash_file}" ] && [ "$(cat "${hash_file}")" == "${container_hash}" ]; then
