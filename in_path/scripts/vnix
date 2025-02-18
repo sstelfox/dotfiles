@@ -26,6 +26,7 @@ build_container() {
   podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
     -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
 
+  mkdir -p "${NIX_CACHE}"
   echo -n "${container_hash}" >"${hash_file}"
 }
 
@@ -39,7 +40,7 @@ check_dependencies() {
 }
 
 initialize_nix_cache() {
-  if [ ! -d "${NIX_CACHE}" ]; then
+  if [ ! -d "${NIX_CACHE}/store" ]; then
     mkdir -p "${NIX_CACHE}"
 
     podman create --name vnix-init nixos/nix:${NIX_OS_VERSION}
