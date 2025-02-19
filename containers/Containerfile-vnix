@@ -6,33 +6,27 @@ ADD ./vnix/nix.conf /etc/nix/nix.conf
 
 RUN mkdir -p /workspace && chmod 755 /workspace
 
-RUN echo "nixuser:x:10001:10001:nixuser:/home/nixuser:/bin/sh" >> /etc/passwd && \
+# Create nixuser by hand
+RUN echo "nixuser:x:10001:10001:nixuser:/home/nixuser:/bin/bash" >> /etc/passwd && \
     echo "nixuser:x:10001:" >> /etc/group && \
     mkdir -p /home/nixuser && \
     chown -R nixuser:nixuser /home/nixuser /workspace
+
+# Create SSH agent socket directory
+RUN mkdir -p /run/user/10001 && \
+    chown -R nixuser:nixuser /run/user/10001 && \
+    chmod 700 /run/user/10001
 
 VOLUME /nix
 
 WORKDIR /workspace
 
-# Indicate that we're int he virtual nix environment, can be keyed off to make sure script that
-# want to run in this environment actually are.
+# Environment setup
 ENV VIRTUAL_NIX_ENV=true
+ENV SSH_AUTH_SOCK=/run/user/10001/ssh-agent.sock
+ENV HOME=/home/nixuser
+ENV PATH=/home/nixuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin
 
-# Add in a fixed location and expose it to ssh clients for an agent. This won't have any effect
-# unless the container is started by mapping an active agent's socket to this path.
-ENV SSH_AUTH_SOCK=/ssh-agent.sock
+USER nixuser
 
-#USER nixuser
-
-# Don't set until we drop into this user
-#ENV HOME=/home/nixuser
-
-# TODO: Doesn't yet exist
-#ENV NIX_PATH=/nix/var/nix/profiles/per-user/nixuser/channels
-
-# TODO: Need to link this profile
-#ENV PATH=/home/nixuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin
-
-# TODO: Only need while we're dropping to root or having bad UID mappings...
 RUN git config --global --add safe.directory /workspace

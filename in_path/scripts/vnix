@@ -61,13 +61,18 @@ initialize_nix_cache
 # Try and allow an ssh agent setup into the environment if its available
 ssh_agent_socket_mount_args=""
 if [ -n "${SSH_AUTH_SOCK}" ]; then
-  ssh_agent_socket_mount_args="--volume ${SSH_AUTH_SOCK}:/ssh-agent.sock"
-  echo "${ssh_agent_socket_mount_args}"
+  container_socket="/run/user/10001/ssh-agent.sock"
+  ssh_agent_socket_mount_args="--volume ${SSH_AUTH_SOCK}:${container_socket}"
 fi
 
 # We're rootless so need to map initial intermediate ID to the user but maybe this needs to be root?
 # --uidmap 0:10001:1 --gidmap 0:10001:1 \
 
-exec podman run -it --rm --userns=keep-id \
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
+
+exec podman run -it --rm \
+  --uidmap 0:1:10001 --uidmap 10001:0:1 \
+  --gidmap 0:1:10001 --gidmap 10001:0:1 \
   --volume "${NIX_CACHE}":/nix:z --volume "${WORKING_DIR}:/workspace" \
   ${ssh_agent_socket_mount_args} "${CONTAINER_TAG}" $@
