@@ -11,15 +11,7 @@
 Context Generator - A tool for generating language model context from project files.
 
 This tool helps users provide relevant files to language models while maintaining
-project structural context. The workflow is:
-
-1. First shows files in the current directory for selection
-2. Then prompts for each subdirectory, exploring only approved directories
-3. For each explored directory, shows its files for selection
-4. Maintains a full project tree in output showing both selected and unselected files
-   to help language models understand project structure
-
-The tool supports chunked file display to handle large directories efficiently.
+project structural context.
 """
 
 import argparse
@@ -32,15 +24,8 @@ from xdg import xdg_cache_home
 
 class ContextGenerator:
     def estimate_tokens(self, text: str) -> int:
-        """Estimate the number of tokens in a text string.
-        Uses OpenAI's guidelines:
-        - 1 token ≈ 4 characters
-        - 100 tokens ≈ 75 words
-        """
-        char_estimate = len(text) / 4
-        word_estimate = len(text.split()) * (100/75)
-        # Use the average of both estimates for better accuracy
-        return int((char_estimate + word_estimate) / 2)
+        """Very rough estimate of token usage based on OpenAI's guidelines."""
+        return int(len(text) / 4)
 
     def __init__(self, project_path: str, context_limit: int = 4000):
         self.project_path = Path(project_path).resolve()
@@ -48,23 +33,9 @@ class ContextGenerator:
         self.cache_dir = xdg_cache_home() / "context-generator"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.project_hash = str(hash(str(self.project_path)))
-        self.prompts_cache = self.cache_dir / f"prompts_{self.project_hash}.json"
         self.context_cache = self.cache_dir / f"context_{self.project_hash}.txt"
         self.selected_files: Set[Path] = set()
         self.current_tokens = 0
-
-    def load_previous_prompts(self) -> List[str]:
-        if self.prompts_cache.exists():
-            with open(self.prompts_cache, 'r') as f:
-                return json.load(f)
-        return []
-
-    def save_prompt(self, prompt: str):
-        prompts = self.load_previous_prompts()
-        if prompt not in prompts:
-            prompts.append(prompt)
-        with open(self.prompts_cache, 'w') as f:
-            json.dump(prompts, f)
 
     def should_skip_path(self, path: Path) -> bool:
         """Check if a path should be skipped (any component starts with a dot)."""
@@ -127,7 +98,6 @@ class ContextGenerator:
         dir_files = [
             f for f in directory.iterdir()
             if f.is_file() and not self.should_skip_path(f.relative_to(self.project_path))
-            and not f.name.endswith('.pyc')
         ]
 
         if dir_files:
@@ -184,23 +154,18 @@ class ContextGenerator:
         return [(f, f in self.selected_files, self.get_file_tokens(f)) for f in files]
 
     def interactive_file_selection(self, all_files: List[Path]):
-        """Display files in manageable chunks and handle selection.
-
-        Shows files from a single directory in chunks of 5 files at a time.
-        Displays current directory and progress through file list.
-        """
-        chunk_size = 5
+        """Display files in manageable chunks and handle selection."""
+        chunk_size = 15
         current_index = 0
+        total_pages = (len(all_files) + chunk_size - 1) // chunk_size
 
         while current_index < len(all_files):
             end_index = min(current_index + chunk_size, len(all_files))
             current_chunk = all_files[current_index:end_index]
+            current_page = (current_index // chunk_size) + 1
 
-            # Show current context usage and location
-            print(f"\nCurrent context usage: {self.current_tokens} / {self.context_limit} tokens")
-            current_dir = all_files[0].parent.relative_to(self.project_path)
-            print(f"In directory: {current_dir}")
-            print(f"Showing files {current_index + 1}-{end_index} of {len(all_files)}")
+            print(f"\nContext usage: {self.current_tokens} / {self.context_limit} tokens")
+            print(f"Page {current_page} of {total_pages}")
 
             print("\nAvailable files:")
             file_statuses = self.get_file_status(current_chunk)
@@ -209,16 +174,14 @@ class ContextGenerator:
                 print(f"{i}. {f.relative_to(self.project_path)} {status}")
 
             if end_index < len(all_files):
-                print("\nOptions:")
-                print("- Enter numbers to select files")
-                print("- Press Enter to see more files")
-                print("- Type 'done' to finish selection")
+                print("\n- Enter numbers to select files")
+                print("- Press Enter for next page")
+                print("- Type 'done' when finished")
             else:
-                print("\nOptions:")
-                print("- Enter numbers to select files")
-                print("- Type 'done' to finish selection")
+                print("\n- Enter numbers to select files")
+                print("- Type 'done' when finished")
 
-            response = input("\nEnter your choice: ").strip().lower()
+            response = input("\nChoice: ").strip().lower()
 
             if response == "":
                 if end_index < len(all_files):
@@ -259,7 +222,7 @@ class ContextGenerator:
                     print("Please enter valid file numbers")
             except ValueError:
                 if response not in ["done", ""]:
-                    print("Please enter numbers separated by commas, or press Enter to see more files")
+                    print("Enter numbers separated by commas")
 
     def check_files_tokens(self, files: List[Path]) -> tuple[int, bool]:
         """Check if adding files would exceed the context limit."""
@@ -504,18 +467,7 @@ def main():
     generator = ContextGenerator(os.getcwd(), args.limit)
 
     while True:
-        # Load and display previous prompts
-        previous_prompts = generator.load_previous_prompts()
-        if previous_prompts:
-            print("\nPrevious prompts:")
-            for i, prompt in enumerate(previous_prompts, 1):
-                print(f"{i}. {prompt}")
-
-        # Get new prompt
         prompt = input("\nEnter your prompt: ")
-        generator.save_prompt(prompt)
-
-        # Select files
         generator.select_files()
 
         # Allow user to manage files before generating context
