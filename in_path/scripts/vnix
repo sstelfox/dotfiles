@@ -1,31 +1,48 @@
 #!/usr/bin/env bash
 
 set -o errexit
+set -o nounset
 set -o pipefail
 
 NIX_OS_VERSION="2.26.1"
 
-CONTAINER_BUILD_ROOT="${HOME}/.dotfiles/containers"
-CONTAINER_FILE="${CONTAINER_BUILD_ROOT}/Containerfile-vnix"
-CONTAINER_TAG="stelfox.net/containers/vnix:${NIX_OS_VERSION}"
+CONTAINER_BASE_DIRECTORY="${HOME}/.dotfiles/containers"
+CONTAINER_NAME="vnix"
+CONTAINER_VERSION="${NIX_OS_VERSION}"
 
-EXTRA_CONTENT_FILES="${CONTAINER_BUILD_ROOT}/vnix/nix.conf"
+CONTAINER_BUILD_ROOT="${CONTAINER_BASE_DIRECTORY}/${CONTAINER_NAME}"
+CONTAINER_FILE="${CONTAINER_BASE_DIRECTORY}/Containerfile-${CONTAINER_NAME}"
+CONTAINER_TAG="stelfox.net/containers/${CONTAINER_NAME}:${CONTAINER_VERSION}"
+
+EXTRA_CONTENT_FILES="${CONTAINER_BUILD_ROOT}/nix.conf"
 
 NIX_CACHE="${HOME}/.cache/vnix"
 
+# This will be mapped into our vnix container at /workspace, future improvement might be to detect
+# the git root if available...
 WORKING_DIR="$(pwd)"
+
+# Assume podman we will override this to docker later on when we look for dependencies
+CONTAINER_RUNTIME="podman"
 
 build_container() {
   container_hash="$(cat "${CONTAINER_FILE}" "${EXTRA_CONTENT_FILES}" | sha256sum | cut -d' ' -f1)"
   hash_file="${NIX_CACHE}/container.hash"
 
   if [ -f "${hash_file}" ] && [ "$(cat "${hash_file}")" == "${container_hash}" ]; then
-    if podman image exists "${CONTAINER_TAG}"; then
-      return 0
+    if [ "${CONTAINER_RUNTIME}" = "podman" ]; then
+      if ${CONTAINER_RUNTIME} image exists "${CONTAINER_TAG}"; then
+        return 0
+      fi
+    else
+      # Silly docker, you are SO far behind
+      if docker image inspect "${CONTAINER_TAG}" >/dev/null 2>&1; then
+        return 0
+      fi
     fi
   fi
 
-  podman build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
+  ${CONTAINER_RUNTIME} build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
     -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
 
   mkdir -p "${NIX_CACHE}"
@@ -33,21 +50,24 @@ build_container() {
 }
 
 check_dependencies() {
-  if ! command -v podman >/dev/null 2>&1; then
-    echo "error: must have podman installed" >&2
+  # Prefer the more secure runtime if available
+  if command -v podman >/dev/null 2>&1; then
+    return 0
+  elif command -v docker >/dev/null 2>&1; then
+    CONTAINER_RUNTIME="docker"
+  else
+    echo "error: must have podman or docker installed" >&2
     return 1
   fi
-
-  return 0
 }
 
 initialize_nix_cache() {
   if [ ! -d "${NIX_CACHE}/store" ]; then
     mkdir -p "${NIX_CACHE}"
 
-    podman create --name vnix-init nixos/nix:${NIX_OS_VERSION}
-    podman export vnix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
-    podman rm vnix-init
+    ${CONTAINER_RUNTIME} create --name vnix-init nixos/nix:${NIX_OS_VERSION}
+    ${CONTAINER_RUNTIME} export vnix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
+    ${CONTAINER_RUNTIME} rm vnix-init
   fi
 
   return 0
@@ -61,18 +81,36 @@ initialize_nix_cache
 # Try and allow an ssh agent setup into the environment if its available
 ssh_agent_socket_mount_args=""
 if [ -n "${SSH_AUTH_SOCK}" ]; then
-  container_socket="/run/user/10001/ssh-agent.sock"
-  ssh_agent_socket_mount_args="--volume ${SSH_AUTH_SOCK}:${container_socket}"
+  # When I drop privileges in this container I will use this alternate path, requires a nix overlay or
+  # a dirty hack to solve this...
+  #container_socket="/run/user/10001/ssh-agent.sock"
+  container_socket="/ssh-agent.sock"
+  ssh_agent_socket_mount_args="--volume ${SSH_AUTH_SOCK}:${container_socket} --env SSH_AUTH_SOCK=${container_socket}"
 fi
 
-# We're rootless so need to map initial intermediate ID to the user but maybe this needs to be root?
-# --uidmap 0:10001:1 --gidmap 0:10001:1 \
+if [ "${CONTAINER_RUNTIME}" = "podman" ]; then
+  # We are rootless with podman so need to map initial intermediate ID to the user but maybe this
+  # needs to be root?
+  # --uidmap 0:10001:1 --gidmap 0:10001:1 \
 
-#  --uidmap 0:1:10001 --uidmap 10001:0:1 \
-#  --gidmap 0:1:10001 --gidmap 10001:0:1 \
-#  --userns=keep-id \
-exec podman run -it --rm \
-  --uidmap 0:1:0 --uidmap 0:0:1 \
-  --gidmap 0:1:0 --gidmap 0:0:1 \
-  --volume "${NIX_CACHE}":/nix:z --volume "${WORKING_DIR}:/workspace" \
-  ${ssh_agent_socket_mount_args} "${CONTAINER_TAG}" $@
+  #  --uidmap 0:1:10001 --uidmap 10001:0:1 \
+  #  --gidmap 0:1:10001 --gidmap 10001:0:1 \
+  #  --userns=keep-id \
+
+  # While we are root in the container map our current user ID to the root ID, will need to switch
+  # this up when I get the above working
+  exec ${CONTAINER_RUNTIME} run -it --rm \
+    --uidmap 0:1:0 --uidmap 0:0:1 --gidmap 0:1:0 --gidmap 0:0:1 \
+    --volume "${NIX_CACHE}:/nix:z" --volume "${WORKING_DIR}:/workspace" \
+    ${ssh_agent_socket_mount_args} "${CONTAINER_TAG}" $@
+else
+  # With docker we loose our security guarantees, this is effectively granting root on the local
+  # machine to the container as all docker containers running with the root user do...
+  #
+  # I can't rely on the SSH agent forwarding on Macs specifically due to launchd socket
+  # restrictions. That's generally fine and I don't want that exposure to an untrusted rootful
+  # environment anyway.
+  exec ${CONTAINER_RUNTIME} run -it --rm \
+    --volume "${NIX_CACHE}:/nix:z" --volume "${WORKING_DIR}:/workspace" \
+    "${CONTAINER_TAG}" $@
+fi

@@ -2,7 +2,7 @@ ARG NIX_OS_VERSION
 
 FROM docker.io/nixos/nix:${NIX_OS_VERSION}
 
-ADD ./vnix/nix.conf /etc/nix/nix.conf
+ADD nix.conf /etc/nix/nix.conf
 
 RUN mkdir -p /workspace && chmod 755 /workspace
 
@@ -22,10 +22,9 @@ WORKDIR /workspace
 
 # Environment setup
 ENV VIRTUAL_NIX_ENV=true
-ENV SSH_AUTH_SOCK=/run/user/10001/ssh-agent.sock
 #ENV HOME=/home/nixuser
 #ENV PATH=/home/nixuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin
-#
+
 #USER nixuser
 
 RUN git config --global --add safe.directory /workspace

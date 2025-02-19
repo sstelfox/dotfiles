@@ -11,6 +11,8 @@ active_ssh_agent_socket() {
     /run/user/*/gcr/ssh) : ;;
     # Nothing set...
     "") : ;;
+    # Reject the apple socket from consideration
+    *com.apple.launchd*) : ;;
     # Anything else we should test and see if it works
     *)
       if test_ssh_agent_socket "${SSH_AUTH_SOCK}"; then
@@ -61,7 +63,7 @@ test_ssh_agent_socket() {
   if [ ! -e "${socket_path}" ]; then
     # This happens when the agent has timed out and closed down but the socket is still referenced
     # in the environment. Fairly common might make a good debug message but I don't want to see it
-    # every time this occurs
+    # every time this occurs... Maybe I should delete the socket when this happens?
     return 3
   fi
 
