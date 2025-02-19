@@ -10,11 +10,11 @@ CONTAINER_BASE_DIRECTORY="${HOME}/.dotfiles/containers"
 CONTAINER_NAME="vnix"
 CONTAINER_VERSION="${NIX_OS_VERSION}"
 
-CONTAINER_BUILD_ROOT="${CONTAINER_BASE_DIRECTORY}/${CONTAINER_NAME}"
-CONTAINER_FILE="${CONTAINER_BASE_DIRECTORY}/Containerfile-${CONTAINER_NAME}"
+CONTAINER_ROOT="${CONTAINER_BASE_DIRECTORY}/${CONTAINER_NAME}"
+CONTAINER_FILE="${CONTAINER_ROOT}/Containerfile"
 CONTAINER_TAG="stelfox.net/containers/${CONTAINER_NAME}:${CONTAINER_VERSION}"
 
-EXTRA_CONTENT_FILES="${CONTAINER_BUILD_ROOT}/nix.conf"
+EXTRA_CONTENT_FILES="${CONTAINER_ROOT}/nix.conf"
 
 NIX_CACHE="${HOME}/.cache/vnix"
 
@@ -43,7 +43,7 @@ build_container() {
   fi
 
   ${CONTAINER_RUNTIME} build --build-arg NIX_OS_VERSION=${NIX_OS_VERSION} \
-    -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_BUILD_ROOT}"
+    -t "${CONTAINER_TAG}" -f "${CONTAINER_FILE}" "${CONTAINER_ROOT}"
 
   mkdir -p "${NIX_CACHE}"
   echo -n "${container_hash}" >"${hash_file}"
@@ -65,9 +65,9 @@ initialize_nix_cache() {
   if [ ! -d "${NIX_CACHE}/store" ]; then
     mkdir -p "${NIX_CACHE}"
 
-    ${CONTAINER_RUNTIME} create --name vnix-init nixos/nix:${NIX_OS_VERSION}
+    ${CONTAINER_RUNTIME} create --name vnix-init ${CONTAINER_TAG} >/dev/null
     ${CONTAINER_RUNTIME} export vnix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
-    ${CONTAINER_RUNTIME} rm vnix-init
+    ${CONTAINER_RUNTIME} rm vnix-init true >/dev/null 2>&1 || true
   fi
 
   return 0

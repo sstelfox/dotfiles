@@ -1,3 +1,7 @@
+# When built with docker the lack of a default argument here produces a warning. podman correctly
+# treats this condition as a variable that MUST be provided from the outside to build which is the
+# intended and desired behavior. Setting a default value here is NOT correct and that warning is
+# just more docker trash.
 ARG NIX_OS_VERSION
 
 FROM docker.io/nixos/nix:${NIX_OS_VERSION}
