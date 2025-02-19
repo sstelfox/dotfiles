@@ -1,0 +1,540 @@
+#!/usr/bin/env -S uv run -s
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "xdg~=6.0.0"
+# ]
+# ///
+
+"""
+Context Generator - A tool for generating language model context from project files.
+
+This tool helps users provide relevant files to language models while maintaining
+project structural context. The workflow is:
+
+1. First shows files in the current directory for selection
+2. Then prompts for each subdirectory, exploring only approved directories
+3. For each explored directory, shows its files for selection
+4. Maintains a full project tree in output showing both selected and unselected files
+   to help language models understand project structure
+
+The tool supports chunked file display to handle large directories efficiently.
+"""
+
+import argparse
+import os
+import json
+from pathlib import Path
+import sys
+from typing import List, Dict, Set
+from xdg import xdg_cache_home
+
+class ContextGenerator:
+    def estimate_tokens(self, text: str) -> int:
+        """Estimate the number of tokens in a text string.
+        Uses OpenAI's guidelines:
+        - 1 token ≈ 4 characters
+        - 100 tokens ≈ 75 words
+        """
+        char_estimate = len(text) / 4
+        word_estimate = len(text.split()) * (100/75)
+        # Use the average of both estimates for better accuracy
+        return int((char_estimate + word_estimate) / 2)
+
+    def __init__(self, project_path: str, context_limit: int = 4000):
+        self.project_path = Path(project_path).resolve()
+        self.context_limit = context_limit  # Now in tokens instead of characters
+        self.cache_dir = xdg_cache_home() / "context-generator"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.project_hash = str(hash(str(self.project_path)))
+        self.prompts_cache = self.cache_dir / f"prompts_{self.project_hash}.json"
+        self.context_cache = self.cache_dir / f"context_{self.project_hash}.txt"
+        self.selected_files: Set[Path] = set()
+        self.current_tokens = 0
+
+    def load_previous_prompts(self) -> List[str]:
+        if self.prompts_cache.exists():
+            with open(self.prompts_cache, 'r') as f:
+                return json.load(f)
+        return []
+
+    def save_prompt(self, prompt: str):
+        prompts = self.load_previous_prompts()
+        if prompt not in prompts:
+            prompts.append(prompt)
+        with open(self.prompts_cache, 'w') as f:
+            json.dump(prompts, f)
+
+    def should_skip_path(self, path: Path) -> bool:
+        """Check if a path should be skipped (any component starts with a dot)."""
+        return any(part.startswith('.') for part in path.parts)
+
+    def get_nested_files(self, directory: Path) -> Dict[Path, List[Path]]:
+        nested_files: Dict[Path, List[Path]] = {}
+        for root, _, files in os.walk(directory):
+            root_path = Path(root)
+            if root_path == directory or self.should_skip_path(root_path.relative_to(self.project_path)):
+                continue
+            nested_files[root_path] = [
+                root_path / f for f in files
+                if not self.should_skip_path(Path(f)) and not f.endswith('.pyc')
+            ]
+        return {k: v for k, v in nested_files.items() if v}
+
+    def prompt_for_directory_inclusion(self, directory: Path) -> bool:
+        """Prompt user for directory exploration. This is called before exploring any subdirectory."""
+        rel_path = directory.relative_to(self.project_path)
+        while True:
+            response = input(f'Explore directory {rel_path}? [Y/n]: ').lower()
+            if response in ('', 'y', 'yes'):
+                return True
+            if response in ('n', 'no'):
+                return False
+            print("Please answer 'y' or 'n'")
+
+    def select_files(self):
+        """Handle file selection starting from current directory.
+
+        Workflow:
+        1. First handle files in current directory
+        2. Then handle subdirectories one at a time
+        3. For each approved directory, show its files then handle its subdirectories
+        """
+        # First handle files in current directory
+        current_files = [
+            f for f in self.project_path.iterdir()
+            if f.is_file() and not self.should_skip_path(f.relative_to(self.project_path))
+            and not f.name.endswith('.pyc')
+        ]
+
+        if current_files:
+            self.interactive_file_selection(sorted(current_files))
+
+        # Then handle each subdirectory
+        for subdir in sorted(d for d in self.project_path.iterdir()
+                           if d.is_dir() and not d.name.startswith('.')):
+            if self.prompt_for_directory_inclusion(subdir):
+                self.explore_directory(subdir)
+
+    def explore_directory(self, directory: Path):
+        """Explore a single directory and its contents.
+
+        Called after user approves exploring this directory.
+        First shows files in this directory, then handles subdirectories one at a time.
+        """
+        # Handle files in this directory
+        dir_files = [
+            f for f in directory.iterdir()
+            if f.is_file() and not self.should_skip_path(f.relative_to(self.project_path))
+            and not f.name.endswith('.pyc')
+        ]
+
+        if dir_files:
+            self.interactive_file_selection(sorted(dir_files))
+
+        # Handle subdirectories one at a time
+        for subdir in sorted(d for d in directory.iterdir()
+                           if d.is_dir() and not d.name.startswith('.')):
+            if self.prompt_for_directory_inclusion(subdir):
+                self.explore_directory(subdir)
+
+    def display_current_files(self):
+        """Display currently selected files and their token counts."""
+        if not self.selected_files:
+            print("\nNo files currently selected.")
+            return
+
+        print("\nCurrently selected files:")
+        for i, f in enumerate(sorted(self.selected_files), 1):
+            tokens = self.get_file_tokens(f)
+            print(f"{i}. {f.relative_to(self.project_path)} ({tokens} tokens)")
+        print(f"\nTotal tokens: {self.current_tokens} / {self.context_limit}")
+
+    def manage_files(self):
+        """Allow user to manage selected files before generating context."""
+        while True:
+            self.display_current_files()
+            print("\nFile Management Options:")
+            print("1. Add more files")
+            print("2. Remove files")
+            print("3. Continue to context generation")
+            print("4. Start over")
+
+            choice = input("\nEnter your choice (1-4): ").strip()
+
+            if choice == "1":
+                self.select_files()
+            elif choice == "2":
+                if not self.selected_files:
+                    print("No files to remove.")
+                    continue
+                self.prompt_for_removal()
+            elif choice == "3":
+                return True
+            elif choice == "4":
+                self.selected_files.clear()
+                self.current_tokens = 0
+                return False
+            else:
+                print("Invalid choice. Please enter 1-4.")
+
+    def get_file_status(self, files: List[Path]) -> List[tuple[Path, bool, int]]:
+        """Returns list of (file, is_selected, tokens) tuples."""
+        return [(f, f in self.selected_files, self.get_file_tokens(f)) for f in files]
+
+    def interactive_file_selection(self, all_files: List[Path]):
+        """Display files in manageable chunks and handle selection.
+
+        Shows files from a single directory in chunks of 5 files at a time.
+        Displays current directory and progress through file list.
+        """
+        chunk_size = 5
+        current_index = 0
+
+        while current_index < len(all_files):
+            end_index = min(current_index + chunk_size, len(all_files))
+            current_chunk = all_files[current_index:end_index]
+
+            # Show current context usage and location
+            print(f"\nCurrent context usage: {self.current_tokens} / {self.context_limit} tokens")
+            current_dir = all_files[0].parent.relative_to(self.project_path)
+            print(f"In directory: {current_dir}")
+            print(f"Showing files {current_index + 1}-{end_index} of {len(all_files)}")
+
+            print("\nAvailable files:")
+            file_statuses = self.get_file_status(current_chunk)
+            for i, (f, is_selected, tokens) in enumerate(file_statuses, 1):
+                status = "[Selected]" if is_selected else f"[{tokens} tokens]"
+                print(f"{i}. {f.relative_to(self.project_path)} {status}")
+
+            if end_index < len(all_files):
+                print("\nOptions:")
+                print("- Enter numbers to select files")
+                print("- Press Enter to see more files")
+                print("- Type 'done' to finish selection")
+            else:
+                print("\nOptions:")
+                print("- Enter numbers to select files")
+                print("- Type 'done' to finish selection")
+
+            response = input("\nEnter your choice: ").strip().lower()
+
+            if response == "":
+                if end_index < len(all_files):
+                    current_index = end_index
+                continue
+
+            if response == "done":
+                break
+
+            try:
+                selected_nums = [int(n.strip()) for n in response.split(',') if n.strip()]
+                if all(1 <= n <= len(current_chunk) for n in selected_nums):
+                    # Filter out already selected files
+                    to_add = []
+                    for num in selected_nums:
+                        file = current_chunk[num - 1]
+                        if file not in self.selected_files:
+                            to_add.append(file)
+
+                    if not to_add:
+                        print("\nAll specified files are already selected.")
+                        continue
+
+                    total_new_tokens, would_exceed = self.check_files_tokens(to_add)
+
+                    if would_exceed:
+                        print(f"\nAdding these files would exceed the context limit ({self.context_limit} tokens)!")
+                        print(f"Current tokens: {self.current_tokens}")
+                        print(f"Additional tokens needed: {total_new_tokens}")
+                        print(f"Total would be: {self.current_tokens + total_new_tokens} tokens")
+                        continue
+
+                    for file in to_add:
+                        self.selected_files.add(file)
+                        self.current_tokens += self.get_file_tokens(file)
+                        print(f"\nAdded: {file.relative_to(self.project_path)}")
+                else:
+                    print("Please enter valid file numbers")
+            except ValueError:
+                if response not in ["done", ""]:
+                    print("Please enter numbers separated by commas, or press Enter to see more files")
+
+    def check_files_tokens(self, files: List[Path]) -> tuple[int, bool]:
+        """Check if adding files would exceed the context limit."""
+        total_new_tokens = sum(self.get_file_tokens(f) for f in files)
+        would_exceed = (self.current_tokens + total_new_tokens) > self.context_limit
+        return total_new_tokens, would_exceed
+
+    def prompt_for_files(self, files: List[Path]):
+        if not files:
+            return
+
+        print("\nAvailable files:")
+        for i, f in enumerate(files, 1):
+            print(f"{i}. {f.relative_to(self.project_path)}")
+
+        while True:
+            response = input("\nEnter file numbers to include (comma-separated, or 'all'/'none'): ").strip()
+            if response.lower() == 'none':
+                return
+
+            try:
+                if response.lower() == 'all':
+                    selected_files = files
+                else:
+                    selected_nums = [int(n.strip()) for n in response.split(',') if n.strip()]
+                    if not all(1 <= n <= len(files) for n in selected_nums):
+                        print("Please enter valid file numbers")
+                        continue
+                    selected_files = [files[num - 1] for num in selected_nums]
+
+                total_new_tokens, would_exceed = self.check_files_tokens(selected_files)
+
+                if would_exceed:
+                    print(f"\nAdding these files would exceed the context limit ({self.context_limit} tokens)!")
+                    print(f"Current tokens: {self.current_tokens}")
+                    print(f"Additional tokens needed: {total_new_tokens}")
+                    print(f"Total would be: {self.current_tokens + total_new_tokens} tokens")
+
+                    if self.selected_files:
+                        if not self.prompt_for_removal():
+                            print("File selection cancelled.")
+                            return
+                        # Recheck after removal
+                        total_size, would_exceed = self.check_files_size(selected_files)
+                        if would_exceed:
+                            print("Still exceeds limit after removal. Please select fewer files.")
+                            continue
+                    else:
+                        print("Please select fewer files.")
+                        continue
+
+                # Add all files at once
+                for file in selected_files:
+                    self.selected_files.add(file)
+                    self.current_tokens += self.get_file_tokens(file)
+                return
+
+            except ValueError:
+                print("Please enter numbers separated by commas, or 'all'/'none'")
+
+    def get_file_tokens(self, path: Path) -> int:
+        """Calculate the estimated number of tokens a file will use in the context."""
+        try:
+            with open(path, 'r') as f:
+                content = f.read().rstrip()
+            # Include the XML tags and path in the token count
+            full_content = f"<file path='./{path.relative_to(self.project_path)}'>\n{content}\n</file>\n"
+            return self.estimate_tokens(full_content)
+        except Exception as e:
+            print(f"Warning: Could not read file {path}: {e}")
+            return 0
+
+    def remove_file(self, path: Path):
+        if path in self.selected_files:
+            self.selected_files.remove(path)
+            self.current_tokens -= self.get_file_tokens(path)
+
+    def prompt_for_removal(self) -> bool:
+        print(f"\nContext limit ({self.context_limit} characters) would be exceeded!")
+        print("\nCurrently selected files:")
+        files = sorted(self.selected_files)
+        for i, f in enumerate(files, 1):
+            print(f"{i}. {f.relative_to(self.project_path)}")
+
+        while True:
+            response = input("\nEnter file numbers to remove (comma-separated), or 'cancel': ").strip()
+            if response.lower() == 'cancel':
+                return False
+
+            try:
+                selected_nums = [int(n.strip()) for n in response.split(',') if n.strip()]
+                if all(1 <= n <= len(files) for n in selected_nums):
+                    for num in selected_nums:
+                        self.remove_file(files[num - 1])
+                    return True
+                print("Please enter valid file numbers")
+            except ValueError:
+                print("Please enter numbers separated by commas, or 'cancel'")
+
+    def generate_tree(self) -> str:
+        """Generate a tree structure showing selected and unselected files.
+
+        The tree includes both selected and unselected files/directories to give
+        the language model context about the full project structure. This helps
+        the model understand where additional context might exist in the project.
+        """
+        tree_lines = ["<project_tree>"]
+
+        # Build a tree structure
+        tree = {'dirs': {}, 'files': []}
+        file_counts = {}  # Track unselected files per directory
+        dir_counts = {}   # Track unselected directories per directory
+
+        # First pass: build the tree and count unselected items
+        for root, dirs, files in os.walk(self.project_path):
+            root_path = Path(root)
+            rel_root = root_path.relative_to(self.project_path)
+
+            # Skip dot directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            if str(rel_root) != "." and self.should_skip_path(rel_root):
+                continue
+
+            # Build path in tree
+            current = tree
+            if str(rel_root) != ".":
+                for part in rel_root.parts:
+                    if 'dirs' not in current:
+                        current['dirs'] = {}
+                    if part not in current['dirs']:
+                        current['dirs'][part] = {'dirs': {}, 'files': []}
+                    current = current['dirs'][part]
+
+            # Count and add files
+            valid_files = [
+                f for f in files
+                if not self.should_skip_path(Path(f)) and not f.endswith('.pyc')
+            ]
+
+            selected_files = [
+                f for f in valid_files
+                if (root_path / f) in self.selected_files
+            ]
+
+            unselected_count = len(valid_files) - len(selected_files)
+            if unselected_count > 0:
+                file_counts[rel_root] = unselected_count
+
+            current['files'].extend(selected_files)
+
+        # Second pass: count unselected directories
+        for root, dirs, _ in os.walk(self.project_path, topdown=False):
+            root_path = Path(root)
+            rel_root = root_path.relative_to(self.project_path)
+
+            if str(rel_root) != "." and self.should_skip_path(rel_root):
+                continue
+
+            unselected_dirs = len([d for d in dirs if not d.startswith('.')])
+            if unselected_dirs > 0:
+                dir_counts[rel_root] = unselected_dirs
+
+        # Helper function to print the tree
+        def print_tree(current, prefix="", is_last=True, path=Path(".")):
+            lines = []
+
+            # Print files at this level
+            files = sorted(current.get('files', []))
+            dirs = sorted(current.get('dirs', {}).items())
+
+            # Add unselected files count if any
+            if path in file_counts:
+                files.append(f"... {file_counts[path]} files not included in context")
+
+            # Add unselected directories count if any
+            if path in dir_counts:
+                files.append(f"... {dir_counts[path]} directories not included in context")
+
+            for i, f in enumerate(files):
+                is_last_item = (i == len(files) - 1) and not dirs
+                new_prefix = prefix + ("└── " if is_last_item else "├── ")
+                lines.append(f"{new_prefix}{f}")
+
+            # Print directories
+            for i, (name, contents) in enumerate(dirs):
+                is_last_dir = (i == len(dirs) - 1)
+                new_prefix = prefix + ("└── " if is_last_dir else "├── ")
+                lines.append(f"{new_prefix}{name}")
+
+                extension = "  " if is_last_dir else "│ "
+                sub_lines = print_tree(
+                    contents,
+                    prefix + extension,
+                    is_last_dir,
+                    path / name
+                )
+                lines.extend(sub_lines)
+
+            return lines
+
+        # Generate the tree lines
+        tree_lines.extend(print_tree(tree))
+        tree_lines.append("</project_tree>")
+
+        return "\n".join(tree_lines)
+
+    def generate_context(self, prompt: str) -> str:
+        """Generate the final context including prompt, project tree, and selected files.
+
+        The context includes:
+        1. The user's prompt
+        2. A tree view of the project structure (including unselected items)
+        3. The content of all selected files with their paths
+        """
+        context_parts = [
+            f"{prompt}\n",
+            f"{self.generate_tree()}\n",
+        ]
+
+        for file_path in sorted(self.selected_files):
+            try:
+                rel_path = file_path.relative_to(self.project_path)
+                with open(file_path, 'r') as f:
+                    content = f.read().rstrip()
+                context_parts.append(f'<file path="./{rel_path}">\n{content}\n</file>\n')
+            except Exception as e:
+                print(f"Warning: Could not read file {file_path}: {e}")
+                continue
+
+        context = "\n".join(context_parts)
+        with open(self.context_cache, 'w') as f:
+            f.write(context)
+
+        return context
+
+def main():
+    parser = argparse.ArgumentParser(description='Generate context for language models from project files.')
+    parser.add_argument('--limit', type=int, default=4000,
+                       help='Token limit for the generated context (1 token ≈ 4 chars or 0.75 words)')
+    args = parser.parse_args()
+
+    generator = ContextGenerator(os.getcwd(), args.limit)
+
+    while True:
+        # Load and display previous prompts
+        previous_prompts = generator.load_previous_prompts()
+        if previous_prompts:
+            print("\nPrevious prompts:")
+            for i, prompt in enumerate(previous_prompts, 1):
+                print(f"{i}. {prompt}")
+
+        # Get new prompt
+        prompt = input("\nEnter your prompt: ")
+        generator.save_prompt(prompt)
+
+        # Select files
+        generator.select_files()
+
+        # Allow user to manage files before generating context
+        while True:
+            if generator.manage_files():
+                # Generate and save context
+                try:
+                    context = generator.generate_context(prompt)
+                    print(f"\nContext generated and saved to: {generator.context_cache}")
+                    print(f"Context size: {generator.estimate_tokens(context)} tokens")
+                    return
+                except Exception as e:
+                    print(f"\nError generating context: {e}")
+                    print("Would you like to try again? [Y/n]")
+                    if input().lower() in ['n', 'no']:
+                        return
+                    break
+            # User chose to start over - break inner loop to get new prompt
+            break
+
+if __name__ == "__main__":
+    main()
