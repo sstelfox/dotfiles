@@ -15,6 +15,14 @@ VOLUME /nix
 
 WORKDIR /workspace
 
+# Indicate that we're int he virtual nix environment, can be keyed off to make sure script that
+# want to run in this environment actually are.
+ENV VIRTUAL_NIX_ENV=true
+
+# Add in a fixed location and expose it to ssh clients for an agent. This won't have any effect
+# unless the container is started by mapping an active agent's socket to this path.
+ENV SSH_AUTH_SOCK=/ssh-agent.sock
+
 #USER nixuser
 
 # Don't set until we drop into this user
