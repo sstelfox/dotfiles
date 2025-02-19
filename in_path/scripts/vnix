@@ -68,11 +68,11 @@ fi
 # We're rootless so need to map initial intermediate ID to the user but maybe this needs to be root?
 # --uidmap 0:10001:1 --gidmap 0:10001:1 \
 
-HOST_UID="$(id -u)"
-HOST_GID="$(id -g)"
-
+#  --uidmap 0:1:10001 --uidmap 10001:0:1 \
+#  --gidmap 0:1:10001 --gidmap 10001:0:1 \
+#  --userns=keep-id \
 exec podman run -it --rm \
-  --uidmap 0:1:10001 --uidmap 10001:0:1 \
-  --gidmap 0:1:10001 --gidmap 10001:0:1 \
+  --uidmap 0:1:0 --uidmap 0:0:1 \
+  --gidmap 0:1:0 --gidmap 0:0:1 \
   --volume "${NIX_CACHE}":/nix:z --volume "${WORKING_DIR}:/workspace" \
   ${ssh_agent_socket_mount_args} "${CONTAINER_TAG}" $@

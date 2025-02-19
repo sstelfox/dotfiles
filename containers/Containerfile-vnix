@@ -6,16 +6,15 @@ ADD ./vnix/nix.conf /etc/nix/nix.conf
 
 RUN mkdir -p /workspace && chmod 755 /workspace
 
-# Create nixuser by hand
-RUN echo "nixuser:x:10001:10001:nixuser:/home/nixuser:/bin/bash" >> /etc/passwd && \
-    echo "nixuser:x:10001:" >> /etc/group && \
-    mkdir -p /home/nixuser && \
-    chown -R nixuser:nixuser /home/nixuser /workspace
-
 # Create SSH agent socket directory
 RUN mkdir -p /run/user/10001 && \
-    chown -R nixuser:nixuser /run/user/10001 && \
     chmod 700 /run/user/10001
+
+# Create nixuser by hand
+#RUN echo "nixuser:x:10001:10001:nixuser:/home/nixuser:/bin/bash" >> /etc/passwd && \
+#    echo "nixuser:x:10001:" >> /etc/group && \
+#    mkdir -p /home/nixuser && \
+#    chown -R nixuser:nixuser /home/nixuser /workspace /run/user/10001
 
 VOLUME /nix
 
@@ -24,9 +23,9 @@ WORKDIR /workspace
 # Environment setup
 ENV VIRTUAL_NIX_ENV=true
 ENV SSH_AUTH_SOCK=/run/user/10001/ssh-agent.sock
-ENV HOME=/home/nixuser
-ENV PATH=/home/nixuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin
-
-USER nixuser
+#ENV HOME=/home/nixuser
+#ENV PATH=/home/nixuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin
+#
+#USER nixuser
 
 RUN git config --global --add safe.directory /workspace
