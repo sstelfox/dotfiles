@@ -13,7 +13,7 @@ personal_ps1_prompt() {
     path="\$(${__DOTFILE_ROOT}/helpers/shortdir.sh)"
     git="\$(${__DOTFILE_ROOT}/helpers/git-ps1-wrapper.sh)"
 
-    echo "${user_host}${bat_status} ${path}${git} \\$ "
+    echo "${user_host}${bat_status}${path}${git} \\$ "
   else
     echo "${user_host} \\$ "
   fi
