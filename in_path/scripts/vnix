@@ -80,7 +80,7 @@ initialize_nix_cache
 
 # Try and allow an ssh agent setup into the environment if its available
 ssh_agent_socket_mount_args=""
-if [ -n "${SSH_AUTH_SOCK}" ]; then
+if [ -n "${SSH_AUTH_SOCK:-}" ]; then
   # When I drop privileges in this container I will use this alternate path, requires a nix overlay or
   # a dirty hack to solve this...
   #container_socket="/run/user/10001/ssh-agent.sock"
@@ -96,11 +96,9 @@ if [ "${CONTAINER_RUNTIME}" = "podman" ]; then
   #  --uidmap 0:1:10001 --uidmap 10001:0:1 \
   #  --gidmap 0:1:10001 --gidmap 10001:0:1 \
   #  --userns=keep-id \
+  #  --uidmap 0:1:0 --uidmap 0:0:1 --gidmap 0:1:0 --gidmap 0:0:1 \
 
-  # While we are root in the container map our current user ID to the root ID, will need to switch
-  # this up when I get the above working
-  exec ${CONTAINER_RUNTIME} run -it --rm \
-    --uidmap 0:1:0 --uidmap 0:0:1 --gidmap 0:1:0 --gidmap 0:0:1 \
+  exec ${CONTAINER_RUNTIME} run -it --rm --userns=keep-id \
     --volume "${NIX_CACHE}:/nix:z" --volume "${WORKING_DIR}:/workspace" \
     ${ssh_agent_socket_mount_args} "${CONTAINER_TAG}" $@
 else
