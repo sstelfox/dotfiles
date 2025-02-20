@@ -1,6 +1,6 @@
 {
-  nixVersion,
-  nixHash,
+  nixVersion ? "23.11",
+  nixHash ? "1f5d2g1p6nfwycpmrnnmc2xmcszp804adp16knjvdkj8nz36y1fg",
   pkgs ? import (fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/nixos-${nixVersion}.tar.gz";
     sha256 = nixHash;
@@ -16,30 +16,33 @@ let
     paths = [
       pkgs.bashInteractive
       pkgs.coreutils
+      pkgs.nix
     ];
   };
 
   containerImage = pkgs.dockerTools.buildImage {
-    name = imageName;
+    name = "stelfox.net/containers/${imageName}";
     tag = imageTag;
 
     copyToRoot = env;
 
     config = {
       Cmd = [ "/bin/bash" ];
-      WorkingDir = "/";
+      WorkingDir = "/workspace";
     };
   };
 
   exportScript = pkgs.writeScriptBin "export-${imageName}" ''
     #!${pkgs.bash}/bin/bash
 
-    cp ${containerImage} ./${imageName}-${imageTag}.tar.gz
-    id -u
-    id -g
-    chown root:root ./${imageName}-${imageTag}.tar.gz
+    set -o errexit
+    set -o nounset
+    set -o pipefail
 
-    echo "image written to: ./${imageName}-${imageTag}.tar.gz"
+    OUT_FILE="./${imageName}-${imageTag}.tar.gz"
+
+    cp "${containerImage}" "$OUT_FILE"
+    echo "image written to: $OUT_FILE"
   '';
 in
   {
