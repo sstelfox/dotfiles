@@ -11,8 +11,7 @@ ADD nix.conf /etc/nix/nix.conf
 RUN mkdir -p /workspace && chmod 755 /workspace
 
 # Create SSH agent socket directory
-RUN mkdir -p /run/user/10001 && \
-    chmod 700 /run/user/10001
+RUN mkdir -p /run/user/10001 && chmod 700 /run/user/10001
 
 # Create nixuser by hand
 #RUN echo "nixuser:x:10001:10001:nixuser:/home/nixuser:/bin/bash" >> /etc/passwd && \

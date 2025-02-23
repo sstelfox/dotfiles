@@ -65,7 +65,7 @@ initialize_nix_cache() {
   if [ ! -d "${NIX_CACHE}/store" ]; then
     mkdir -p "${NIX_CACHE}"
 
-    ${CONTAINER_RUNTIME} create --name vnix-init ${CONTAINER_TAG} >/dev/null
+    ${CONTAINER_RUNTIME} create --name vnix-init --replace ${CONTAINER_TAG} >/dev/null
     ${CONTAINER_RUNTIME} export vnix-init | tar -xf - --strip-components=1 -C "${NIX_CACHE}" nix
     ${CONTAINER_RUNTIME} rm vnix-init true >/dev/null 2>&1 || true
   fi
@@ -99,7 +99,7 @@ if [ "${CONTAINER_RUNTIME}" = "podman" ]; then
   #  --uidmap 0:1:0 --uidmap 0:0:1 --gidmap 0:1:0 --gidmap 0:0:1 \
 
   exec ${CONTAINER_RUNTIME} run -it --rm --userns=keep-id \
-    --volume "${NIX_CACHE}:/nix:z" --volume "${WORKING_DIR}:/workspace" \
+    --volume "${NIX_CACHE}:/nix:z" --volume "${WORKING_DIR}:/workspace:z" \
     ${ssh_agent_socket_mount_args} "${CONTAINER_TAG}" $@
 else
   # With docker we loose our security guarantees, this is effectively granting root on the local
