@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+
+set -o errexit
+set -o nounset
+
+SHELL_CHECK_ARGS="--color=never -x -s sh -o all --extended-analysis=true"
+
+if [ "${1:-}" = "-c" ]; then
+  git ls-files '*.sh' '*.sh.inc' |
+    grep -v system-setup-scripts |
+    xargs shellcheck -f json ${SHELL_CHECK_ARGS} |
+    jq -c '{
+      file_count: (map(.file) | unique | length),
+      total_issues: length
+    }'
+else
+  git ls-files '*.sh' '*.sh.inc' |
+    grep -v system-setup-scripts |
+    xargs shellcheck ${SHELL_CHECK_ARGS}
+fi
