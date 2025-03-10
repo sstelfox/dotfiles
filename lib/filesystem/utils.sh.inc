@@ -59,5 +59,10 @@ trim_whitespace() {
     return 1
   fi
 
-  sed -i 's/[[:space:]]*$//' "${file_path}"
+  if [ "$(detect_os)" = "macos" ]; then
+    # Weird BSD variant for sed... classic Apple...
+    sed -i '' 's/[[:space:]]*$//' "${file_path}"
+  else
+    sed -i 's/[[:space:]]*$//' "${file_path}"
+  fi
 }
