@@ -13,6 +13,7 @@ import signal
 import subprocess
 import sys
 import time
+
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -20,7 +21,53 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import jsonschema
 
-VERSION = "0.1.0"
+VERSION = "0.3.0"
+
+class CevLock:
+    def __init__(self, lock_file: Path, lock_type: str = "state"):
+        self.lock_file = lock_file
+
+        # Set timeout based on lock type according to specification, using seconds
+        if lock_type == "write":
+            self.timeout_seconds = 5
+        elif lock_type == "delayed":
+            self.timeout_seconds = 2  # Short-lived lock for delayed file
+        else:  # state lock
+            self.timeout_seconds = 15 * 60  # 15 minutes in seconds
+
+        self.lock_fd = None
+        self.lock_type = lock_type
+
+    def __enter__(self):
+        self.lock_file.parent.mkdir(parents=True, exist_ok=True)
+        self.lock_fd = open(self.lock_file, "w+")
+
+        try:
+            fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            start_time = time.time()
+
+            while time.time() - start_time < self.timeout_seconds:
+                try:
+                    fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    time.sleep(0.1)
+            else:
+                raise RuntimeError(f"could not acquire {self.lock_type} lock on {self.lock_file} within {self.timeout_seconds} seconds")
+
+        self.lock_fd.write(str(os.getpid()))
+        self.lock_fd.flush()
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.lock_fd:
+            fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+
+            self.lock_fd.close()
+            self.lock_fd = None
+
 
 class LogLevel(str, Enum):
     DEBUG = "debug"
@@ -29,37 +76,6 @@ class LogLevel(str, Enum):
     ERROR = "error"
     FATAL = "fatal"
 
-class CevLock:
-    def __init__(self, lock_file: Path, timeout_minutes: int = 1):
-        self.lock_file = lock_file
-        self.timeout_minutes = timeout_minutes
-        self.lock_fd = None
-
-    def __enter__(self):
-        self.lock_file.parent.mkdir(parents=True, exist_ok=True)
-        self.lock_fd = open(self.lock_file, "w+")
-        try:
-            fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            start_time = time.time()
-            while time.time() - start_time < self.timeout_minutes * 60:
-                try:
-                    fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except BlockingIOError:
-                    time.sleep(0.1)
-            else:
-                raise RuntimeError(f"could not acquire lock on {self.lock_file} within {self.timeout_minutes} minutes")
-
-        self.lock_fd.write(str(os.getpid()))
-        self.lock_fd.flush()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.lock_fd:
-            fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
-            self.lock_fd.close()
-            self.lock_fd = None
 
 class CevLogger:
     def __init__(self, log_file: Path, verbose: bool = False):
@@ -99,6 +115,264 @@ class CevLogger:
         self.log(LogLevel.FATAL, message, **kwargs)
         sys.exit(1)
 
+
+def create_state_snapshot(event_stream_dir: Path, data_dir: Path, event_stream: str,
+                         event_id: str, state_data: Dict[str, Any],
+                         processing_duration_ms: Optional[int] = None) -> Path:
+    state_dir = event_stream_dir / "state"
+    state_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    previous_snapshot = get_latest_state_snapshot(event_stream_dir)
+    previous_snapshot_name = previous_snapshot.name.replace(".state.json", "") if previous_snapshot else ""
+
+    dependencies = get_dependency_info(event_stream_dir, data_dir)
+
+    metadata = {
+        "stream": event_stream,
+        "previous_snapshot": previous_snapshot_name,
+        "event_id": event_id,
+        "timestamp": timestamp,
+        "dependencies": dependencies
+    }
+
+    if processing_duration_ms is not None:
+        metadata["processing_duration_ms"] = processing_duration_ms
+
+    snapshot = {
+        "metadata": metadata,
+        "state": state_data
+    }
+
+    state_path = get_state_path(event_stream_dir, event_id, timestamp)
+    with open(state_path, "w") as f:
+        json.dump(snapshot, f, indent=2)
+
+    return state_path
+
+
+def generate_stub_from_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    if "type" not in schema:
+        return {}
+
+    if schema["type"] == "object":
+        result = {}
+
+        for prop_name, prop_schema in schema.get("properties", {}).items():
+            result[prop_name] = generate_stub_from_schema(prop_schema)
+
+        return result
+    elif schema["type"] == "array":
+        if "items" in schema:
+            return [generate_stub_from_schema(schema["items"])]
+
+        return []
+    elif schema["type"] == "string":
+        if schema.get("format") == "date-time":
+            return datetime.now(timezone.utc).isoformat()
+
+        return ""
+    elif schema["type"] == "boolean":
+        return False
+    elif schema["type"] == "number" or schema["type"] == "integer":
+        return 0
+    elif schema["type"] == "null":
+        return None
+
+    return None
+
+
+def get_current_stream_index(event_stream_dir: Path) -> Optional[str]:
+    current_index_file = event_stream_dir / "current.idx"
+
+    if not current_index_file.exists():
+        return None
+
+    return current_index_file.read_text().strip()
+
+
+def get_data_directory(args) -> Path:
+    if args.data_dir:
+        return Path(args.data_dir).expanduser().resolve()
+
+    xdg_data_home = os.environ.get("XDG_DATA_HOME")
+    if xdg_data_home:
+        return Path(xdg_data_home) / "cev"
+
+    return Path.home() / ".local" / "share" / "cev"
+
+
+def get_dependency_info(event_stream_dir: Path, data_dir: Path) -> Dict[str, Dict[str, str]]:
+    dependency_dir = event_stream_dir / "dependencies"
+    dependency_info = {}
+
+    if not dependency_dir.exists():
+        return dependency_info
+
+    # Process all symlinks in the dependencies directory
+    for dependency_link in dependency_dir.glob("*"):
+        if not dependency_link.is_symlink():
+            continue
+
+        dependency_stream = dependency_link.name
+        dependency_dir_path = data_dir / dependency_stream
+
+        # Skip if dependency stream doesn't exist
+        if not dependency_dir_path.exists():
+            continue
+
+        latest_event_id = get_processed_stream_index(dependency_dir_path)
+        if latest_event_id is None:
+            latest_event_id = get_current_stream_index(dependency_dir_path)
+
+            # Skip dependencies with no events
+            if latest_event_id is None:
+                continue
+
+        latest_snapshot = get_latest_state_snapshot(dependency_dir_path)
+
+        # Create dependency info with event_id and snapshot (when available)
+        dependency_entry = {"event_id": latest_event_id}
+        if latest_snapshot:
+            snapshot_name = latest_snapshot.name.replace(".state.json", "")
+            dependency_entry["snapshot"] = snapshot_name
+
+        dependency_info[dependency_stream] = dependency_entry
+
+    return dependency_info
+
+
+def get_event_path(event_stream_dir: Path, stream_index: str, timestamp: str, event_name: str) -> Path:
+    return event_stream_dir / "events" / f"{stream_index}-{timestamp}-{event_name}.evt"
+
+
+def get_event_stream_directory(data_dir: Path, event_stream: str) -> Path:
+    return data_dir / event_stream
+
+
+def get_latest_state_snapshot(event_stream_dir: Path) -> Optional[Path]:
+    state_dir = event_stream_dir / "state"
+    if not state_dir.exists():
+        return None
+
+    snapshots = sorted(state_dir.glob("*.state.json"), key=lambda x: str(x))
+    if not snapshots:
+        return None
+
+    return snapshots[-1]
+
+
+def get_processed_stream_index(event_stream_dir: Path) -> Optional[str]:
+    processed_index_file = event_stream_dir / "processed.idx"
+
+    if not processed_index_file.exists():
+        return None
+
+    return processed_index_file.read_text().strip()
+
+
+def get_state_path(event_stream_dir: Path, stream_index: str, timestamp: str) -> Path:
+    return event_stream_dir / "state" / f"{stream_index}-{timestamp}.state.json"
+
+
+def increment_stream_index(current_index: Optional[str] = None) -> str:
+    if current_index is None:
+        return "00000000"
+
+    return f"{(int(current_index, 16) + 1):08x}"
+
+
+def parse_state_snapshot(state_path: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    if not state_path.exists():
+        return {}, {}
+
+    try:
+        with open(state_path, "r") as f:
+            snapshot = json.load(f)
+
+        metadata = snapshot.get("metadata", {})
+        state = snapshot.get("state", {})
+
+        return metadata, state
+    except (json.JSONDecodeError, FileNotFoundError):
+        return {}, {}
+
+
+def process_trigger_log(log_data: Dict[str, Any], stream: str, trigger_name: str) -> Dict[str, Any]:
+    processed_log = log_data.copy()
+
+    # Set level if not present or invalid
+    if "level" not in processed_log or processed_log["level"] not in [l.value for l in LogLevel]:
+        processed_log["level"] = "info" if "level" not in processed_log else "debug"
+
+    # We always override timestamp, the parent process acts as the authority for this information
+    processed_log["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    # We always want this present, but we want the most specific stream that is triggering this so
+    # the deepest leaf node in the execution tree should be the one to set this.
+    if "stream" not in processed_log:
+        processed_log["stream"] = stream
+
+    # Same for the trigger name
+    if "trigger_name" not in processed_log:
+        processed_log["trigger_name"] = trigger_name
+
+    return processed_log
+
+
+def set_current_stream_index(event_stream_dir: Path, stream_index: str):
+    current_index_file = event_stream_dir / "current.idx"
+    current_index_file.write_text(stream_index)
+
+
+def set_processed_stream_index(event_stream_dir: Path, stream_index: str):
+    processed_index_file = event_stream_dir / "processed.idx"
+    processed_index_file.write_text(stream_index)
+
+
+def validate_event_against_schema(event: Dict[str, Any], schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    try:
+        jsonschema.validate(event, schema)
+        return True, None
+    except jsonschema.exceptions.ValidationError as e:
+        return False, str(e)
+
+
+def validate_event_name(event_name: str) -> bool:
+    if not event_name:
+        return False
+
+    # Must begin with lowercase letter
+    if not event_name[0].islower():
+        return False
+
+    prev_char = None
+    has_digits = False
+
+    # Check each character
+    for i, c in enumerate(event_name):
+        if c.islower():
+            if has_digits:  # Digits must be at the end
+                return False
+
+            prev_char = c
+        elif c == "-":
+            if has_digits:  # Digits must be at the end
+                return False
+
+            if prev_char == "-":  # No repeating hyphens
+                return False
+
+            prev_char = c
+        elif c.isdigit():
+            has_digits = True
+        else:
+            return False
+
+    return True
+
+
 def validate_event_stream(event_stream: str) -> bool:
     if not event_stream:
         return False
@@ -121,84 +395,13 @@ def validate_event_stream(event_stream: str) -> bool:
             elif c == "-":
                 if prev_char == "-":
                     return False
+
                 prev_char = c
             else:
                 return False
 
     return True
 
-def validate_event_name(event_name: str) -> bool:
-    if not event_name:
-        return False
-
-    # Must begin with lowercase letter
-    if not event_name[0].islower():
-        return False
-
-    prev_char = None
-    has_digits = False
-
-    for i, c in enumerate(event_name):
-        if c.islower():
-            if has_digits:  # Digits must be at the end
-                return False
-            prev_char = c
-        elif c == "-":
-            if has_digits:  # Digits must be at the end
-                return False
-            if prev_char == "-":  # No repeating hyphens
-                return False
-            prev_char = c
-        elif c.isdigit():
-            has_digits = True
-        else:
-            return False
-
-    return True
-
-def get_data_directory(args) -> Path:
-    if args.data_dir:
-        return Path(args.data_dir).expanduser().resolve()
-
-    xdg_data_home = os.environ.get("XDG_DATA_HOME")
-    if xdg_data_home:
-        return Path(xdg_data_home) / "cev"
-
-    return Path.home() / ".local" / "share" / "cev"
-
-def get_event_stream_directory(data_dir: Path, event_stream: str) -> Path:
-    return data_dir / event_stream
-
-def get_event_path(event_stream_dir: Path, stream_index: str, timestamp: str, event_name: str) -> Path:
-    return event_stream_dir / "events" / f"{stream_index}-{timestamp}-{event_name}.evt"
-
-def get_current_stream_index(event_stream_dir: Path) -> Optional[str]:
-    current_index_file = event_stream_dir / "current.idx"
-    if not current_index_file.exists():
-        return None
-
-    return current_index_file.read_text().strip()
-
-def get_processed_stream_index(event_stream_dir: Path) -> Optional[str]:
-    processed_index_file = event_stream_dir / "processed.idx"
-    if not processed_index_file.exists():
-        return None
-
-    return processed_index_file.read_text().strip()
-
-def set_current_stream_index(event_stream_dir: Path, stream_index: str):
-    current_index_file = event_stream_dir / "current.idx"
-    current_index_file.write_text(stream_index)
-
-def set_processed_stream_index(event_stream_dir: Path, stream_index: str):
-    processed_index_file = event_stream_dir / "processed.idx"
-    processed_index_file.write_text(stream_index)
-
-def increment_stream_index(current_index: Optional[str] = None) -> str:
-    if current_index is None:
-        return "00000000"
-
-    return f"{(int(current_index, 16) + 1):08x}"
 
 def validate_json_schema(schema: Dict[str, Any]) -> bool:
     try:
@@ -207,63 +410,17 @@ def validate_json_schema(schema: Dict[str, Any]) -> bool:
     except jsonschema.exceptions.SchemaError as e:
         return False
 
-def validate_event_against_schema(event: Dict[str, Any], schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-    try:
-        jsonschema.validate(event, schema)
-        return True, None
-    except jsonschema.exceptions.ValidationError as e:
-        return False, str(e)
 
-def generate_stub_from_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
-    if "type" not in schema:
-        return {}
-
-    if schema["type"] == "object":
-        result = {}
-        for prop_name, prop_schema in schema.get("properties", {}).items():
-            result[prop_name] = generate_stub_from_schema(prop_schema)
-        return result
-    elif schema["type"] == "array":
-        if "items" in schema:
-            return [generate_stub_from_schema(schema["items"])]
-        return []
-    elif schema["type"] == "string":
-        if schema.get("format") == "date-time":
-            return datetime.now(timezone.utc).isoformat()
-        return ""
-    elif schema["type"] == "boolean":
-        return False
-    elif schema["type"] == "number" or schema["type"] == "integer":
-        return 0
-    elif schema["type"] == "null":
-        return None
-
-    return None
-
-def process_trigger_log(log_data: Dict[str, Any], stream: str, trigger_name: str) -> Dict[str, Any]:
-    processed_log = log_data.copy()
-
-    if "level" not in processed_log or processed_log["level"] not in [l.value for l in LogLevel]:
-        processed_log["level"] = "info" if "level" not in processed_log else "debug"
-
-    processed_log["timestamp"] = datetime.now(timezone.utc).isoformat()
-
-    if "stream" not in processed_log:
-        processed_log["stream"] = stream
-
-    if "trigger_name" not in processed_log:
-        processed_log["trigger_name"] = trigger_name
-
-    return processed_log
-
-def run_trigger(trigger_path: Path, event_path: Optional[Path], env_vars: Dict[str, str],
-                logger: CevLogger, with_timeout: bool = True) -> int:
+def run_trigger(trigger_path: Path, event_path: Optional[Path], state_path: Optional[Path],
+                env_vars: Dict[str, str], logger: CevLogger, with_timeout: bool = True) -> Tuple[int, Optional[Dict[str, Any]]]:
     process_env = os.environ.copy()
     process_env.update(env_vars)
 
     cmd = [str(trigger_path)]
     if event_path:
         cmd.append(str(event_path))
+    if state_path:
+        cmd.append(str(state_path))
 
     logger.debug("executing trigger command", cmd=str(cmd), env=str(env_vars))
 
@@ -276,112 +433,14 @@ def run_trigger(trigger_path: Path, event_path: Optional[Path], env_vars: Dict[s
             text=True
         )
 
-        # Add a timeout to prevent hanging
-        timeout = 60 if with_timeout else None
-        stdout, stderr = process.communicate(timeout=timeout)
-
-        # Process STDOUT as JSON log messages
-        if stdout.strip():
-            stream = env_vars.get("CEV_STREAM", "unknown")
-            trigger_name = env_vars.get("CEV_TRIGGER_NAME", "unknown")
-
-            # Log warning about STDOUT usage
-            logger.warn("trigger produced output on stdout, which is reserved for future use",
-                        stream=stream, trigger_name=trigger_name)
-
-            # Process each line as a potential JSON log message
-            for line in stdout.strip().split("\n"):
-                if line:
-                    try:
-                        log_entry = json.loads(line)
-                        if not isinstance(log_entry, dict):
-                            continue
-
-                        processed_log = process_trigger_log(log_entry, stream, trigger_name)
-                        log_level = processed_log.pop("level", "info")
-
-                        # Extract message to avoid conflict and pass other fields as kwargs
-                        message = processed_log.pop("message", "trigger log")
-
-                        if log_level == "debug":
-                            logger.debug(message, **processed_log)
-                        elif log_level == "info":
-                            logger.info(message, **processed_log)
-                        elif log_level == "warn":
-                            logger.warn(message, **processed_log)
-                        elif log_level == "error":
-                            logger.error(message, **processed_log)
-                        elif log_level == "fatal":
-                            logger.fatal(message, **processed_log)
-
-                    except json.JSONDecodeError:
-                        logger.warn("non-JSON output from trigger", output=line,
-                                   stream=stream, trigger_name=trigger_name)
-
-        if stderr.strip():
-            trigger_name = Path(trigger_path).name
-            stream = env_vars.get("CEV_STREAM", "unknown")
-
-            # Check if stderr contains valid JSON logs
-            for line in stderr.strip().split("\n"):
-                if line:
-                    try:
-                        log_entry = json.loads(line)
-                        if isinstance(log_entry, dict):
-                            processed_log = process_trigger_log(log_entry, stream, trigger_name)
-                            log_level = processed_log.pop("level", "info")
-
-                            message = processed_log.pop("message", "trigger log")
-
-                            if log_level == "debug":
-                                logger.debug(message, **processed_log)
-                            elif log_level == "info":
-                                logger.info(message, **processed_log)
-                            elif log_level == "warn":
-                                logger.warn(message, **processed_log)
-                            elif log_level == "error":
-                                logger.error(message, **processed_log)
-                            elif log_level == "fatal":
-                                logger.fatal(message, **processed_log)
-                            continue
-                    except json.JSONDecodeError:
-                        pass
-
-                # If we got here, it's not a valid JSON log, so log it as stderr output
-                logger.error("trigger stderr output", stderr=line, trigger=trigger_name)
-
-        return process.returncode
-    except subprocess.TimeoutExpired:
-        trigger_name = Path(trigger_path).name
-        logger.error("trigger timed out after 60 seconds", trigger=trigger_name)
-        process.kill()
-        return 1
-
-def run_trigger_with_timeout(trigger_path: Path, event_path: Optional[Path], env_vars: Dict[str, str], logger: CevLogger) -> int:
-    process_env = os.environ.copy()
-    process_env.update(env_vars)
-
-    cmd = [str(trigger_path)]
-    if event_path:
-        cmd.append(str(event_path))
-
-    logger.debug("executing trigger with timeout", cmd=str(cmd))
-
-    try:
-        process = subprocess.Popen(
-            cmd,
-            env=process_env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-
-        start_time = time.time()
-        max_wait = 60
+        target_time_limit = 60
+        kill_grace_period = 15
+        warning_time_limit = target_time_limit - kill_grace_period
 
         stdout_data = []
         stderr_data = []
 
+        # Non-blocking read setup
         import select
         import fcntl
 
@@ -390,25 +449,30 @@ def run_trigger_with_timeout(trigger_path: Path, event_path: Optional[Path], env
             flags = fcntl.fcntl(pipe.fileno(), fcntl.F_GETFL)
             fcntl.fcntl(pipe.fileno(), fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-        # Monitor process with timeout
+        start_time = time.time()
+
         while process.poll() is None:
-            if time.time() - start_time > max_wait:
-                logger.warn("trigger exceeded timeout, sending SIGHUP",
-                           trigger=Path(trigger_path).name)
+            # If we have a timeout, we'll need to do some additional signal handling to be gentle
+            # to the called triggers
+            if with_timeout and time.time() - start_time > warning_time_limit:
+                # Send SIGHUP first as a warning
+                logger.warn("trigger reached warning limit timeout, sending warning SIGHUP signal",
+                            trigger=Path(trigger_path).name)
                 process.send_signal(signal.SIGHUP)
 
-                # Wait additional 15 seconds before SIGKILL
+                # We'll give the process an extra 15 seconds to try and clean up or finish up
                 grace_time = time.time()
-                while process.poll() is None and time.time() - grace_time < 15:
+                while process.poll() is None and time.time() - grace_time < kill_grace_period:
                     time.sleep(0.1)
 
-                # If still running, SIGKILL
+                # I gave you a warning... You dare be insolent?
                 if process.poll() is None:
-                    logger.warn("trigger still running after SIGHUP, sending SIGKILL",
-                               trigger=Path(trigger_path).name)
+                    logger.warn("trigger still running after warning signal, killing process",
+                                trigger=Path(trigger_path).name)
                     process.kill()
                     break
 
+            # Check if the process has produced any output
             ready_pipes, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
             for pipe in ready_pipes:
@@ -421,57 +485,33 @@ def run_trigger_with_timeout(trigger_path: Path, event_path: Optional[Path], env
                     if data:
                         stderr_data.append(data)
 
-        # Process completed, get the final output
+            # todo: if we receive a complete line on stderr we should print it out immediately
+
+        # todo: is it possible there is extra date left on stdout and stderr?
+
+        # Simple output collection, just join our pieces together, could do better here...
         stdout = "".join(stdout_data)
         stderr = "".join(stderr_data)
 
-        if stdout.strip():
-            stream = env_vars.get("CEV_STREAM", "unknown")
-            trigger_name = env_vars.get("CEV_TRIGGER_NAME", "unknown")
-
-            logger.warn("trigger produced output on stdout, which is reserved for future use",
-                        stream=stream, trigger_name=trigger_name)
-
-            for line in stdout.strip().split("\n"):
-                if line:
-                    try:
-                        log_entry = json.loads(line)
-                        if not isinstance(log_entry, dict):
-                            continue
-
-                        processed_log = process_trigger_log(log_entry, stream, trigger_name)
-                        log_level = processed_log.pop("level", "info")
-
-                        message = processed_log.pop("message", "trigger log")
-
-                        if log_level == "debug":
-                            logger.debug(message, **processed_log)
-                        elif log_level == "info":
-                            logger.info(message, **processed_log)
-                        elif log_level == "warn":
-                            logger.warn(message, **processed_log)
-                        elif log_level == "error":
-                            logger.error(message, **processed_log)
-                        elif log_level == "fatal":
-                            logger.fatal(message, **processed_log)
-
-                    except json.JSONDecodeError:
-                        logger.warn("non-JSON output from trigger", output=line,
-                                   stream=stream, trigger_name=trigger_name)
-
+        # STDERR is the structured logs
         if stderr.strip():
             trigger_name = Path(trigger_path).name
             stream = env_vars.get("CEV_STREAM", "unknown")
 
+            # Each line SHOULD be a valid JSON object but we'll handle and warn for other output
             for line in stderr.strip().split("\n"):
                 if line:
                     try:
                         log_entry = json.loads(line)
+
                         if isinstance(log_entry, dict):
                             processed_log = process_trigger_log(log_entry, stream, trigger_name)
                             log_level = processed_log.pop("level", "info")
 
-                            message = processed_log.pop("message", "trigger log")
+                            # We want to pull the message out of the inner log line, this
+                            # extraction and rebuild is important to ensure we have proper
+                            # precedence and overrides over different variables.
+                            message = processed_log.pop("message")
 
                             if log_level == "debug":
                                 logger.debug(message, **processed_log)
@@ -483,18 +523,173 @@ def run_trigger_with_timeout(trigger_path: Path, event_path: Optional[Path], env
                                 logger.error(message, **processed_log)
                             elif log_level == "fatal":
                                 logger.fatal(message, **processed_log)
+
                             continue
                     except json.JSONDecodeError:
                         pass
 
-                logger.error("trigger stderr output", stderr=line, trigger=trigger_name)
+                # If we got here, it's not a valid JSON log, so log it as stderr output
+                logger.warn("raw trigger stderr output", stderr=line, trigger=trigger_name)
 
-        return process.returncode if process.returncode is not None else 1
+        # Check if STDOUT contains a valid state update
+        state_update = None
+        if stdout.strip():
+            try:
+                state_update = json.loads(stdout.strip())
 
+                if not isinstance(state_update, dict):
+                    logger.warn("trigger produced non-dict JSON on stdout",
+                             stream=env_vars.get("CEV_STREAM", "unknown"),
+                             trigger_name=env_vars.get("CEV_TRIGGER_NAME", "unknown"))
+
+                    state_update = None
+            except json.JSONDecodeError:
+                logger.warn("trigger produced invalid output on stdout",
+                          stream=env_vars.get("CEV_STREAM", "unknown"),
+                          trigger_name=env_vars.get("CEV_TRIGGER_NAME", "unknown"),
+                          stdout=stdout.strip())
+
+                state_update = None
+
+        return process.returncode if process.returncode is not None else 1, state_update
+    except subprocess.TimeoutExpired:
+        trigger_name = Path(trigger_path).name
+        logger.error("trigger timed out after 60 seconds", trigger=trigger_name)
+
+        process.kill()
+
+        return 1, None
     except Exception as e:
         trigger_name = Path(trigger_path).name
         logger.error("error running trigger", error=str(e), trigger=trigger_name)
-        return 1
+        return 1, None
+
+
+def verify_dependency_state(event_stream_dir: Path, data_dir: Path, logger: CevLogger) -> bool:
+    """Verify that all dependencies are in the expected state.
+    Returns True if all dependencies are valid, False if any are invalid."""
+
+    dependency_dir = event_stream_dir / "dependencies"
+    if not dependency_dir.exists():
+        return True
+
+    # Process all symlinks in the dependencies directory
+    for dependency_link in dependency_dir.glob("*"):
+        if not dependency_link.is_symlink():
+            continue
+
+        dependency_stream = dependency_link.name
+        dependency_dir_path = data_dir / dependency_stream
+
+        # Skip if dependency stream doesn't exist
+        if not dependency_dir_path.exists():
+            logger.error("dependency stream does not exist",
+                       dependency=dependency_stream)
+            continue
+
+        # Check if there are events in the dependency stream that haven't been processed
+        # by this stream
+        processed_index = get_processed_stream_index(dependency_dir_path)
+        if processed_index is None:
+            # No events processed in dependency, so nothing to check
+            continue
+
+        # Get the current stream index if available
+        latest_event_id = get_current_stream_index(dependency_dir_path)
+        if latest_event_id is None:
+            latest_event_id = processed_index
+
+        # Get the latest state snapshot of the current stream
+        latest_snapshot = get_latest_state_snapshot(event_stream_dir)
+        if latest_snapshot is None:
+            # This stream has no state yet, so it needs to fetch the dependency state
+            logger.info("stream needs to update dependency state",
+                      event_stream=str(event_stream_dir.relative_to(data_dir)),
+                      dependency=dependency_stream)
+            return False
+
+        # Parse metadata from the snapshot to check dependency versions
+        metadata, _ = parse_state_snapshot(latest_snapshot)
+        dependencies = metadata.get("dependencies", {})
+
+        # Check if the dependency version recorded in our state is older than what's available
+        dep_info = dependencies.get(dependency_stream, {})
+        recorded_event_id = dep_info.get("event_id", "00000000")
+
+        if int(recorded_event_id, 16) < int(latest_event_id, 16):
+            # The dependency has newer events we haven't yet incorporated
+            logger.info("dependency has newer events",
+                      event_stream=str(event_stream_dir.relative_to(data_dir)),
+                      dependency=dependency_stream,
+                      recorded=recorded_event_id,
+                      current=latest_event_id)
+            return False
+
+    return True
+
+def add_stream_to_delayed(event_stream: str, event_stream_dir: Path, logger: CevLogger):
+    """Add a stream to the delayed file with proper locking to avoid concurrency issues."""
+    delayed_path = event_stream_dir / "delayed"
+    delay_lock_path = event_stream_dir / "delayed.flock"
+
+    # Use a short-lived lock for delayed file operations
+    with CevLock(delay_lock_path, "delayed"):
+        # Read existing delayed streams
+        delayed_streams = set()
+        if delayed_path.exists():
+            with open(delayed_path, "r") as f:
+                for line in f:
+                    delayed_streams.add(line.strip())
+
+        # Add the current stream if not already present
+        if event_stream not in delayed_streams:
+            delayed_streams.add(event_stream)
+
+            # Write back the updated list
+            with open(delayed_path, "w") as f:
+                for stream in delayed_streams:
+                    f.write(f"{stream}\n")
+
+            logger.debug("added stream to delayed file", event_stream=event_stream)
+
+def get_embedded_data(key: str) -> str:
+    """Retrieve embedded data by key from the trailing data section.
+    Returns the raw text content without any parsing."""
+    # Get the path to the current script
+    script_path = Path(sys.argv[0])
+
+    # Open and read the script file
+    with open(script_path, "r") as f:
+        script_content = f.read()
+
+    # Split content at the marker
+    if "# BEGIN_SCRIPTS" not in script_content:
+        return None
+
+    data_section = script_content.split("# BEGIN_SCRIPTS", 1)[1]
+
+    # Parse the data section to find the requested key
+    current_key = None
+    content_lines = []
+
+    for line in data_section.split("\n"):
+        if line.startswith("# [") and line.endswith("]"):
+            # If we found our key and are now at a new key, return the content
+            if current_key == key and content_lines:
+                return "".join(content_lines)
+
+            # Start of a new section
+            current_key = line[3:-1]  # Remove "# [" and "]"
+            content_lines = []
+        elif current_key == key:
+            # Collect lines for the current key
+            content_lines.append(line + "\n")
+
+    # Check if the key is at the end of the file
+    if current_key == key and content_lines:
+        return "".join(content_lines)
+
+    return None
 
 def define_event(args, logger, data_dir):
     event_stream = args.stream
@@ -516,6 +711,7 @@ def define_event(args, logger, data_dir):
 
     schema_path = schema_dir / f"{event_name}.schema"
 
+    # Get schema from file or stdin
     if schema_file:
         try:
             with open(schema_file, "r") as f:
@@ -568,6 +764,7 @@ def create_event(args, logger, data_dir):
     except FileNotFoundError:
         logger.fatal("failed to load schema: file not found", file=str(schema_path))
 
+    # Generate stub from schema
     stub = generate_stub_from_schema(schema)
 
     if event_file:
@@ -584,7 +781,6 @@ def add_event(args, logger, data_dir):
     event_file = args.file
     at_timestamp = args.at
     process = args.process
-    already_locked = os.environ.get("CEV_ALREADY_LOCKED") == "1"
 
     if not validate_event_stream(event_stream):
         logger.fatal("invalid event stream name", event_stream=event_stream)
@@ -625,13 +821,14 @@ def add_event(args, logger, data_dir):
         except json.JSONDecodeError as e:
             logger.fatal("failed to parse event from stdin", error=str(e))
 
+    # Validate event against schema
     valid, error_msg = validate_event_against_schema(event, schema)
     if not valid:
         logger.fatal("event does not match schema", error=error_msg)
 
     event_timestamp = datetime.now(timezone.utc).isoformat()
 
-    # If at_timestamp is provided, schedule the event instead of recording it
+    # If at_timestamp is provided, schedule the event for the future
     if at_timestamp:
         system_events_dir = get_event_stream_directory(data_dir, "system-events/scheduled")
         system_events_dir.mkdir(parents=True, exist_ok=True)
@@ -641,18 +838,8 @@ def add_event(args, logger, data_dir):
 
         scheduled_schema_path = system_events_dir / "schemas" / "schedule-task.schema"
         if not scheduled_schema_path.exists():
-            scheduled_schema = {
-                "type": "object",
-                "required": ["recorded_at", "scheduled_for", "event_stream"],
-                "properties": {
-                    "recorded_at": {"type": "string", "format": "date-time"},
-                    "scheduled_for": {"type": "string", "format": "date-time"},
-                    "event_stream": {"type": "string"},
-                    "event_name": {"type": "string"},
-                    "event_payload": {"type": "object"},
-                    "process_immediately": {"type": "boolean"}
-                }
-            }
+            # Get the schema from the embedded data section
+            scheduled_schema = json.loads(get_embedded_data("system-events-scheduled-schema"))
             with open(scheduled_schema_path, "w") as f:
                 json.dump(scheduled_schema, f, indent=2)
 
@@ -665,8 +852,9 @@ def add_event(args, logger, data_dir):
             "process_immediately": process
         }
 
-        if already_locked:
-            # Skip the lock if we're already holding it
+        # Acquire write lock for the scheduled events stream
+        write_lock_path = system_events_dir / "write.flock"
+        with CevLock(write_lock_path, "write"):
             current_index = get_current_stream_index(system_events_dir)
             new_index = increment_stream_index(current_index)
 
@@ -683,38 +871,15 @@ def add_event(args, logger, data_dir):
             set_current_stream_index(system_events_dir, new_index)
 
             logger.info("scheduled event",
-                       event_stream=event_stream,
-                       event_name=event_name,
-                       scheduled_for=at_timestamp,
-                       task_id=new_index)
-        else:
-            with CevLock(data_dir / "system.flock"):
-                current_index = get_current_stream_index(system_events_dir)
-                new_index = increment_stream_index(current_index)
-
-                event_path = get_event_path(
-                    system_events_dir,
-                    new_index,
-                    event_timestamp,
-                    "schedule-task"
-                )
-
-                with open(event_path, "w") as f:
-                    json.dump(scheduled_event, f, indent=2)
-
-                set_current_stream_index(system_events_dir, new_index)
-
-                logger.info("scheduled event",
-                          event_stream=event_stream,
-                          event_name=event_name,
-                          scheduled_for=at_timestamp,
-                          task_id=new_index)
-
+                    event_stream=event_stream,
+                    event_name=event_name,
+                    scheduled_for=at_timestamp,
+                    task_id=new_index)
         return
 
-    # Add event directly
-    if already_locked:
-        # Skip the lock if we're already holding it
+    # Use write lock for stream-specific event writing
+    write_lock_path = event_stream_dir / "write.flock"
+    with CevLock(write_lock_path, "write"):
         (event_stream_dir / "events").mkdir(parents=True, exist_ok=True)
 
         current_index = get_current_stream_index(event_stream_dir)
@@ -736,31 +901,8 @@ def add_event(args, logger, data_dir):
                    event_stream=event_stream,
                    event_name=event_name,
                    stream_index=new_index)
-    else:
-        with CevLock(data_dir / "system.flock"):
-            (event_stream_dir / "events").mkdir(parents=True, exist_ok=True)
 
-            current_index = get_current_stream_index(event_stream_dir)
-            new_index = increment_stream_index(current_index)
-
-            event_path = get_event_path(
-                event_stream_dir,
-                new_index,
-                event_timestamp,
-                event_name
-            )
-
-            with open(event_path, "w") as f:
-                json.dump(event, f, indent=2)
-
-            set_current_stream_index(event_stream_dir, new_index)
-
-            logger.info("added event",
-                      event_stream=event_stream,
-                      event_name=event_name,
-                      stream_index=new_index)
-
-    # Process event if requested by the caller
+    # Process event immediately if requested by the caller
     if process:
         process_args = argparse.Namespace()
         process_args.stream = event_stream
@@ -791,13 +933,11 @@ def define_trigger(args, logger, data_dir):
     trigger_dir = event_stream_dir / "triggers"
     events_dir = event_stream_dir / "events"
 
-    # Create necessary directories
     trigger_dir.mkdir(parents=True, exist_ok=True)
     events_dir.mkdir(parents=True, exist_ok=True)
 
     dest_trigger_path = trigger_dir / trigger_name
 
-    # Copy trigger file
     with open(trigger_path, "rb") as src, open(dest_trigger_path, "wb") as dest:
         dest.write(src.read())
 
@@ -833,7 +973,6 @@ def alias_trigger(args, logger, data_dir):
 
     new_trigger_path = trigger_dir / trigger_name
 
-    # Use symlink for the alias
     new_trigger_path.symlink_to(existing_trigger_path)
 
     logger.info("created trigger alias",
@@ -853,7 +992,6 @@ def process_stream(args, logger, data_dir):
     if not event_stream_dir.exists():
         logger.fatal("event stream does not exist", event_stream=event_stream)
 
-    # Ensure events directory exists
     events_dir = event_stream_dir / "events"
     events_dir.mkdir(parents=True, exist_ok=True)
 
@@ -864,7 +1002,7 @@ def process_stream(args, logger, data_dir):
 
     state_lock_path = event_stream_dir / "state.flock"
 
-    with CevLock(data_dir / "system.flock"), CevLock(state_lock_path, timeout_minutes=15):
+    with CevLock(state_lock_path, "state"):
         trigger_dir = event_stream_dir / "triggers"
         state_dir = event_stream_dir / "state"
         dependency_dir = event_stream_dir / "dependencies"
@@ -872,25 +1010,40 @@ def process_stream(args, logger, data_dir):
         state_dir.mkdir(exist_ok=True)
         dependency_dir.mkdir(exist_ok=True)
 
+        if not verify_dependency_state(event_stream_dir, data_dir, logger):
+            add_stream_to_delayed(event_stream, event_stream_dir, logger)
+            logger.info("stream processing delayed due to dependencies",
+                      event_stream=event_stream)
+            sys.exit(200)
+
         if specific_trigger:
+            # Run specific trigger once
             trigger_path = trigger_dir / specific_trigger
 
             if not trigger_path.exists():
                 logger.fatal("trigger does not exist", trigger=specific_trigger, event_stream=event_stream)
+
+            # Get latest state snapshot
+            latest_snapshot = get_latest_state_snapshot(event_stream_dir)
 
             env_vars = {
                 "CEV_BIN": f"{sys.argv[0]} -d {data_dir}",
                 "CEV_STREAM_STATE_DIR": str(state_dir),
                 "CEV_STREAM_DEPENDENCY_DIR": str(dependency_dir),
                 "CEV_TRIGGER_NAME": specific_trigger,
-                "CEV_ALREADY_LOCKED": "1",  # Indicate that we already hold the lock
-                "CEV_STREAM": event_stream
+                "CEV_STREAM": event_stream,
+                "CEV_LATEST_STATE_SNAPSHOT": str(latest_snapshot) if latest_snapshot else ""
             }
 
+            # Log environment variables for debugging
             logger.debug("trigger environment variables", env_vars=str(env_vars))
+
             logger.info("running trigger", event_stream=event_stream, trigger_name=specific_trigger)
 
-            exit_code = run_trigger(trigger_path, None, env_vars, logger)
+            # Track processing time for metadata
+            start_time = time.time()
+            exit_code, state_update = run_trigger(trigger_path, None, latest_snapshot, env_vars, logger, with_timeout=True)
+            processing_duration_ms = int((time.time() - start_time) * 1000)
 
             # Handle special exit codes
             if exit_code == 200:
@@ -899,14 +1052,21 @@ def process_stream(args, logger, data_dir):
                            event_stream=event_stream,
                            trigger_name=specific_trigger)
 
-                delayed_path = event_stream_dir / "delayed"
-                with open(delayed_path, "a") as f:
-                    f.write(f"{event_stream}\n")
+                add_stream_to_delayed(event_stream, event_stream_dir, logger)
                 sys.exit(0)
             elif exit_code == 201:
+                # Do not retry
                 logger.info("trigger requested no retry due to dependency lock",
                            event_stream=event_stream,
                            trigger_name=specific_trigger)
+                sys.exit(0)
+            elif exit_code == 202:
+                # Dependency hasn't processed blocking event, schedule retry
+                logger.info("trigger requested delay due to dependency not processing blocking event",
+                           event_stream=event_stream,
+                           trigger_name=specific_trigger)
+
+                add_stream_to_delayed(event_stream, event_stream_dir, logger)
                 sys.exit(0)
             elif exit_code != 0:
                 logger.error("trigger failed with exit code",
@@ -914,7 +1074,34 @@ def process_stream(args, logger, data_dir):
                             event_stream=event_stream,
                             trigger_name=specific_trigger)
                 sys.exit(exit_code)
+
+            # If we got state update, save it
+            if state_update is not None:
+                current_index = get_current_stream_index(event_stream_dir)
+                processed_index = get_processed_stream_index(event_stream_dir)
+
+                # Use the latest available index
+                target_index = current_index if current_index else processed_index
+                if not target_index:
+                    target_index = "00000000"
+
+                # Create state snapshot with processing duration
+                snapshot_path = create_state_snapshot(
+                    event_stream_dir,
+                    data_dir,
+                    event_stream,
+                    target_index,
+                    state_update,
+                    processing_duration_ms
+                )
+
+                logger.info("created state snapshot from trigger output",
+                           event_stream=event_stream,
+                           trigger_name=specific_trigger,
+                           snapshot=snapshot_path.name,
+                           processing_duration_ms=processing_duration_ms)
         else:
+            # Process all unprocessed events
             current_index = get_current_stream_index(event_stream_dir)
             processed_index = get_processed_stream_index(event_stream_dir)
 
@@ -931,8 +1118,11 @@ def process_stream(args, logger, data_dir):
             current_index_int = int(current_index, 16)
             next_index_int = int(next_index, 16)
 
+            final_state_update = None
             events_processed = 0
             blocked = False
+            latest_processed_index = processed_index
+            total_processing_time_ms = 0  # Track total processing time
 
             for idx in range(next_index_int, current_index_int + 1):
                 if blocked:
@@ -940,6 +1130,7 @@ def process_stream(args, logger, data_dir):
 
                 idx_hex = f"{idx:08x}"
 
+                # Find the event file
                 events_dir = event_stream_dir / "events"
                 event_files = list(events_dir.glob(f"{idx_hex}-*"))
 
@@ -966,7 +1157,11 @@ def process_stream(args, logger, data_dir):
                     blocked = True
                     break
 
+                # Extract timestamp from filename
                 timestamp = event_path.name.split("-", 2)[1]
+
+                # Get latest state snapshot
+                latest_snapshot = get_latest_state_snapshot(event_stream_dir)
 
                 env_vars = {
                     "CEV_BIN": f"{sys.argv[0]} -d {data_dir}",
@@ -975,8 +1170,8 @@ def process_stream(args, logger, data_dir):
                     "CEV_STREAM_STATE_DIR": str(state_dir),
                     "CEV_STREAM_DEPENDENCY_DIR": str(dependency_dir),
                     "CEV_TRIGGER_NAME": event_name,
-                    "CEV_ALREADY_LOCKED": "1",  # Indicate that we already hold the lock
-                    "CEV_STREAM": event_stream
+                    "CEV_STREAM": event_stream,
+                    "CEV_LATEST_STATE_SNAPSHOT": str(latest_snapshot) if latest_snapshot else ""
                 }
 
                 logger.info("processing event",
@@ -984,7 +1179,11 @@ def process_stream(args, logger, data_dir):
                            event_name=event_name,
                            stream_index=idx_hex)
 
-                exit_code = run_trigger(trigger_path, event_path, env_vars, logger)
+                # Track processing time for metadata
+                start_time = time.time()
+                exit_code, state_update = run_trigger(trigger_path, event_path, latest_snapshot, env_vars, logger, with_timeout=True)
+                event_processing_time_ms = int((time.time() - start_time) * 1000)
+                total_processing_time_ms += event_processing_time_ms
 
                 # Handle special exit codes
                 if exit_code == 200:
@@ -993,10 +1192,7 @@ def process_stream(args, logger, data_dir):
                                event_name=event_name,
                                stream_index=idx_hex)
 
-                    # Add to delayed file
-                    delayed_path = event_stream_dir / "delayed"
-                    with open(delayed_path, "a") as f:
-                        f.write(f"{event_stream}\n")
+                    add_stream_to_delayed(event_stream, event_stream_dir, logger)
                     blocked = True
                     break
                 elif exit_code == 201:
@@ -1004,6 +1200,15 @@ def process_stream(args, logger, data_dir):
                                event_stream=event_stream,
                                event_name=event_name,
                                stream_index=idx_hex)
+                    blocked = True
+                    break
+                elif exit_code == 202:
+                    logger.info("trigger requested delay due to dependency not processing blocking event",
+                               event_stream=event_stream,
+                               event_name=event_name,
+                               stream_index=idx_hex)
+
+                    add_stream_to_delayed(event_stream, event_stream_dir, logger)
                     blocked = True
                     break
                 elif exit_code != 0:
@@ -1015,8 +1220,31 @@ def process_stream(args, logger, data_dir):
                     blocked = True
                     break
 
+                # Update processed index
                 set_processed_stream_index(event_stream_dir, idx_hex)
+                latest_processed_index = idx_hex
                 events_processed += 1
+
+                # Update final state if we got an update
+                if state_update is not None:
+                    final_state_update = state_update
+
+            # Create state snapshot if we have processed events and received state updates
+            if events_processed > 0 and final_state_update is not None:
+                snapshot_path = create_state_snapshot(
+                    event_stream_dir,
+                    data_dir,
+                    event_stream,
+                    latest_processed_index,
+                    final_state_update,
+                    total_processing_time_ms
+                )
+
+                logger.info("created state snapshot for processed events",
+                           event_stream=event_stream,
+                           event_count=events_processed,
+                           snapshot=snapshot_path.name,
+                           processing_duration_ms=total_processing_time_ms)
 
             logger.info("processed events",
                        event_stream=event_stream,
@@ -1025,28 +1253,31 @@ def process_stream(args, logger, data_dir):
 
             # Check delayed file and process
             delayed_path = event_stream_dir / "delayed"
+            delay_lock_path = event_stream_dir / "delayed.flock"
+
             if delayed_path.exists():
-                try:
-                    delayed_streams = set()
-                    with open(delayed_path, "r") as f:
-                        for line in f:
-                            delayed_streams.add(line.strip())
+                with CevLock(delay_lock_path, "delayed"):
+                    try:
+                        delayed_streams = set()
+                        with open(delayed_path, "r") as f:
+                            for line in f:
+                                delayed_streams.add(line.strip())
 
-                    # Remove this stream from delayed if present
-                    if event_stream in delayed_streams:
-                        delayed_streams.remove(event_stream)
+                        # Remove this stream from delayed if present
+                        if event_stream in delayed_streams:
+                            delayed_streams.remove(event_stream)
 
-                        # Rewrite the delayed file
-                        with open(delayed_path, "w") as f:
-                            for stream in delayed_streams:
-                                f.write(f"{stream}\n")
+                            # Rewrite the delayed file
+                            with open(delayed_path, "w") as f:
+                                for stream in delayed_streams:
+                                    f.write(f"{stream}\n")
 
-                        logger.info("removed stream from delayed file",
-                                   event_stream=event_stream)
-                except Exception as e:
-                    logger.error("failed to process delayed file",
-                                error=str(e),
-                                event_stream=event_stream)
+                            logger.info("removed stream from delayed file",
+                                    event_stream=event_stream)
+                    except Exception as e:
+                        logger.error("failed to process delayed file",
+                                    error=str(e),
+                                    event_stream=event_stream)
 
 def depends_on(args, logger, data_dir):
     event_stream = args.stream
@@ -1079,20 +1310,6 @@ def depends_on(args, logger, data_dir):
 
     dependency_link.symlink_to(target_stream_dir)
 
-    # Initialize cursor file (should delay this until we process it...)
-    cursor_file = dependency_dir / f"{target_stream}.cursor"
-
-    if not cursor_file.exists():
-        processed_index = get_processed_stream_index(target_stream_dir)
-        current_index = get_current_stream_index(target_stream_dir)
-
-        if processed_index:
-            cursor_file.write_text(processed_index)
-        elif current_index:
-            cursor_file.write_text(current_index)
-        else:
-            cursor_file.write_text("00000000")
-
     logger.info("added dependency",
                event_stream=event_stream,
                target_stream=target_stream)
@@ -1112,6 +1329,7 @@ def is_dirty(args, logger, data_dir):
     processed_index = get_processed_stream_index(event_stream_dir)
 
     if current_index is None:
+        # No events
         logger.info("stream is clean (no events)", event_stream=event_stream, status="clean")
         sys.exit(0)
 
@@ -1119,6 +1337,7 @@ def is_dirty(args, logger, data_dir):
         logger.info("stream is dirty (no processed events)", event_stream=event_stream, status="dirty")
         sys.exit(1)
 
+    # Check if current is ahead of processed
     if int(current_index, 16) > int(processed_index, 16):
         logger.info("stream is dirty (unprocessed events)",
                    event_stream=event_stream,
@@ -1127,50 +1346,243 @@ def is_dirty(args, logger, data_dir):
                    status="dirty")
         sys.exit(1)
 
+    # Check dependencies
     dependency_dir = event_stream_dir / "dependencies"
     if dependency_dir.exists():
-        for cursor_file in dependency_dir.glob("*.cursor"):
-            target_stream = cursor_file.name.rsplit(".", 1)[0]
-            target_dir = dependency_dir / target_stream
+        for dependency_link in dependency_dir.glob("*"):
+            if not dependency_link.is_symlink():
+                continue
 
-            if not target_dir.exists():
+            dependency_stream = dependency_link.name
+            dependency_dir_path = data_dir / dependency_stream
+
+            if not dependency_dir_path.exists():
                 logger.error("dependency target does not exist",
-                            target_stream=target_stream,
+                            dependency_stream=dependency_stream,
                             event_stream=event_stream)
                 sys.exit(1)
 
-            cursor_value = cursor_file.read_text().strip()
-            target_processed = get_processed_stream_index(target_dir)
-            target_current = get_current_stream_index(target_dir)
+            # Get dependency state information
+            dependency_processed = get_processed_stream_index(dependency_dir_path)
+            dependency_current = get_current_stream_index(dependency_dir_path)
 
-            if target_processed is None:
-                target_processed = target_current
+            if dependency_processed is None:
+                dependency_processed = dependency_current
 
-            if target_processed is None:
+            if dependency_processed is None:
+                # No events to process
                 continue
 
-            if int(cursor_value, 16) < int(target_processed, 16):
+            # Check if we have incorporated the latest processed events from dependency
+            latest_snapshot = get_latest_state_snapshot(event_stream_dir)
+
+            if latest_snapshot is None:
+                # No state snapshot yet, need to process
+                logger.info("stream is dirty (no state snapshot)",
+                            event_stream=event_stream,
+                            dependency=dependency_stream,
+                            status="dirty")
+                sys.exit(1)
+
+            # Get recorded dependency versions
+            metadata, _ = parse_state_snapshot(latest_snapshot)
+            dependencies = metadata.get("dependencies", {})
+
+            if dependency_stream not in dependencies:
+                # Dependency not recorded, need to process
+                logger.info("stream is dirty (dependency not recorded)",
+                            event_stream=event_stream,
+                            dependency=dependency_stream,
+                            status="dirty")
+                sys.exit(1)
+
+            dep_info = dependencies[dependency_stream]
+            recorded_event_id = dep_info.get("event_id", "00000000")
+
+            if int(recorded_event_id, 16) < int(dependency_processed, 16):
                 logger.info("stream is dirty (dependency ahead)",
-                           event_stream=event_stream,
-                           dependency=target_stream,
-                           cursor=cursor_value,
-                           dependency_processed=target_processed,
-                           status="dirty")
+                            event_stream=event_stream,
+                            dependency=dependency_stream,
+                            current=recorded_event_id,
+                            dependency_processed=dependency_processed,
+                            status="dirty")
                 sys.exit(1)
 
     logger.info("stream is clean", event_stream=event_stream, status="clean")
     sys.exit(0)
 
+def get_state(args, logger, data_dir):
+    event_stream = args.stream
+    raw_flag = args.raw
+
+    if not validate_event_stream(event_stream):
+        logger.fatal("invalid event stream name", event_stream=event_stream)
+
+    event_stream_dir = get_event_stream_directory(data_dir, event_stream)
+
+    if not event_stream_dir.exists():
+        logger.fatal("event stream does not exist", event_stream=event_stream)
+
+    # Get latest state snapshot
+    latest_snapshot = get_latest_state_snapshot(event_stream_dir)
+
+    if latest_snapshot is None:
+        if raw_flag:
+            # Return empty object for raw state
+            sys.stdout.write("{}\n")
+        else:
+            # Return empty state with metadata
+            empty_state = {
+                "metadata": {
+                    "stream": event_stream,
+                    "previous_snapshot": "",
+                    "event_id": "",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "dependencies": {}
+                },
+                "state": {}
+            }
+            sys.stdout.write(json.dumps(empty_state, indent=2) + "\n")
+        return
+
+    # Parse the state snapshot
+    try:
+        with open(latest_snapshot, "r") as f:
+            snapshot = json.load(f)
+
+        if raw_flag:
+            # Return only the raw state
+            state = snapshot.get("state", {})
+            sys.stdout.write(json.dumps(state, indent=2) + "\n")
+        else:
+            # Return the full snapshot with metadata
+            sys.stdout.write(json.dumps(snapshot, indent=2) + "\n")
+
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        logger.error("failed to read state snapshot",
+                   snapshot=str(latest_snapshot),
+                   error=str(e))
+        sys.exit(1)
+
+def list_snapshots(args, logger, data_dir):
+    event_stream = args.stream
+    event_count = args.n
+    all_snapshots = args.a
+
+    if not validate_event_stream(event_stream):
+        logger.fatal("invalid event stream name", event_stream=event_stream)
+
+    event_stream_dir = get_event_stream_directory(data_dir, event_stream)
+
+    if not event_stream_dir.exists():
+        logger.fatal("event stream does not exist", event_stream=event_stream)
+
+    state_dir = event_stream_dir / "state"
+    if not state_dir.exists():
+        # No snapshots yet
+        snapshots = []
+    else:
+        snapshots = sorted(state_dir.glob("*.state.json"), key=lambda x: str(x))
+
+        # Apply limit if not requesting all snapshots
+        if not all_snapshots and event_count is not None:
+            snapshots = snapshots[-event_count:]
+
+    # Create output with snapshot info
+    output = {
+        "stream": event_stream,
+        "snapshots": []
+    }
+
+    for snapshot in snapshots:
+        try:
+            metadata, _ = parse_state_snapshot(snapshot)
+            snapshot_info = {
+                "file": snapshot.name,
+                "event_id": metadata.get("event_id", ""),
+                "timestamp": metadata.get("timestamp", ""),
+                "dependencies": metadata.get("dependencies", {})
+            }
+
+            # Add processing_duration_ms if available
+            if "processing_duration_ms" in metadata:
+                snapshot_info["processing_duration_ms"] = metadata["processing_duration_ms"]
+
+            output["snapshots"].append(snapshot_info)
+        except Exception as e:
+            logger.warn("failed to parse snapshot metadata",
+                      snapshot=snapshot.name,
+                      error=str(e))
+            output["snapshots"].append({
+                "file": snapshot.name,
+                "error": "failed to parse metadata"
+            })
+
+    # Write the output
+    sys.stdout.write(json.dumps(output, indent=2) + "\n")
+
+def is_newer(args, logger, data_dir):
+    event_stream = args.stream
+    stream_index = args.i
+
+    if not validate_event_stream(event_stream):
+        logger.fatal("invalid event stream name", event_stream=event_stream)
+
+    # Validate stream index format
+    try:
+        int(stream_index, 16)
+    except ValueError:
+        logger.fatal("invalid stream index format", stream_index=stream_index)
+
+    event_stream_dir = get_event_stream_directory(data_dir, event_stream)
+
+    if not event_stream_dir.exists():
+        logger.fatal("event stream does not exist", event_stream=event_stream)
+
+    # Get latest state snapshot
+    latest_snapshot = get_latest_state_snapshot(event_stream_dir)
+
+    if latest_snapshot is None:
+        logger.info("stream has no snapshots", event_stream=event_stream)
+        sys.exit(1)
+
+    # Get metadata from snapshot
+    metadata, _ = parse_state_snapshot(latest_snapshot)
+    snapshot_event_id = metadata.get("event_id", "")
+
+    if not snapshot_event_id:
+        logger.info("snapshot has no event_id", event_stream=event_stream)
+        sys.exit(1)
+
+    # Compare event IDs
+    if int(snapshot_event_id, 16) > int(stream_index, 16):
+        logger.info("snapshot is newer than provided index",
+                   event_stream=event_stream,
+                   snapshot_id=snapshot_event_id,
+                   provided_index=stream_index)
+        sys.exit(0)
+    else:
+        logger.info("snapshot is not newer than provided index",
+                   event_stream=event_stream,
+                   snapshot_id=snapshot_event_id,
+                   provided_index=stream_index)
+        sys.exit(1)
+
 def system_info(args, logger, data_dir):
     stream_count = 0
+    stream_info = []
+
     for item in data_dir.glob("*"):
         if item.is_dir() and item.name != "system-events":
+            stream_info.append(get_stream_info(item))
             stream_count += 1
 
+    # Count system-events separately
     system_events_dir = data_dir / "system-events"
     if system_events_dir.exists():
         for item in system_events_dir.glob("*"):
             if item.is_dir():
+                stream_info.append(get_stream_info(system_events_dir / item.name))
                 stream_count += 1
 
     info = {
@@ -1180,20 +1592,66 @@ def system_info(args, logger, data_dir):
         "data_directory": str(data_dir),
         "cev_binary": sys.argv[0],
         "version": VERSION,
-        "stream_count": stream_count
+        "stream_count": stream_count,
+        "streams": stream_info
     }
 
-    sys.stdout.write(json.dumps(info) + "\n")
+    # Output structured JSON
+    sys.stdout.write(json.dumps(info, indent=2) + "\n")
 
     logger.debug("displayed system info")
 
+def get_stream_info(stream_dir: Path) -> Dict[str, Any]:
+    """Get detailed information about a stream"""
+    stream_name = str(stream_dir.relative_to(stream_dir.parent))
+
+    current_idx = get_current_stream_index(stream_dir)
+    processed_idx = get_processed_stream_index(stream_dir)
+
+    # Count events and triggers
+    events_dir = stream_dir / "events"
+    triggers_dir = stream_dir / "triggers"
+
+    event_count = len(list(events_dir.glob("*.evt"))) if events_dir.exists() else 0
+    trigger_count = len(list(triggers_dir.glob("*"))) if triggers_dir.exists() else 0
+
+    # Get event types
+    schemas_dir = stream_dir / "schemas"
+    event_types = []
+
+    if schemas_dir.exists():
+        for schema_file in schemas_dir.glob("*.schema"):
+            event_type = schema_file.name.replace(".schema", "")
+            has_trigger = (triggers_dir / event_type).exists() if triggers_dir.exists() else False
+            event_types.append({
+                "name": event_type,
+                "has_trigger": has_trigger
+            })
+
+    # Get snapshot count
+    state_dir = stream_dir / "state"
+    snapshot_count = len(list(state_dir.glob("*.state.json"))) if state_dir.exists() else 0
+
+    return {
+        "name": stream_name,
+        "current_index": current_idx,
+        "processed_index": processed_idx,
+        "event_count": event_count,
+        "trigger_count": trigger_count,
+        "event_types": event_types,
+        "snapshot_count": snapshot_count
+    }
+
 def init_system_events(data_dir: Path, logger: CevLogger) -> bool:
+    """Initialize system events directories and schemas if they don't exist.
     Returns True if initialized, False if already set up."""
 
+    # Check if already initialized to avoid unnecessary work
     scheduled_dir = get_event_stream_directory(data_dir, "system-events/scheduled")
     if scheduled_dir.exists() and (scheduled_dir / "schemas" / "schedule-task.schema").exists():
         return False
 
+    # Create system-events/scheduled stream and schema
     scheduled_dir.mkdir(parents=True, exist_ok=True)
 
     schemas_dir = scheduled_dir / "schemas"
@@ -1201,268 +1659,38 @@ def init_system_events(data_dir: Path, logger: CevLogger) -> bool:
     events_dir = scheduled_dir / "events"
     state_dir = scheduled_dir / "state"
 
+    # Create directories
     schemas_dir.mkdir(exist_ok=True)
     triggers_dir.mkdir(exist_ok=True)
     events_dir.mkdir(exist_ok=True)
     state_dir.mkdir(exist_ok=True)
 
-    schedule_task_schema = {
-        "type": "object",
-        "required": ["recorded_at", "scheduled_for", "event_stream"],
-        "properties": {
-            "recorded_at": {"type": "string", "format": "date-time"},
-            "scheduled_for": {"type": "string", "format": "date-time"},
-            "event_stream": {"type": "string"},
-            "event_name": {"type": "string"},
-            "event_payload": {"type": "object"},
-            "process_immediately": {"type": "boolean"}
-        }
-    }
+    # Create schemas from embedded data
+    schedule_task_schema = get_embedded_data("system-events-scheduled-schema")
+    cancel_task_schema = get_embedded_data("system-events-cancel-schema")
+    complete_task_schema = get_embedded_data("system-events-complete-schema")
 
+    # Write schemas
     schedule_task_schema_path = schemas_dir / "schedule-task.schema"
     if not schedule_task_schema_path.exists():
         with open(schedule_task_schema_path, "w") as f:
             json.dump(schedule_task_schema, f, indent=2)
-
-    cancel_task_schema = {
-        "type": "object",
-        "required": ["task_id"],
-        "properties": {
-            "task_id": {"type": "string"},
-            "reason": {"type": "string"}
-        }
-    }
 
     cancel_task_schema_path = schemas_dir / "cancel-task.schema"
     if not cancel_task_schema_path.exists():
         with open(cancel_task_schema_path, "w") as f:
             json.dump(cancel_task_schema, f, indent=2)
 
-    complete_task_schema = {
-        "type": "object",
-        "required": ["task_id"],
-        "properties": {
-            "task_id": {"type": "string"}
-        }
-    }
-
     complete_task_schema_path = schemas_dir / "complete-task.schema"
     if not complete_task_schema_path.exists():
         with open(complete_task_schema_path, "w") as f:
             json.dump(complete_task_schema, f, indent=2)
 
+    # Create cron trigger
     cron_trigger_path = triggers_dir / "cron"
 
     if not cron_trigger_path.exists():
-        cron_trigger_content = """#!/usr/bin/env python3
-import json
-import os
-import signal
-import subprocess
-import sys
-import time
-
-from datetime import datetime, timezone
-from pathlib import Path
-
-MAX_RUNTIME_SECONDS = 4 * 60 + 30  # 4 minutes and 30 seconds
-TRIGGER_TIMEOUT_SECONDS = 60  # 1 minute
-TRIGGER_KILL_GRACE_PERIOD = 15  # 15 seconds
-
-def log_msg(level, message, **kwargs):
-    log_entry = {"level": level, "message": message, **kwargs}
-    print(json.dumps(log_entry))
-
-def read_state(state_dir):
-    state_file = Path(state_dir) / "scheduled_tasks.json"
-    if not state_file.exists():
-        return []
-
-    try:
-        with open(state_file, "r") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        log_msg("error", "failed to parse state file")
-        return []
-
-def write_state(state_dir, tasks):
-    state_file = Path(state_dir) / "scheduled_tasks.json"
-    with open(state_file, "w") as f:
-        json.dump(tasks, f, indent=2)
-
-def parse_event(event_path):
-    try:
-        with open(event_path, "r") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
-        log_msg("error", f"failed to parse event: {event_path}")
-        return None
-
-def execute_trigger_with_timeout(cev_bin, event_stream, trigger_name=None):
-    cmd = [cev_bin, "process", "-s", event_stream]
-    if trigger_name:
-        cmd.extend(["-t", trigger_name])
-
-    log_msg("info", "executing trigger", cmd=str(cmd))
-
-    try:
-        process = subprocess.Popen(cmd)
-
-        start_time = time.time()
-        while process.poll() is None:
-            if time.time() - start_time > TRIGGER_TIMEOUT_SECONDS:
-                log_msg("warn", "trigger exceeded timeout, sending SIGHUP", trigger=trigger_name or event_stream)
-                process.send_signal(signal.SIGHUP)
-
-                grace_time = time.time()
-                while process.poll() is None and time.time() - grace_time < TRIGGER_KILL_GRACE_PERIOD:
-                    time.sleep(0.1)
-
-                if process.poll() is None:
-                    log_msg("warn", "trigger still running after SIGHUP, sending SIGKILL")
-                    process.kill()
-                    break
-
-            # Small sleep to avoid spinning
-            time.sleep(0.1)
-
-        return process.returncode
-    except Exception as e:
-        log_msg("error", "error executing trigger", error=str(e))
-        return 1
-
-def main():
-    start_time = time.time()
-
-    cev_bin = os.environ.get("CEV_BIN")
-    state_dir = os.environ.get("CEV_STREAM_STATE_DIR")
-
-    if not cev_bin or not state_dir:
-        log_msg("error", "missing required environment variables")
-        sys.exit(1)
-
-    subprocess.run([cev_bin, "process", "-s", "system-events/scheduled"])
-
-    tasks = read_state(state_dir)
-
-    event_files = []
-    event_stream_dir = Path(state_dir).parent
-    events_dir = event_stream_dir / "events"
-
-    for event_file in events_dir.glob("*-schedule-task.evt"):
-        event_id = event_file.name.split("-")[0]
-        event = parse_event(event_file)
-
-        if event:
-            if not any(task.get("task_id") == event_id for task in tasks):
-                tasks.append({
-                    "task_id": event_id,
-                    "scheduled_for": event["scheduled_for"],
-                    "event": event
-                })
-
-    cancel_events = []
-    for event_file in events_dir.glob("*-cancel-task.evt"):
-        event = parse_event(event_file)
-        if event and "task_id" in event:
-            cancel_events.append(event["task_id"])
-            log_msg("info", "task canceled", task_id=event["task_id"], reason=event.get("reason", "no reason provided"))
-
-    complete_events = []
-    for event_file in events_dir.glob("*-complete-task.evt"):
-        event = parse_event(event_file)
-        if event and "task_id" in event:
-            complete_events.append(event["task_id"])
-
-    tasks = [task for task in tasks
-             if task.get("task_id") not in cancel_events
-             and task.get("task_id") not in complete_events]
-
-    tasks.sort(key=lambda x: x.get("scheduled_for", ""))
-
-    write_state(state_dir, tasks)
-
-    now = datetime.now(timezone.utc).isoformat()
-    due_tasks = [task for task in tasks if task.get("scheduled_for", "") <= now]
-
-    executed_tasks = []
-
-    for task in due_tasks:
-        task_id = task.get("task_id")
-
-        event = task.get("event", {})
-        if not event:
-            log_msg("error", "missing event data for task", task_id=task_id)
-            executed_tasks.append(task_id)  # Mark as executed to remove from list
-            continue
-
-        time_elapsed = time.time() - start_time
-        time_remaining = MAX_RUNTIME_SECONDS - time_elapsed
-
-        if time_remaining < 90:
-            log_msg("info", "insufficient time remaining, skipping remaining tasks")
-            break
-
-        log_msg("info", "executing scheduled task", task_id=task_id)
-
-        event_payload = event.get("event_payload", {})
-        event_stream = event.get("event_stream")
-        event_name = event.get("event_name")
-        process_immediately = event.get("process_immediately", False)
-        recorded_at = event.get("recorded_at")
-
-        if not event_stream:
-            log_msg("error", "missing event stream in scheduled task")
-            executed_tasks.append(task_id)
-            continue
-
-        if not event_name:
-            execute_trigger_with_timeout(cev_bin, event_stream)
-            executed_tasks.append(task_id)
-            continue
-
-        temp_dir = Path("/tmp")
-        temp_file = temp_dir / f"cev-scheduled-{task_id}.json"
-
-        with open(temp_file, "w") as f:
-            json.dump(event_payload, f)
-
-        cmd = [cev_bin, "add-event", "-s", event_stream, "-n", event_name, "-f", str(temp_file)]
-
-        if process_immediately:
-            cmd.append("-p")
-
-        subprocess.run(cmd)
-
-        temp_file.unlink()
-
-        complete_payload = {"task_id": task_id}
-        complete_temp_file = temp_dir / f"cev-complete-{task_id}.json"
-
-        with open(complete_temp_file, "w") as f:
-            json.dump(complete_payload, f)
-
-        subprocess.run([
-            cev_bin, "add-event", "-s", "system-events/scheduled",
-            "-n", "complete-task", "-f", str(complete_temp_file)
-        ])
-
-        complete_temp_file.unlink()
-
-        executed_tasks.append(task_id)
-
-    tasks = [task for task in tasks if task.get("task_id") not in executed_tasks]
-
-    write_state(state_dir, tasks)
-
-    if executed_tasks:
-        log_msg("info", "completed scheduled tasks", executed_count=len(executed_tasks))
-
-    return 0
-
-if __name__ == "__main__":
-    sys.exit(main())
-"""
+        cron_trigger_content = get_embedded_data("cron-trigger")
         with open(cron_trigger_path, "w") as f:
             f.write(cron_trigger_content)
 
@@ -1475,6 +1703,7 @@ def main():
     parser = argparse.ArgumentParser(description="Common EVent system (cev)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-d", "--data-dir", help="Override default data directory")
+    parser.add_argument("--version", action="version", version=f"cev {VERSION}")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -1520,9 +1749,25 @@ def main():
     depends_on_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
     depends_on_parser.add_argument("-t", "--target", required=True, help="Target stream name")
 
+    # get-state
+    get_state_parser = subparsers.add_parser("get-state", help="Get the current state of a stream")
+    get_state_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+    get_state_parser.add_argument("-r", "--raw", action="store_true", help="Return only the raw state without metadata envelope")
+
+    # list-snapshots
+    list_snapshots_parser = subparsers.add_parser("list-snapshots", help="List all state snapshots for a stream")
+    list_snapshots_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+    list_snapshots_parser.add_argument("-n", type=int, default=10, help="Return the latest N snapshots (default 10)")
+    list_snapshots_parser.add_argument("-a", action="store_true", help="Return all snapshots (overrides -n)")
+
     # is-dirty
     is_dirty_parser = subparsers.add_parser("is-dirty", help="Check if a stream is dirty")
     is_dirty_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+
+    # is-newer
+    is_newer_parser = subparsers.add_parser("is-newer", help="Check if a stream's latest state snapshot is newer than provided index")
+    is_newer_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+    is_newer_parser.add_argument("-i", required=True, help="Stream index to compare against")
 
     # info
     subparsers.add_parser("info", help="Display system information")
@@ -1553,10 +1798,291 @@ def main():
         process_stream(args, logger, data_dir)
     elif args.command == "depends-on":
         depends_on(args, logger, data_dir)
+    elif args.command == "get-state":
+        get_state(args, logger, data_dir)
+    elif args.command == "list-snapshots":
+        list_snapshots(args, logger, data_dir)
     elif args.command == "is-dirty":
         is_dirty(args, logger, data_dir)
+    elif args.command == "is-newer":
+        is_newer(args, logger, data_dir)
     elif args.command == "info":
         system_info(args, logger, data_dir)
 
 if __name__ == "__main__":
     main()
+
+# Stop processing before reaching the data section
+sys.exit(0)
+
+# BEGIN_SCRIPTS
+# [system-events-scheduled-schema]
+{
+  "type": "object",
+  "required": ["recorded_at", "scheduled_for", "event_stream"],
+  "properties": {
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "scheduled_for": {"type": "string", "format": "date-time"},
+    "event_stream": {"type": "string"},
+    "event_name": {"type": "string"},
+    "event_payload": {"type": "object"},
+    "process_immediately": {"type": "boolean"}
+  }
+}
+
+# [system-events-cancel-schema]
+{
+  "type": "object",
+  "required": ["task_id"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "reason": {"type": "string"}
+  }
+}
+
+# [system-events-complete-schema]
+{
+  "type": "object",
+  "required": ["task_id"],
+  "properties": {
+    "task_id": {"type": "string"}
+  }
+}
+
+# [cron-trigger]
+#!/usr/bin/env python3
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+# Constants from specification
+MAX_RUNTIME_SECONDS = 4 * 60 + 30  # 4 minutes and 30 seconds
+TRIGGER_TIMEOUT_SECONDS = 60  # 1 minute
+TRIGGER_KILL_GRACE_PERIOD = 15  # 15 seconds
+
+def log_msg(level, message, **kwargs):
+    log_entry = {"level": level, "message": message, **kwargs}
+    print(json.dumps(log_entry), file=sys.stderr)
+
+def read_state(state_dir):
+    state_file = Path(state_dir) / "scheduled_tasks.json"
+    if not state_file.exists():
+        return []
+
+    try:
+        with open(state_file, "r") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        log_msg("error", "failed to parse state file")
+        return []
+
+def write_state(state_dir, tasks):
+    state_file = Path(state_dir) / "scheduled_tasks.json"
+    with open(state_file, "w") as f:
+        json.dump(tasks, f, indent=2)
+
+def parse_event(event_path):
+    try:
+        with open(event_path, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        log_msg("error", f"failed to parse event: {event_path}")
+        return None
+
+def execute_trigger_with_timeout(cev_bin, event_stream, trigger_name=None):
+    # Execute a trigger with proper timeout handling
+    cmd = [cev_bin, "process", "-s", event_stream]
+    if trigger_name:
+        cmd.extend(["-t", trigger_name])
+
+    log_msg("info", "executing trigger", cmd=str(cmd))
+
+    try:
+        process = subprocess.Popen(cmd)
+
+        # Wait for a maximum of TRIGGER_TIMEOUT_SECONDS
+        start_time = time.time()
+        while process.poll() is None:
+            if time.time() - start_time > TRIGGER_TIMEOUT_SECONDS:
+                # Send SIGHUP first
+                log_msg("warn", "trigger exceeded timeout, sending SIGHUP", trigger=trigger_name or event_stream)
+                process.send_signal(signal.SIGHUP)
+
+                # Wait additional grace period before SIGKILL
+                grace_time = time.time()
+                while process.poll() is None and time.time() - grace_time < TRIGGER_KILL_GRACE_PERIOD:
+                    time.sleep(0.1)
+
+                # If still running, SIGKILL
+                if process.poll() is None:
+                    log_msg("warn", "trigger still running after SIGHUP, sending SIGKILL")
+                    process.kill()
+                    break
+
+            # Small sleep to avoid spinning
+            time.sleep(0.1)
+
+        return process.returncode
+    except Exception as e:
+        log_msg("error", "error executing trigger", error=str(e))
+        return 1
+
+def main():
+    start_time = time.time()
+
+    # Environment variables
+    cev_bin = os.environ.get("CEV_BIN")
+    state_dir = os.environ.get("CEV_STREAM_STATE_DIR")
+
+    if not cev_bin or not state_dir:
+        log_msg("error", "missing required environment variables")
+        sys.exit(1)
+
+    # Process any unprocessed events first
+    subprocess.run([cev_bin, "process", "-s", "system-events/scheduled"])
+
+    # Read the current state
+    tasks = read_state(state_dir)
+
+    # Find all event files
+    event_files = []
+    event_stream_dir = Path(state_dir).parent
+    events_dir = event_stream_dir / "events"
+
+    # Process scheduled tasks
+    for event_file in events_dir.glob("*-schedule-task.evt"):
+        event_id = event_file.name.split("-")[0]
+        event = parse_event(event_file)
+
+        if event:
+            # Add to task list if not already there
+            if not any(task.get("task_id") == event_id for task in tasks):
+                tasks.append({
+                    "task_id": event_id,
+                    "scheduled_for": event["scheduled_for"],
+                    "event": event
+                })
+
+    # Process canceled tasks
+    cancel_events = []
+    for event_file in events_dir.glob("*-cancel-task.evt"):
+        event = parse_event(event_file)
+        if event and "task_id" in event:
+            cancel_events.append(event["task_id"])
+            log_msg("info", "task canceled", task_id=event["task_id"], reason=event.get("reason", "no reason provided"))
+
+    # Process completed tasks
+    complete_events = []
+    for event_file in events_dir.glob("*-complete-task.evt"):
+        event = parse_event(event_file)
+        if event and "task_id" in event:
+            complete_events.append(event["task_id"])
+
+    # Remove canceled and completed tasks
+    tasks = [task for task in tasks
+             if task.get("task_id") not in cancel_events
+             and task.get("task_id") not in complete_events]
+
+    # Sort tasks by scheduled_for
+    tasks.sort(key=lambda x: x.get("scheduled_for", ""))
+
+    # Save updated state
+    write_state(state_dir, tasks)
+
+    # Execute due tasks
+    now = datetime.now(timezone.utc).isoformat()
+    due_tasks = [task for task in tasks if task.get("scheduled_for", "") <= now]
+
+    executed_tasks = []
+
+    for task in due_tasks:
+        task_id = task.get("task_id")
+
+        # Get full event data from saved state
+        event = task.get("event", {})
+        if not event:
+            log_msg("error", "missing event data for task", task_id=task_id)
+            executed_tasks.append(task_id)  # Mark as executed to remove from list
+            continue
+
+        # Check if we have at least 1.5 minutes left in our window
+        time_elapsed = time.time() - start_time
+        time_remaining = MAX_RUNTIME_SECONDS - time_elapsed
+
+        if time_remaining < 90:
+            log_msg("info", "insufficient time remaining, skipping remaining tasks")
+            break
+
+        log_msg("info", "executing scheduled task", task_id=task_id)
+
+        # Get task details
+        event_payload = event.get("event_payload", {})
+        event_stream = event.get("event_stream")
+        event_name = event.get("event_name")
+        process_immediately = event.get("process_immediately", False)
+        recorded_at = event.get("recorded_at")
+
+        if not event_stream:
+            log_msg("error", "missing event stream in scheduled task")
+            executed_tasks.append(task_id)
+            continue
+
+        # If event_name is not provided, just process the stream
+        if not event_name:
+            execute_trigger_with_timeout(cev_bin, event_stream)
+            executed_tasks.append(task_id)
+            continue
+
+        # Create a temporary file for the event payload
+        temp_dir = Path("/tmp")
+        temp_file = temp_dir / f"cev-scheduled-{task_id}.json"
+
+        with open(temp_file, "w") as f:
+            json.dump(event_payload, f)
+
+        # Add the event to the stream, using the original recorded_at timestamp
+        cmd = [cev_bin, "add-event", "-s", event_stream, "-n", event_name, "-f", str(temp_file)]
+
+        if process_immediately:
+            cmd.append("-p")
+
+        subprocess.run(cmd)
+
+        # Clean up the temporary file
+        temp_file.unlink()
+
+        # Add a complete-task event
+        complete_payload = {"task_id": task_id}
+        complete_temp_file = temp_dir / f"cev-complete-{task_id}.json"
+
+        with open(complete_temp_file, "w") as f:
+            json.dump(complete_payload, f)
+
+        subprocess.run([
+            cev_bin, "add-event", "-s", "system-events/scheduled",
+            "-n", "complete-task", "-f", str(complete_temp_file)
+        ])
+
+        complete_temp_file.unlink()
+
+        executed_tasks.append(task_id)
+
+    # Remove executed tasks from state
+    tasks = [task for task in tasks if task.get("task_id") not in executed_tasks]
+
+    # Save final state
+    write_state(state_dir, tasks)
+
+    # If any tasks were executed, log success
+    if executed_tasks:
+        log_msg("info", "completed scheduled tasks", executed_count=len(executed_tasks))
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
