@@ -9,9 +9,11 @@ Host *
   ControlPath ~/.ssh/cm-%r@%h:%p
   ControlPersist 5m
 
-  ServerAliveInterval 60
-  ServerAliveCountMax 10
-  ConnectTimeout 30
+  TCPKeepAlive yes
+
+  ServerAliveInterval 10
+  ServerAliveCountMax 3
+  ConnectTimeout 10
 
   IdentitiesOnly yes
   VerifyHostKeyDNS ask
