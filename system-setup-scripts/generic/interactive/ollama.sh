@@ -3,11 +3,12 @@
 set -o errexit
 
 if [ ${EUID} = 0 ]; then
-	echo "This setup script is expecting to run as a regular user."
-	exit 1
+  echo "This setup script is expecting to run as a regular user."
+  exit 1
 fi
 
-curl -fsSL https://ollama.com/install.sh | sh
+#curl -fsSL https://ollama.com/install.sh | sh
+pacman -Sy ollama-cuda
 
 sudo mkdir -p /etc/systemd/system/ollama.service.d
 cat <<EOF | sudo tee /etc/systemd/system/ollama.service.d/cors.conf
