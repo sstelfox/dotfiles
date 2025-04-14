@@ -107,3 +107,4 @@ fi
 
 export OLLAMA_HOST="172.16.50.3:11434"
 #export PAISA_CONFIG="${HOME}/documentation/data/finances/paisa.yaml"
+export PATH="${PATH}:${HOME}/.local/bin"
