@@ -809,7 +809,7 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
   env_vars = {
     "CEV_BIN": sys.argv[0],
-    "CEV_DATA_DIR": data_dir,
+    "CEV_DATA_DIR": str(data_dir),
     "CEV_EVENT_STREAM": event_stream,
     "CEV_TRIGGER_NAME": trigger_name
   }
