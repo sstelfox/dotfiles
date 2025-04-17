@@ -246,7 +246,7 @@ class CevLock:
 				try:
 					fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
-					CevContext.set(f"{self.lock_type}_lock", true)
+					CevContext.set(f"{self.lock_type}_lock", True)
 					CevContext.trace("acquired lock after wait", lock_type=self.lock_type, wait_duration=time.time() - start_time)
 
 					break
@@ -676,7 +676,7 @@ def process_scheduled_event_stream():
 					})
 					state_changed = True
 				elif trigger_name in {"complete-task", "cancel-task"}:
-					remaining_tasks = [task for task in state.scheduled_tasks if task["task_id"] != data["task_id"]]
+					remaining_tasks = [task for task in state["scheduled_tasks"] if task["task_id"] != data["task_id"]]
 					state["scheduled_tasks"] = remaining_tasks
 					CevContext.debug("task removed", task_id=data["task_id"])
 				else:
