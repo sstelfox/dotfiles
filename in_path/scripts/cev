@@ -330,7 +330,7 @@ def execute_scheduled_events():
 	event_stream_dir = CevContext.data_dir() / event_stream
 
 	with CevLock(event_stream_dir, "state"):
-		state_source, metadata, state = read_event_stream_state(event_stream)
+		_, _, state = read_event_stream_state(event_stream)
 		if not state:
 			CevContext.debug("no scheduled tasks have been processed; scheduled tasks execution complete")
 			return
@@ -616,54 +616,59 @@ def process_scheduled_event_stream():
 	event_stream_dir = CevContext.data_dir() / event_stream
 
 	with CevLock(event_stream_dir, "state"):
-		errored = False
-		state_changed = False
-		last_processed_index = None
-
-		state_file, _metadata, scheduled_state = read_event_stream_state(event_stream)
-		if not scheduled_state:
-			scheduled_state = { "scheduled_tasks": [] }
+		current_index = get_stream_index(event_stream, "current")
+		if current_index is None:
+			CevContext.info("no events to process")
+			return
 
 		processed_index = get_stream_index(event_stream, "processed")
 		if processed_index is None:
-			next_stream_index = 0
+			next_index = 0
 		else:
-			next_stream_index = processed_index + 1
+			next_index = processed_index + 1
 
-		events_dir = event_stream_dir / "events"
-		for event_file in sorted(events_dir.glob("*.evt")):
-			(event_id, recorded_at, trigger_name) = meta_from_event_file(Path(event_file))
+		state_schema = get_embedded_schema(f"system-events-scheduled-state-schema")
+		_, _, state = read_event_stream_state(event_stream)
+		if not state:
+			state = { "scheduled_tasks": [] }
 
-			with CevContext.context(event_id=event_id, event_stream=event_stream, trigger_name=trigger_name):
-				CevContext.trace("found event file", event_file=event_file.name, recorded_at=recorded_at)
+		CevContext.debug("processing event range", next_index=next_index, current_index=current_index)
 
-				if event_id < next_stream_index:
-					CevContext.trace("already processed, skipping event")
-					continue
+		# Note: if processing the stream results in new events to the stream being processed those
+		# will not be handled just queued for future runs. This is by design to ensure event streams
+		# have bounded execution.
+		for idx in range(next_index, current_index + 1):
+			events_dir = event_stream_dir / "events"
+			event_files = list(events_dir.glob(f"{idx:08x}-*"))
 
+			if not event_files:
+				CevContext.error("expected stream index but found gap in sequence", stream_index=f"{idx:08x}")
+				break
+
+			event_path = events_dir / event_files[0]
+			_, recorded_at, trigger_name = meta_from_event_file(event_path)
+
+			with CevContext.context(event_id=idx, trigger_name=trigger_name):
 				trigger_schema = get_embedded_schema(f"system-events-scheduled-{trigger_name}-schema")
 				if not trigger_schema:
 					CevContext.error("unknown system event trigger name, failed to advance")
-					errored = True
 					break
 
 				try:
-					with open(event_file, "r") as f:
+					with open(event_path, "r") as f:
 						data = json.load(f)
 				except json.JSONDecodeError as e:
 					CevContext.error("unable to decode persisted event, failed to advance", error=str(e))
-					errored = True
 					break
 				except FileNotFoundError:
 					CevContext.error("unable to read referenced event: file not found", error=str(e))
-					errored = True
 					break
 
 				if trigger_name == "schedule-task":
 					CevContext.debug("scheduling task")
 
-					scheduled_state["scheduled_tasks"].append({
-							"task_id": f"{event_id:08x}",
+					state["scheduled_tasks"].append({
+							"task_id": f"{idx:08x}",
 							"event_stream": data["event_stream"],
 							"trigger_name": data["trigger_name"],
 							"extra_args": data.get("extra_args", []),
@@ -671,31 +676,18 @@ def process_scheduled_event_stream():
 					})
 					state_changed = True
 				elif trigger_name in {"complete-task", "cancel-task"}:
-					remaining_tasks = [task for task in scheduled_state.scheduled_tasks if task["task_id"] != data["task_id"]]
-					scheduled_state["scheduled_tasks"] = remaining_tasks
+					remaining_tasks = [task for task in state.scheduled_tasks if task["task_id"] != data["task_id"]]
+					state["scheduled_tasks"] = remaining_tasks
 					CevContext.debug("task removed", task_id=data["task_id"])
-					state_changed = True
 				else:
-					CevContext.error("trigger not yet implemented, failed to advance")
-					errored = True
+					CevContext.error("unknown system trigger")
 					break
 
-			last_processed_index = event_id
+				if not validate_against_schema(state_schema, state):
+					CevContext.fatal("scheduled state failed to validate against schema", state=state)
 
-		if state_changed:
-			scheduled_state["scheduled_tasks"].sort(key=lambda x: x.get("scheduled_for"))
-
-		schema = get_embedded_schema(f"system-events-scheduled-state-schema")
-		if not validate_against_schema(schema, scheduled_state):
-			CevContext.fatal("scheduled state failed to validate against schema", scheduled_state=scheduled_state)
-
-		persist_state("system-events/scheduled", last_processed_index, scheduled_state)
-
-		if last_processed_index:
-			set_stream_index(event_stream, "processed", last_processed_index)
-
-		if errored:
-			CevContext.error("failed to process all outstanding events")
+				persist_state("system-events/scheduled", idx, state)
+				set_stream_index(event_stream, "processed", idx)
 
 
 @dataclass
@@ -1265,11 +1257,7 @@ def cmd_is_newer(event_stream: str, stream_index: int) -> bool:
 
 def cmd_process(event_stream: str):
 	with CevContext.context(event_stream=event_stream):
-		if not event_stream_is_active(event_stream):
-			CevContext.fatal("event stream must be active to check dirty status")
-
-		data_dir = CevContext.data_dir()
-		event_stream_dir = data_dir / event_stream
+		CevContext.debug("processing event stream")
 
 		if event_stream == "system-events/extraction":
 			process_extraction_events()
@@ -1279,8 +1267,10 @@ def cmd_process(event_stream: str):
 			process_scheduled_event_stream()
 			return
 
-		CevContext.debug("processing event stream")
+		if not event_stream_is_active(event_stream):
+			CevContext.fatal("event stream must be active to check dirty status")
 
+		event_stream_dir = CevContext.data_dir() / event_stream
 		with CevLock(event_stream_dir, "state"):
 			current_index = get_stream_index(event_stream, "current")
 			if current_index is None:
