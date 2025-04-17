@@ -1,5 +1,7 @@
 #!/usr/bin/env -S uv run -q -s
 
+# vim: set ts=4 sw=4 noexpandtab ai :
+
 # /// script
 # requires-python = ">=3.12"
 # dependencies = ["jsonschema>=4.23"]
@@ -25,539 +27,539 @@ import jsonschema
 
 VERSION = "0.4.0"
 
-# todo: make scheduled task time limit a CLI parameter
+# todo: make scheduled task time limit a CLI parameter, should be easier now that extra_args are ready
 
 
 class LogLevel(str, Enum):
-  DEBUG = "debug"
-  INFO = "info"
-  WARN = "warn"
-  ERROR = "error"
-  FATAL = "fatal"
-  INVALID = "invalid"
+	TRACE = "trace"
+	DEBUG = "debug"
+	INFO = "info"
+	WARN = "warn"
+	ERROR = "error"
+	FATAL = "fatal"
+	INVALID = "invalid"
 
-  @classmethod
-  def from_string(cls, value: str) -> "LogLevel":
-    try:
-      return cls(value)
-    except ValueError:
-      return cls.INVALID
+	@classmethod
+	def from_string(cls, value: str) -> "LogLevel":
+		try:
+			return cls(value)
+		except ValueError:
+			return cls.INVALID
 
 
 class CevLogger:
-  def __init__(self, log_file: Path, verbose: bool = False):
-    self.log_file = log_file
-    self.verbose = verbose
-    self.log_file.parent.mkdir(parents=True, exist_ok=True)
+	def __init__(self, log_file: Path, verbose: bool = False):
+		self.log_file = log_file
+		self.verbose = verbose or os.environ.get("CEV_VERBOSE") is not None
+		self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
-  def log(self, level: LogLevel, message: str, **kwargs):
-    timestamp = datetime.now(timezone.utc).isoformat()
+	def log(self, level: LogLevel, message: str, **kwargs):
+		timestamp = datetime.now(timezone.utc).isoformat()
 
-    # Prevent these from being injected
-    reserved_keys = {"timestamp", "level", "message"}
-    safe_kwargs = {k: v for k, v in kwargs.items() if k not in reserved_keys}
+		# Prevent these from being injected
+		reserved_keys = {"timestamp", "level", "message"}
+		safe_kwargs = {k: v for k, v in kwargs.items() if k not in reserved_keys}
 
-    log_entry = {
-      "timestamp": timestamp,
-      "level": level.value,
-      "message": message,
-      **safe_kwargs
-    }
+		log_entry = {
+			"timestamp": timestamp,
+			"level": level.value,
+			"message": message,
+			**safe_kwargs
+		}
 
-    with open(self.log_file, "a") as f:
-      f.write(json.dumps(log_entry) + "\n")
+		if self.verbose or level != LogLevel.TRACE:
+			with open(self.log_file, "a") as f:
+				f.write(json.dumps(log_entry) + "\n")
 
-    if self.verbose or level != LogLevel.DEBUG:
-      system_output = json.dumps(log_entry)
-      sys.stderr.write(f"{system_output}\n")
+		if self.verbose or level not in {LogLevel.TRACE, LogLevel.DEBUG}:
+			system_output = json.dumps(log_entry)
+			sys.stderr.write(f"{system_output}\n")
 
-  def debug(self, message: str, **kwargs):
-    self.log(LogLevel.DEBUG, message, **kwargs)
+	def trace(self, message: str, **kwargs):
+		self.log(LogLevel.TRACE, message, **kwargs)
 
-  def info(self, message: str, **kwargs):
-    self.log(LogLevel.INFO, message, **kwargs)
+	def debug(self, message: str, **kwargs):
+		self.log(LogLevel.DEBUG, message, **kwargs)
 
-  def warn(self, message: str, **kwargs):
-    self.log(LogLevel.WARN, message, **kwargs)
+	def info(self, message: str, **kwargs):
+		self.log(LogLevel.INFO, message, **kwargs)
 
-  def error(self, message: str, **kwargs):
-    self.log(LogLevel.ERROR, message, **kwargs)
+	def warn(self, message: str, **kwargs):
+		self.log(LogLevel.WARN, message, **kwargs)
 
-  def fatal(self, message: str, **kwargs):
-    self.log(LogLevel.FATAL, message, **kwargs)
-    sys.exit(127)
+	def error(self, message: str, **kwargs):
+		self.log(LogLevel.ERROR, message, **kwargs)
+
+	def fatal(self, message: str, **kwargs):
+		self.log(LogLevel.FATAL, message, **kwargs)
+		sys.exit(127)
 
 
 _CURRENT_CONTEXT = {}
 
 class CevContext:
-  @staticmethod
-  def clear(key=None):
-    if "attrs" not in _CURRENT_CONTEXT:
-      raise RuntimeError("CevContext not initialized")
-    if key:
-      if key == "ctx_id":
-        return
+	@staticmethod
+	def clear(key: str) -> Optional[Any]:
+		if "attrs" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
 
-      _CURRENT_CONTEXT["attrs"].pop(key, None)
-    else:
-      ctx_id = _CURRENT_CONTEXT["attrs"].get("ctx_id")
-      _CURRENT_CONTEXT["attrs"] = {"ctx_id": ctx_id}
+		if key == "ctx_id":
+			return
 
-  @staticmethod
-  def ctx_id() -> str:
-    if "attrs" not in _CURRENT_CONTEXT:
-      raise RuntimeError("CevContext not initialized")
+		_CURRENT_CONTEXT["attrs"].pop(key, None)
 
-    _CURRENT_CONTEXT["ctx_id"]
+	@staticmethod
+	def ctx_id() -> str:
+		if "attrs" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
 
-  @staticmethod
-  def data_dir():
-    if "data_dir" not in _CURRENT_CONTEXT:
-      raise RuntimeError("CevContext not initialized")
+		_CURRENT_CONTEXT["ctx_id"]
 
-    return _CURRENT_CONTEXT["data_dir"]
+	@staticmethod
+	def data_dir():
+		if "data_dir" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
 
-  @staticmethod
-  def init(data_dir: Path, verbose: bool = False):
-    global _CURRENT_CONTEXT
-    log_file = data_dir / "system.log"
+		return _CURRENT_CONTEXT["data_dir"]
 
-    # Generate a random ID to differentiate between different runs of the tool
-    import random
-    import string
+	@staticmethod
+	def init(data_dir: Path, verbose: bool = False):
+		global _CURRENT_CONTEXT
+		log_file = data_dir / "system.log"
 
-    chars = string.ascii_lowercase + string.digits
-    ctx_id = ''.join(random.choices(chars, k=8))
+		# Generate a random ID to differentiate between different runs of the tool
+		import random
+		import string
 
-    _CURRENT_CONTEXT = {
-      "logger": CevLogger(log_file, verbose),
-      "data_dir": data_dir,
-      "attrs": {
-        "ctx_id": ctx_id
-      }
-    }
+		chars = string.ascii_lowercase + string.digits
+		ctx_id = ''.join(random.choices(chars, k=8))
 
-  @staticmethod
-  def log(level, message, **kwargs):
-    if "logger" not in _CURRENT_CONTEXT:
-      raise RuntimeError("CevContext not initialized")
+		_CURRENT_CONTEXT = {
+			"logger": CevLogger(log_file, verbose),
+			"data_dir": data_dir,
+			"attrs": {
+				"ctx_id": ctx_id
+			}
+		}
 
-    # Merge context attributes with kwargs (kwargs take precedence)
-    merged_kwargs = _CURRENT_CONTEXT["attrs"].copy()
-    merged_kwargs.update(kwargs)
+	@staticmethod
+	def log(level, message, **kwargs):
+		if "logger" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
 
-    _CURRENT_CONTEXT["logger"].log(level, message, **merged_kwargs)
+		# Merge context attributes with kwargs (kwargs take precedence)
+		merged_kwargs = _CURRENT_CONTEXT["attrs"].copy()
+		merged_kwargs.update(kwargs)
 
-  @staticmethod
-  def set(key: str, value: Any):
-    if "attrs" not in _CURRENT_CONTEXT:
-      raise RuntimeError("CevContext not initialized")
+		_CURRENT_CONTEXT["logger"].log(level, message, **merged_kwargs)
 
-    if key == "ctx_id":
-      return
+	@staticmethod
+	def set(key: str, value: Any):
+		if "attrs" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
 
-    _CURRENT_CONTEXT["attrs"][key] = value
+		if key == "ctx_id":
+			return
 
-  @staticmethod
-  def context(**kwargs):
-    return _TempContextManager(kwargs)
+		_CURRENT_CONTEXT["attrs"][key] = value
 
-  @staticmethod
-  def debug(message, **kwargs):
-    CevContext.log(LogLevel.DEBUG, message, **kwargs)
+	@staticmethod
+	def context(**kwargs):
+		return _TempContextManager(kwargs)
 
-  @staticmethod
-  def info(message, **kwargs):
-    CevContext.log(LogLevel.INFO, message, **kwargs)
+	@staticmethod
+	def trace(message, **kwargs):
+		CevContext.log(LogLevel.TRACE, message, **kwargs)
 
-  @staticmethod
-  def warn(message, **kwargs):
-    CevContext.log(LogLevel.WARN, message, **kwargs)
+	@staticmethod
+	def debug(message, **kwargs):
+		CevContext.log(LogLevel.DEBUG, message, **kwargs)
 
-  @staticmethod
-  def error(message, **kwargs):
-    CevContext.log(LogLevel.ERROR, message, **kwargs)
+	@staticmethod
+	def info(message, **kwargs):
+		CevContext.log(LogLevel.INFO, message, **kwargs)
 
-  @staticmethod
-  def fatal(message, **kwargs):
-    CevContext.log(LogLevel.FATAL, message, **kwargs)
-    sys.exit(127)
+	@staticmethod
+	def warn(message, **kwargs):
+		CevContext.log(LogLevel.WARN, message, **kwargs)
+
+	@staticmethod
+	def error(message, **kwargs):
+		CevContext.log(LogLevel.ERROR, message, **kwargs)
+
+	@staticmethod
+	def fatal(message, **kwargs):
+		CevContext.log(LogLevel.FATAL, message, **kwargs)
+		sys.exit(127)
 
 
 class _TempContextManager:
-  def __init__(self, kwargs):
-    self.kwargs = kwargs
-    self.previous = {}
+	def __init__(self, kwargs):
+		self.kwargs = kwargs
+		self.previous = {}
 
-  def __enter__(self):
-    for key, value in self.kwargs.items():
-      self.previous[key] = _CURRENT_CONTEXT["attrs"].get(key)
-      CevContext.set(key, value)
+	def __enter__(self):
+		for key, value in self.kwargs.items():
+			self.previous[key] = _CURRENT_CONTEXT["attrs"].get(key)
+			CevContext.set(key, value)
 
-    return self
+		return self
 
-  def __exit__(self, exc_type, exc_val, exc_tb):
-    for key, value in self.previous.items():
-      if value is None:
-        CevContext.clear(key)
-      else:
-        CevContext.set(key, value)
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		for key, value in self.previous.items():
+			if value is None:
+				CevContext.clear(key)
+			else:
+				CevContext.set(key, value)
 
 
 class CevLock:
-  def __init__(self, lock_dir: Path, lock_type: str = "state"):
-    valid_lock_types = {"config", "event", "extraction", "state"}
-    if lock_type not in valid_lock_types:
-      CevContext.fatal("unknown lock type requested", lock_type=lock_type)
+	def __init__(self, lock_dir: Path, lock_type: str = "state"):
+		valid_lock_types = {"config", "event", "extraction", "state"}
+		if lock_type not in valid_lock_types:
+			CevContext.fatal("unknown lock type requested", lock_type=lock_type)
 
-    if lock_type in {"config", "event", "extraction"}:
-      self.wait_timeout_seconds = 5
-    else:
-      self.wait_timeout_seconds = 45
+		if lock_type in {"config", "event", "extraction"}:
+			self.wait_timeout_seconds = 5
+		else:
+			self.wait_timeout_seconds = 45
 
-    self.lock_file = lock_dir / f"{lock_type}.flock"
-    self.lock_type = lock_type
-    self.lock_fd = None
+		self.lock_file = lock_dir / f"{lock_type}.flock"
+		self.lock_type = lock_type
+		self.lock_fd = None
 
-  def __enter__(self):
-    self.lock_file.parent.mkdir(parents=True, exist_ok=True)
-    self.lock_fd = open(self.lock_file, "w+")
+	def __enter__(self):
+		self.lock_file.parent.mkdir(parents=True, exist_ok=True)
+		self.lock_fd = open(self.lock_file, "w+")
 
-    CevContext.debug("attempting to retrieve lock")
+		CevContext.trace("attempting to retrieve lock")
 
-    try:
-      fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-      CevContext.set(f"{self.lock_type}_lock", True)
-      CevContext.debug("lock acquired")
-    except BlockingIOError:
-      CevContext.debug("waiting for held lock", lock_type=self.lock_type)
-      start_time = time.time()
+		try:
+			fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+			CevContext.set(f"{self.lock_type}_lock", True)
+			CevContext.trace("lock acquired")
+		except BlockingIOError:
+			CevContext.trace("waiting for held lock", lock_type=self.lock_type)
+			start_time = time.time()
 
-      while time.time() - start_time < self.wait_timeout_seconds:
-        try:
-          fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+			while time.time() - start_time < self.wait_timeout_seconds:
+				try:
+					fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
-          CevContext.set(f"{self.lock_type}_lock", true)
-          CevContext.debug("acquired lock after wait", lock_type=self.lock_type, wait_duration=time.time() - start_time)
+					CevContext.set(f"{self.lock_type}_lock", true)
+					CevContext.trace("acquired lock after wait", lock_type=self.lock_type, wait_duration=time.time() - start_time)
 
-          break
-        except BlockingIOError:
-          time.sleep(0.1)
-      else:
-        CevContext.fatal("could not acquire lock within timeout", lock_type=self.lock_type,
-                         timeout=self.wait_timeout_seconds, path=self.lock_file)
+					break
+				except BlockingIOError:
+					time.sleep(0.1)
+				else:
+					CevContext.fatal("could not acquire lock within timeout", lock_type=self.lock_type, timeout=self.wait_timeout_seconds, path=self.lock_file)
 
-    # Write PID to the file after acquiring the lock, can be useful in diagnostics
-    self.lock_fd.write(str(os.getpid()))
-    self.lock_fd.flush()
+		# Write PID to the file after acquiring the lock, can be useful in diagnostics
+		self.lock_fd.write(str(os.getpid()))
+		self.lock_fd.flush()
 
-    os.fsync(self.lock_fd.fileno())
+		os.fsync(self.lock_fd.fileno())
 
-    return self
+		return self
 
-  def __exit__(self, exc_type, exc_val, exc_tb):
-    if self.lock_fd:
-      fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
-      self.lock_fd.close()
-      self.lock_fd = None
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		if self.lock_fd:
+			fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+			self.lock_fd.close()
+			self.lock_fd = None
 
-    CevContext.clear(f"{self.lock_type}_lock")
-    CevContext.debug("lock released", **{f"{self.lock_type}_lock": False})
+		CevContext.clear(f"{self.lock_type}_lock")
+		CevContext.trace("lock released", **{f"{self.lock_type}_lock": False})
 
 
 def get_data_directory(data_dir: Optional[Path]) -> Path:
-  if data_dir:
-    return Path(data_dir).expanduser().resolve()
+	if data_dir:
+		return Path(data_dir).expanduser().resolve()
 
-  env_data_dir = os.environ.get("CEV_DATA_DIR")
-  if env_data_dir:
-    return Path(env_data_dir).expanduser().resolve()
+	env_data_dir = os.environ.get("CEV_DATA_DIR")
+	if env_data_dir:
+		return Path(env_data_dir).expanduser().resolve()
 
-  xdg_data_home = os.environ.get("XDG_DATA_HOME")
-  if xdg_data_home:
-    return Path(xdg_data_home) / "cev"
+	xdg_data_home = os.environ.get("XDG_DATA_HOME")
+	if xdg_data_home:
+		return Path(xdg_data_home) / "cev"
 
-  return Path.home() / ".local" / "share" / "cev"
+	return Path.home() / ".local" / "share" / "cev"
 
 
 def event_stream_is_active(event_stream: str) -> bool:
-  if not validate_event_stream_name(event_stream):
-    CevContext.error("invalid event stream name")
-    return False
+	if not validate_event_stream_name(event_stream):
+		CevContext.error("invalid event stream name")
+		return False
 
-  # Handle the special system event streams
-  if event_stream in {"system-events/scheduled", "system-events/extraction"}:
-    return True
+	# Handle the special system event streams
+	if event_stream in {"system-events/scheduled", "system-events/extraction"}:
+		return True
 
-  data_dir = CevContext.data_dir()
-  event_stream_dir = data_dir / event_stream
-  if not event_stream_dir.exists():
-    CevContext.error("event stream does not exist")
-    return False
+	event_stream_dir = CevContext.data_dir() / event_stream
+	if not event_stream_dir.exists():
+		CevContext.error("event stream does not exist")
+		return False
 
-  return True
+	return True
 
 
-def execute_commands(commands: List[Dict[str, Any]]):
-  CevContext.debug("executing event generated commands", count=len(commands))
+def execute_commands(commands: List[Dict[str, Any]]) -> bool:
+	CevContext.debug("executing event generated commands", count=len(commands))
 
-  for cmd in commands:
-    command_type = cmd.pop("command")
+	for cmd in commands:
+		command_type = cmd.pop("command")
+		if command_type == "add-event":
+			cmd_add_event(AddEventArgs(**cmd))
+		else:
+			# todo: implement and make a test example for the other commands
+			CevContext.error("command type not implemented", command_type=command_type)
+			return False
 
-    if command_type == "add-event":
-      cmd_add_event(AddEventArgs(**cmd))
-    else:
-      CevContext.fatal("command type not implemented", command_type=command_type)
+	return True
 
 
 def execute_scheduled_events():
-  CevContext.info("executing scheduled events using built-in handler")
+	CevContext.debug("executing scheduled events using built-in handler")
 
-  start_time = time.time()
-  MAX_RUNTIME_SECONDS = 4 * 60 + 30
+	start_time = time.time()
+	MAX_RUNTIME_SECONDS = 4 * 60 + 30
 
-  data_dir = CevContext.data_dir()
-  event_stream_dir = data_dir / "system-events/scheduled"
+	event_stream = "system-events/scheduled"
+	event_stream_dir = CevContext.data_dir() / event_stream
 
-  with CevLock(event_stream_dir, "state"):
-    state_source, metadata, state = read_event_stream_state(event_stream_dir)
-    if not state:
-      CevContext.info("no tasks have been processed yet, scheduled tasks execution complete")
-      return
+	with CevLock(event_stream_dir, "state"):
+		state_source, metadata, state = read_event_stream_state(event_stream)
+		if not state:
+			CevContext.debug("no scheduled tasks have been processed; scheduled tasks execution complete")
+			return
 
-    now = datetime.now(timezone.utc).isoformat()
-    due_tasks = [task for task in state["scheduled_tasks"] if task.get("scheduled_for") <= now]
-    due_tasks.sort(key=lambda x: x.get("scheduled_for"))
+		now = datetime.now(timezone.utc).isoformat()
+		due_tasks = [task for task in state["scheduled_tasks"] if task.get("scheduled_for") <= now]
+		due_tasks.sort(key=lambda x: x.get("scheduled_for"))
 
-    if len(due_tasks) == 0:
-      CevContext.info("no tasks due for execution, scheduled task execution complete")
-      return
+		if len(due_tasks) == 0:
+			CevContext.debug("no tasks due for execution; scheduled task execution complete")
+			return
 
-    CevContext.info("tasks due for execution", tasks=len(due_tasks))
+		CevContext.trace("scheduled tasks scheduled for execution", tasks_ready=len(due_tasks))
 
-    executed_tasks = []
-    for task in due_tasks:
-      time_elapsed = time.time() - start_time
-      time_remaining = MAX_RUNTIME_SECONDS - time_elapsed
+		executed_tasks = []
+		for task in due_tasks:
+			time_elapsed = time.time() - start_time
+			time_remaining = MAX_RUNTIME_SECONDS - time_elapsed
 
-      event_file_name = task["event_file"]
-      if not event_file_name:
-        CevContext.error("scheduled task was missing event file name")
-        break
+			event_file_name = task["event_file"]
+			if not event_file_name:
+				CevContext.error("scheduled task was missing event file name")
+				break
 
-      if time_remaining < 90:
-        CevContext.warn("insufficient buffer time remaining, skipping remaining tasks")
-        break
+			if time_remaining < 90:
+				CevContext.warn("insufficient buffer time remaining, skipping remaining tasks")
+				break
 
-      event_file_path = event_stream_dir / "events" / event_file_name
+			try:
+				event_file_path = event_stream_dir / "events" / event_file_name
+				with open(event_file_path, "r") as f:
+					event = json.load(f)
+			except (json.JSONDecodeError, FileNotFoundError) as e:
+				CevContext.error("failed to load event file", error=str(e), event_file=event_file_name)
+				break
 
-      try:
-        with open(event_file_path, "r") as f:
-          event = json.load(f)
+			CevContext.trace("loaded scheduled event file", event_file=event_file_name)
+			success, _ = cmd_run(event["event_stream"], event["trigger_name"], event.get("extra_args"))
 
-        CevContext.debug("loaded scheduled event file", event_file=event_file_name)
-      except (json.JSONDecodeError, FileNotFoundError) as e:
-        CevContext.error("failed to load event file", error=str(e), event_file=event_file_name)
-        break
+			if success:
+				cmd_add_event(AddEventArgs(
+					event_stream="system-events/scheduled",
+					event_name="complete-task",
+					payload={ "task_id": task["task_id"] }
+				))
+			else:
+				cmd_add_event(AddEventArgs(
+					event_stream="system-events/scheduled",
+					event_name="cancel-task",
+					payload={ "cev_ctx_id": CevContext.ctx_id(), "task_id": task["task_id"] }
+				))
 
-      success, _ = cmd_run(event["event_stream"], event["event_name"], event.get("extra_args"))
-      if success:
-        cmd_add_event(AddEventArgs(
-          event_stream="system-events/scheduled",
-          event_name="complete-task",
-          payload={ "task_id": task["task_id"] }
-        ))
-      else:
-        cmd_add_event(AddEventArgs(
-          event_stream="system-events/scheduled",
-          event_name="cancel-task",
-          payload={ "cev_ctx_id": CevContext.ctx_id(), "task_id": task["task_id"] }
-        ))
+			executed_tasks.append(task)
+			CevContext.trace("completed task", task_id=task["task_id"], event_stream=event["event_stream"], trigger_name=event["trigger_name"])
 
-      executed_tasks.append(task)
-      CevContext.debug("completed task event emission", task_id=task["task_id"])
+	# Process any emitted events to ensure the resulting state file is inspectable
+	cmd_process("system-events/scheduled")
 
-  # Process any emitted events to ensure the resulting state file is inspectable
-  cmd_process("system-events/scheduled")
-
-  remaining = len(due_tasks) - len(executed_tasks)
-  CevContext.info("scheduled task execution complete", executed=len(executed_tasks), remaining=remaining)
+	remaining = len(due_tasks) - len(executed_tasks)
+	CevContext.debug("scheduled task execution complete", executed=len(executed_tasks), remaining=remaining)
 
 
 def filter_trigger_command(line: str) -> Optional[Dict[str, Any]]:
-  if not line.strip():
-    return None
+	if not line.strip():
+		return None
 
-  try:
-    data = json.loads(line)
-  except json.JSONDecodeError:
-    # It's not JSON so its probably a raw runtime error, bubble it up without wrapping it...
-    sys.stderr.write(f"{line}\n")
-    return None
+	try:
+		data = json.loads(line)
+	except json.JSONDecodeError:
+		# It's not JSON so its probably a raw runtime error, bubble it up without wrapping it...
+		sys.stderr.write(f"{line}\n")
+		return None
 
-  if not isinstance(data, dict):
-    CevContext.warn("non-command json output on stderr", stderr=line)
-    return None
+	if not isinstance(data, dict):
+		CevContext.warn("non-command json output on stderr", stderr=line)
+		return None
 
-  if "command" in data:
-    return data
+	if "command" in data:
+		return data
 
-  # Non-command messages we assume are log messages
-  log_level = LogLevel.from_string(data.pop("level", "info"))
+	# Non-command messages we assume are log messages
+	log_level = LogLevel.from_string(data.pop("level", "info"))
 
-  message = data.pop("message", None)
-  if message is None:
-    CevContext.warn("trigger produced JSON output but was neither command nor log", content=data)
-    return None
+	message = data.pop("message", None)
+	if message is None:
+		CevContext.warn("trigger produced JSON output but was neither command nor log", content=data)
+		return None
 
-  # We always override timestamp, the parent process acts as the authority for this information
-  data["timestamp"] = datetime.now(timezone.utc).isoformat()
+	# We always override timestamp, the parent process acts as the authority for this information
+	data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
-  CevContext.log(log_level, message, **data)
-
-
-def generate_stub_from_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
-  schema_type = schema.get("type")
-  if not schema_type:
-    return {}
-
-  if schema_type == "object":
-    result = {}
-    for prop_name, prop_schema in schema.get("properties", {}).items():
-      result[prop_name] = generate_stub_from_schema(prop_schema)
-
-    return result
-  elif schema_type == "array":
-    if "items" in schema:
-      return [generate_stub_from_schema(schema["items"])]
-
-    return []
-  elif schema_type == "string":
-    if schema.get("format") == "date-time":
-      return datetime.now(timezone.utc).isoformat()
-
-    return ""
-  elif schema_type == "boolean":
-    return False
-  elif schema_type == "number":
-    return 0.0
-  elif schema_type == "integer":
-    return 0
-  elif schema_type == "null":
-    return None
-
-  CevContext.warn("unrecognized schema type, leaving as null", schema_type=schema_type)
-  return None
+	CevContext.log(log_level, message, **data)
 
 
-def get_current_stream_index(event_stream_dir: Path) -> Optional[int]:
-  current_index_file = event_stream_dir / "current.idx"
+def generate_stub_from_schema(schema: Dict[str, Any]) -> Optional[Any]:
+	schema_type = schema.get("type")
+	if not schema_type:
+		return {}
 
-  if not current_index_file.exists():
-    return None
+	if schema_type == "object":
+		result = {}
 
-  hex_index = current_index_file.read_text().strip()
-  return int(hex_index, 16)
+		for prop_name, prop_schema in schema.get("properties", {}).items():
+			result[prop_name] = generate_stub_from_schema(prop_schema)
+
+		return result
+	elif schema_type == "array":
+		if "items" in schema:
+			return [generate_stub_from_schema(schema["items"])]
+
+		return []
+	elif schema_type == "string":
+		if schema.get("format") == "date-time":
+			return datetime.now(timezone.utc).isoformat()
+
+		return ""
+	elif schema_type == "boolean":
+		return False
+	elif schema_type == "number":
+		return 0.0
+	elif schema_type == "integer":
+		return 0
+	elif schema_type == "null":
+		return None
+
+	CevContext.warn("unrecognized schema type, leaving as null", schema_type=schema_type)
+	return None
 
 
-def get_latest_state_snapshot_file(event_stream_dir: Path) -> Optional[Path]:
-  state_dir = event_stream_dir / "state"
-  if not state_dir.exists():
-    return None
+def get_active_schema_versions(event_stream: str) -> Dict[str, str]:
+	active_versions = {}
 
-  snapshots = sorted(state_dir.glob("*.state.json"), key=lambda x: str(x))
-  if not snapshots:
-    return None
+	event_stream_dir = CevContext.data_dir() / event_stream
+	active_version_path = event_stream_dir / "schemas" / "active_versions"
+	if not active_version_path.exists():
+		CevContext.trace("no active schema versions for event stream", event_stream=event_stream)
+		return active_versions
 
-  return snapshots[-1]
+	with open(active_version_path, "r") as f:
+		for line in f:
+			line = line.strip()
+			if line:
+				active_versions[line.split('.')[0]] = line
+
+	return active_versions
 
 
-def get_processed_stream_index(event_stream_dir: Path) -> Optional[int]:
-  processed_index_file = event_stream_dir / "processed.idx"
+def get_latest_state_file(event_stream: str) -> Optional[Path]:
+	state_dir = CevContext.data_dir() / event_stream / "state"
+	if not state_dir.exists():
+		return None
 
-  if not processed_index_file.exists():
-    return None
+	snapshots = sorted(state_dir.glob("*.state.json"), key=lambda x: str(x))
+	if not snapshots:
+		return None
 
-  hex_index = processed_index_file.read_text().strip()
-  return int(hex_index, 16)
+	return snapshots[-1]
+
+
+def get_stream_index(event_stream: str, index_kind: str) -> Optional[int]:
+	index_file = CevContext.data_dir() / event_stream / f"{index_kind}.idx"
+	if not index_file.exists():
+		return None
+
+	return int(index_file.read_text().strip(), 16)
 
 
 def get_embedded_schema(key: str) -> Optional[Dict[str, Any]]:
-  # We know this script is self-executing as we've explicitly restricted it to only allow
-  # self-execution
-  script_path = Path(sys.argv[0])
-  with open(script_path, "r") as f:
-    script_content = f.read()
+	# We know this script is self-executing as we've explicitly restricted it to only allow
+	# self-execution
+	script_path = Path(sys.argv[0])
+	with open(script_path, "r") as f:
+		script_content = f.read()
 
-  if "__EMBEDDED_SCHEMAS__" not in script_content:
-    CevContext.fatal("missing schema section in script")
+	if "__EMBEDDED_SCHEMAS__" not in script_content:
+		CevContext.fatal("missing schema section in script")
 
-  schema_section = script_content.split("__EMBEDDED_SCHEMAS__", 1)[1]
+	schema_section = script_content.split("__EMBEDDED_SCHEMAS__", 1)[1]
 
-  current_key = None
-  content_lines = []
-  schema_text = None
+	current_key = None
+	content_lines = []
+	schema_text = None
 
-  # Parse the data section to find the requested key
-  for line in schema_section.split("\n"):
-    if line.startswith("# [") and line.endswith("]"):
-      # We found the next defined schema
-      if current_key == key and content_lines:
-        schema_text = "\n".join(content_lines)
+	# Parse the data section to find the requested key
+	for line in schema_section.split("\n"):
+		if line.startswith("# [") and line.endswith("]"):
+			# We found the next defined schema
+			if current_key == key and content_lines:
+				schema_text = "\n".join(content_lines)
 
-      # Collect the lines until we reach the next section so we have all its contents
-      current_key = line[3:-1]  # Remove "# [" and "]"
-      content_lines = []
-    elif current_key == key:
-      content_lines.append(line)
+			# Collect the lines until we reach the next section so we have all its contents
+			current_key = line[3:-1]  # Remove "# [" and "]"
+			content_lines = []
+		elif current_key == key:
+			content_lines.append(line)
 
-  # The last schema was the one we were looking for
-  if current_key == key and content_lines:
-    schema_text = "\n".join(content_lines)
+	# The last schema was the one we were looking for
+	if current_key == key and content_lines:
+		schema_text = "\n".join(content_lines)
 
-  if not schema_text:
-    return None
+	if not schema_text:
+		return None
 
-  try:
-    return json.loads(schema_text)
-  except json.JSONDecodeError as e:
-    CevContext.fatal("failed to decode built-in schema", error=str(e), schema_key=key)
+	try:
+		return json.loads(schema_text)
+	except json.JSONDecodeError as e:
+		CevContext.fatal("failed to decode built-in schema", error=str(e), schema_key=key)
 
 
 def get_user_event_schema(event_stream: str, event_name: str) -> Optional[Dict[str, Any]]:
-  data_dir = CevContext.data_dir()
-  event_stream_dir = data_dir / event_stream
-  schema_dir = event_stream_dir / "schemas"
-  active_version_path = schema_dir / "active_versions"
+	active_versions = get_active_schema_versions(event_stream)
 
-  if not active_version_path.exists():
-    CevContext.warn("no active version file found")
-    return None
+	schema_version = active_versions.get(event_name)
+	if not schema_version:
+		CevContext.error("event name doesn't have an active schema")
+		return None
 
-  active_versions = {}
+	schema_dir = CevContext.data_dir() / event_stream / "schemas"
+	schema_path = schema_dir / f"{schema_version}.json"
 
-  with open(active_version_path, "r") as f:
-    for line in f:
-      line = line.strip()
-      if line:
-        active_versions[line.split('.')[0]] = line
+	try:
+		with open(schema_path, "r") as f:
+			return json.load(f)
+	except json.JSONDecodeError as e:
+		CevContext.error("failed to load schema: invalid JSON", error=str(e))
+	except FileNotFoundError:
+		CevContext.error("failed to load schema: file not found", error=str(e))
 
-  schema_version = active_versions.get(event_name)
-  if not schema_version:
-    CevContext.error("event name doesn't have an active schema")
-    None
-
-  schema_path = schema_dir / f"{schema_version}.json"
-
-  try:
-    with open(schema_path, "r") as f:
-      return json.load(f)
-  except json.JSONDecodeError as e:
-    CevContext.error("failed to load schema: invalid JSON", error=str(e))
-  except FileNotFoundError:
-    CevContext.error("failed to load schema: file not found", error=str(e))
-    return None
+	return None
 
 
 #def get_watched_streams_info(event_stream_dir: Path) -> List[str]:
@@ -594,187 +596,173 @@ def get_user_event_schema(event_stream: str, event_name: str) -> Optional[Dict[s
 
 
 def meta_from_event_file(file: Path) -> Tuple[Optional[int], Optional[str], Optional[str]]:
-  match = re.match(r'^([0-9a-f]{8})-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[\-+]\d{2}:\d{2})-([a-z0-9\-]{3,64})\.evt$', file.name)
+	match = re.match(r'^([0-9a-f]{8})-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[\-+]\d{2}:\d{2})-([a-z0-9\-]{3,64})\.evt$', file.name)
 
-  if match:
-    event_id_hex, recorded_at, trigger_name = match.groups()
-    event_id = int(event_id_hex, 16)
-    return event_id, recorded_at, trigger_name
-  else:
-    return None, None, None
+	if match:
+		event_id_hex, recorded_at, trigger_name = match.groups()
+		event_id = int(event_id_hex, 16)
+		return event_id, recorded_at, trigger_name
+	else:
+		return None, None, None
 
 
 def process_extraction_events():
-  CevContext.info("processing extraction events using built-in handler")
-  CevContext.fatal("process_extraction_events not yet implemented")
+	CevContext.debug("processing extraction events using built-in handler")
+	CevContext.error("process_extraction_events not yet implemented")
 
-
-@dataclass
-class EventStreamState:
-  scheduled_tasks: List[Dict[str, str]] = field(default_factory=list)
 
 def process_scheduled_event_stream():
-  data_dir = CevContext.data_dir()
-  event_stream = "system-events/scheduled"
-  event_stream_dir = data_dir / event_stream
+	event_stream = "system-events/scheduled"
+	event_stream_dir = CevContext.data_dir() / event_stream
 
-  with CevLock(event_stream_dir, "state"):
-    canceled_tasks = set()
-    completed_tasks = set()
+	with CevLock(event_stream_dir, "state"):
+		errored = False
+		state_changed = False
+		last_processed_index = None
 
-    errored = False
-    state_changed = False
-    last_processed_index = None
+		state_file, _metadata, scheduled_state = read_event_stream_state(event_stream)
+		if not scheduled_state:
+			scheduled_state = { "scheduled_tasks": [] }
 
-    prev_state_file, _metadata, scheduled_state = read_event_stream_state(event_stream_dir)
-    if scheduled_state:
-      scheduled_state = EventStreamState(**scheduled_state)
-    else:
-      scheduled_state = EventStreamState()
+		processed_index = get_stream_index(event_stream, "processed")
+		if processed_index is None:
+			next_stream_index = 0
+		else:
+			next_stream_index = processed_index + 1
 
-    current_stream_index = get_processed_stream_index(event_stream_dir)
-    if current_stream_index is None:
-      next_stream_index = 0
-    else:
-      next_stream_index = current_stream_index + 1
+		events_dir = event_stream_dir / "events"
+		for event_file in sorted(events_dir.glob("*.evt")):
+			(event_id, recorded_at, trigger_name) = meta_from_event_file(Path(event_file))
 
-    events_dir = event_stream_dir / "events"
-    for event_file in sorted(events_dir.glob("*.evt")):
-      (event_id, recorded_at, trigger_name) = meta_from_event_file(Path(event_file))
+			with CevContext.context(event_id=event_id, event_stream=event_stream, trigger_name=trigger_name):
+				CevContext.trace("found event file", event_file=event_file.name, recorded_at=recorded_at)
 
-      with CevContext.context(event_id=event_id, event_stream=event_stream, trigger_name=trigger_name):
-        CevContext.debug("found event file", event_file=event_file.name, recorded_at=recorded_at)
+				if event_id < next_stream_index:
+					CevContext.trace("already processed, skipping event")
+					continue
 
-        if event_id < next_stream_index:
-          CevContext.debug("already processed, skipping event")
-          continue
+				trigger_schema = get_embedded_schema(f"system-events-scheduled-{trigger_name}-schema")
+				if not trigger_schema:
+					CevContext.error("unknown system event trigger name, failed to advance")
+					errored = True
+					break
 
-        trigger_schema = get_embedded_schema(f"system-events-scheduled-{trigger_name}-schema")
-        if not trigger_schema:
-          CevContext.error("unknown system event trigger name, failed to advance")
-          errored = True
-          break
+				try:
+					with open(event_file, "r") as f:
+						data = json.load(f)
+				except json.JSONDecodeError as e:
+					CevContext.error("unable to decode persisted event, failed to advance", error=str(e))
+					errored = True
+					break
+				except FileNotFoundError:
+					CevContext.error("unable to read referenced event: file not found", error=str(e))
+					errored = True
+					break
 
-        try:
-          with open(event_file, "r") as f:
-            data = json.load(f)
-        except json.JSONDecodeError as e:
-          CevContext.error("unable to decode persisted event, failed to advance", error=str(e))
-          errored = True
-          break
-        except FileNotFoundError:
-          CevContext.error("unable to read referenced event: file not found", error=str(e))
-          errored = True
-          break
+				if trigger_name == "schedule-task":
+					CevContext.debug("scheduling task")
 
-        if trigger_name == "schedule-task":
-          CevContext.debug("scheduling task")
+					scheduled_state["scheduled_tasks"].append({
+							"task_id": f"{event_id:08x}",
+							"event_stream": data["event_stream"],
+							"trigger_name": data["trigger_name"],
+							"extra_args": data.get("extra_args", []),
+							"scheduled_for": data["scheduled_for"],
+					})
+					state_changed = True
+				elif trigger_name in {"complete-task", "cancel-task"}:
+					remaining_tasks = [task for task in scheduled_state.scheduled_tasks if task["task_id"] != data["task_id"]]
+					scheduled_state["scheduled_tasks"] = remaining_tasks
+					CevContext.debug("task removed", task_id=data["task_id"])
+					state_changed = True
+				else:
+					CevContext.error("trigger not yet implemented, failed to advance")
+					errored = True
+					break
 
-          scheduled_state.scheduled_tasks.append({
-            "task_id": f"{event_id:08x}",
-            "event_stream": data["event_stream"],
-            "event_name": data["event_name"],
-            "extra_args": data.get("extra_args", []),
-            "scheduled_for": data["scheduled_for"],
-          })
-          state_changed = True
-        elif trigger_name in {"complete-task", "cancel-task"}:
-          remaining_tasks = [task for task in scheduled_state.scheduled_tasks if task["task_id"] != data["task_id"]]
-          scheduled_state.scheduled_tasks = remaining_tasks
-          CevContext.debug("task removed", task_id=data["task_id"])
-          state_changed = True
-        else:
-          CevContext.error("trigger not yet implemented, failed to advance")
-          errored = True
-          break
+			last_processed_index = event_id
 
-      last_processed_index = event_id
+		if state_changed:
+			scheduled_state["scheduled_tasks"].sort(key=lambda x: x.get("scheduled_for"))
 
-    if state_changed:
-      scheduled_state.scheduled_tasks.sort(key=lambda x: x.get("scheduled_for"))
+		schema = get_embedded_schema(f"system-events-scheduled-state-schema")
+		if not validate_against_schema(schema, scheduled_state):
+			CevContext.fatal("scheduled state failed to validate against schema", scheduled_state=scheduled_state)
 
-      schema = get_embedded_schema(f"system-events-scheduled-state-schema")
-      if not validate_against_schema(schema, asdict(scheduled_state)):
-        CevContext.fatal("scheduled state failed to validate against schema", scheduled_state=asdict(scheduled_state))
+		persist_state("system-events/scheduled", last_processed_index, scheduled_state)
 
-      persist_state("system-events/scheduled", last_processed_index, asdict(scheduled_state), prev_state_file)
+		if last_processed_index:
+			set_stream_index(event_stream, "processed", last_processed_index)
 
-    if last_processed_index:
-      set_processed_stream_index(event_stream_dir, last_processed_index)
-
-    if errored:
-      CevContext.fatal("failed to process all outstanding events")
+		if errored:
+			CevContext.error("failed to process all outstanding events")
 
 
 @dataclass
 class StateMetadata:
-  event_stream: str
-  stream_id: str
-  timestamp: str
-  previous_state_file: Optional[str] = None
-  schema_versions: Dict[str, str] = field(default_factory=dict)
-  watched_streams: List[str] = field(default_factory=list)
+	event_stream: str
+	stream_id: str
+	timestamp: str
+	schema_versions: Dict[str, str] = field(default_factory=dict)
+	watched_streams: List[str] = field(default_factory=list)
 
 @dataclass
 class State:
-  metadata: StateMetadata
-  state: Dict[str, Any]
+	metadata: StateMetadata
+	state: Dict[str, Any]
 
-def persist_state(event_stream: str, stream_id: int, state_payload: Dict[str, Any], previous_state_file: Optional[str], tmp: bool = False) -> Path:
+def persist_state(event_stream: str, stream_id: int, state_payload: Dict[str, Any]) -> Path:
   metadata = StateMetadata(
     event_stream=event_stream,
     stream_id=f"{stream_id:08x}",
     timestamp=datetime.now(timezone.utc).isoformat()
   )
 
-  if previous_state_file:
-    metadata.previous_state_file = previous_state_file.name
-
   active_schema_versions = get_active_schema_versions(event_stream)
   if active_schema_versions:
     metadata.schema_versions = active_schema_versions
 
-  # todo: read and record watched streams
-  CevContext.warn("watched stream state persistance not yet implemented")
-
   full_state = State(metadata=metadata, state=state_payload)
-  state_file_name = f"{stream_id:08x}-{metadata.timestamp}.state.json"
 
-  if tmp:
-    tmp_dir = CevContext.data_dir() / "tmp"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    state_path = tmp_dir / state_file_name
-  else:
-    event_stream_dir = CevContext.data_dir() / event_stream
-    state_dir = event_stream_dir / "state"
-    state_dir.mkdir(parents=True, exist_ok=True)
-    state_path = state_dir / state_file_name
+  state_dir = CevContext.data_dir() / event_stream / "state"
+  state_dir.mkdir(parents=True, exist_ok=True)
+
+  state_file_name = f"{stream_id:08x}-{metadata.timestamp}.state.json"
+  state_path = state_dir / state_file_name
 
   with open(state_path, "w") as f:
     json.dump(asdict(full_state), f, indent=2)
+
+  # todo: read and record watched streams
+  CevContext.warn("watched stream state announcements not yet implemented")
+  # Check for watchers interested in this stream
+  #watchers = get_watchers(event_stream_dir)
+  #if watchers:
+  #  for watcher_stream, extraction_trigger in watchers:
+  #    schedule_extraction(data_dir, watcher_stream, args.event_stream, extraction_trigger, target_index, logger)
 
   CevContext.debug("persisted event stream state")
   return state_path
 
 
-def read_event_stream_state(event_stream_dir: Path) -> Tuple[Optional[str], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-  latest_snapshot_path = get_latest_state_snapshot_file(event_stream_dir)
-  if not latest_snapshot_path:
-    CevContext.debug("no state available for event stream")
-    return None, None, None
+def read_event_stream_state(event_stream: str) -> Tuple[Optional[str], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+	latest_snapshot_path = get_latest_state_file(event_stream)
+	if not latest_snapshot_path:
+		CevContext.debug("no state available for event stream")
+		return None, None, None
 
-  try:
-    with open(latest_snapshot_path, "r") as f:
-      envelope = json.load(f)
-      CevContext.debug("loaded event stream state")
+	try:
+		with open(latest_snapshot_path, "r") as f:
+			envelope = json.load(f)
+			CevContext.debug("loaded event stream state")
+	except (json.JSONDecodeError, FileNotFoundError) as e:
+		CevContext.fatal("failed to load existing state file", error=str(e))
 
-      source = latest_snapshot_path.name
-      metadata = envelope.get("metadata", {})
-      state = envelope.get("state", {})
+	source = latest_snapshot_path.name
+	metadata = envelope.get("metadata", {})
+	state = envelope.get("state", {})
 
-      return latest_snapshot_path, metadata, state
-  except (json.JSONDecodeError, FileNotFoundError) as e:
-    CevContext.fatal("failed to load existing state file", error=str(e))
+	return latest_snapshot_path, metadata, state
 
 
 # todo: this currently handles the state snapshot references in a way that requires us to write them
@@ -814,7 +802,7 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
     "CEV_TRIGGER_NAME": trigger_name
   }
 
-  latest_snapshot = get_latest_state_snapshot_file(event_stream_dir)
+  latest_snapshot = get_latest_state_file(event_stream)
   if latest_snapshot:
     env_vars["CEV_LATEST_STATE_SNAPSHOT"] = str(latest_snapshot)
 
@@ -920,34 +908,26 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
     CevContext.error("trigger timed out")
     process.kill()
     return 201, None, []
-  #except Exception as e:
-  #  CevContext.error("unexpected exception running trigger", error=str(e))
-  #  return 237, None, []
+  except Exception as e:
+    CevContext.error("unexpected exception running trigger", error=str(e))
+    return 237, None, []
 
 
-def set_current_stream_index(event_stream_dir: Path, stream_index: int):
-  CevContext.debug("updating current stream index", stream_index=stream_index)
-
-  index_file = event_stream_dir / "current.idx"
-  index_file.write_text(f"{stream_index:08x}")
-
-
-def set_processed_stream_index(event_stream_dir: Path, stream_index: int):
-  CevContext.debug("updating processed stream index", stream_index=stream_index)
-
-  index_file = event_stream_dir / "processed.idx"
-  index_file.write_text(f"{stream_index:08x}")
+def set_stream_index(event_stream: str, index_kind: str, stream_index: int):
+	CevContext.debug("updating stream index", event_stream=event_stream, index_kind=index_kind, stream_index=stream_index)
+	index_file = CevContext.data_dir() / event_stream / f"{index_kind}.idx"
+	index_file.write_text(f"{stream_index:08x}")
 
 
 def validate_against_schema(schema: Dict[str, Any], data: Dict[str, Any]) -> bool:
-  try:
-    jsonschema.validate(data, schema)
-    return True
-  except jsonschema.exceptions.SchemaError:
-    CevContext.error("provided schema wasn't valid")
-    return False
-  except jsonschema.exceptions.ValidationError:
-    return False
+	try:
+		jsonschema.validate(data, schema)
+		return True
+	except jsonschema.exceptions.SchemaError:
+		CevContext.error("provided schema wasn't valid")
+		return False
+	except jsonschema.exceptions.ValidationError:
+		return False
 
 
 def validate_command(command: Dict[str, Any], restricted: bool) -> bool:
@@ -986,34 +966,34 @@ def validate_command_list(commands: List[Dict[str, Any]], restricted: bool = Tru
 
 
 def validate_event_name(event_name: str) -> bool:
-  if not event_name:
-    return False
+	if not event_name:
+		return False
 
-  pattern = r'^([a-z0-9-]{3,64})$'
-  return bool(re.match(pattern, event_name))
+	pattern = r'^([a-z0-9-]{3,64})$'
+	return bool(re.match(pattern, event_name))
 
 
 def validate_event_stream_name(event_stream: str) -> bool:
-  if not event_stream:
-    return False
+	if not event_stream:
+		return False
 
-  pattern = r"^[a-z0-9-]{3,32}(/[a-z0-9-]{3,32})*$"
-  return bool(re.match(pattern, event_stream))
+	pattern = r"^[a-z0-9-]{3,32}(/[a-z0-9-]{3,32})*$"
+	return bool(re.match(pattern, event_stream))
 
 
 def validate_json_schema(schema: Dict[str, Any]) -> bool:
-  try:
-    jsonschema.Draft7Validator.check_schema(schema)
-    return True
-  except jsonschema.exceptions.SchemaError as e:
-    return False
+	try:
+		jsonschema.Draft7Validator.check_schema(schema)
+		return True
+	except jsonschema.exceptions.SchemaError as e:
+		return False
 
 
 @dataclass
 class AddEventArgs:
-  event_stream: str
-  event_name: str
-  payload: Dict[str, Any]
+	event_stream: str
+	event_name: str
+	payload: Dict[str, Any]
 
 def cmd_add_event(args: AddEventArgs):
   if not event_stream_is_active(args.event_stream):
@@ -1044,7 +1024,7 @@ def cmd_add_event(args: AddEventArgs):
         CevContext.fatal("event failed to validate against schema", schema=schema, event=args.payload)
         return
 
-      current_index = get_current_stream_index(event_stream_dir)
+      current_index = get_stream_index(args.event_stream, "current")
       if current_index is None:
         new_index = 0
       else:
@@ -1059,9 +1039,9 @@ def cmd_add_event(args: AddEventArgs):
       with open(event_path, "w") as f:
         json.dump(args.payload, f, indent=2)
 
-      set_current_stream_index(event_stream_dir, new_index)
+      set_stream_index(args.event_stream, "current", new_index)
 
-    CevContext.info("added event", stream_index=new_index)
+    CevContext.debug("added event", stream_index=new_index)
 
 
 def cmd_create_event(event_stream: str, event_name: str, output_path: Optional[Path]):
@@ -1094,31 +1074,11 @@ def cmd_create_event(event_stream: str, event_name: str, output_path: Optional[P
   CevContext.info("created event stub based off existing schema")
 
 
-def get_active_schema_versions(event_stream: str) -> Dict[str, str]:
-  data_dir = CevContext.data_dir()
-  event_stream_dir = data_dir / event_stream
-
-  active_version_path = event_stream_dir / "schemas/active_versions"
-  active_versions = {}
-
-  if not active_version_path.exists():
-    return active_versions
-
-  with open(active_version_path, "r") as f:
-    for line in f:
-      line = line.strip()
-
-      if line:
-        active_versions[line.split('.')[0]] = line
-
-  return active_versions
-
-
 @dataclass
 class DefineEventArgs:
-  event_stream: str
-  event_name: str
-  schema: Dict
+	event_stream: str
+	event_name: str
+	schema: Dict
 
 def cmd_define_event(args: DefineEventArgs):
   if not validate_event_stream_name(args.event_stream):
@@ -1169,7 +1129,7 @@ def cmd_define_event(args: DefineEventArgs):
 
               if existing_schema == schema:
                 existing_schema_matches = True
-                CevContext.info("schema unchanged, no update needed")
+                CevContext.debug("schema unchanged, no update needed")
                 return
             except (json.JSONDecodeError, IOError) as e:
               CevContext.error("failed to read existing schema", error=str(e))
@@ -1186,237 +1146,230 @@ def cmd_define_event(args: DefineEventArgs):
           for version in sorted(active_versions.values()):
             f.write(f"{version}\n")
 
-    CevContext.info("defined event schema", schema_version=schema_version)
+    CevContext.debug("defined event schema", schema_version=schema_version)
 
 
 @dataclass
 class DefineTriggerArgs:
-    event_stream: str
-    trigger_name: str
-    trigger_kind: str
-    trigger_path: str
-    copy_trigger: bool
+	event_stream: str
+	trigger_name: str
+	trigger_kind: str
+	trigger_path: str
+	copy_trigger: bool
 
 def cmd_define_trigger(args: DefineTriggerArgs):
-  if not validate_event_stream_name(args.event_stream):
-    CevContext.fatal("invalid event stream name", event_stream=args.event_stream)
+	if not validate_event_stream_name(args.event_stream):
+		CevContext.error("invalid event stream name", event_stream=args.event_stream)
+		return
 
-  if not validate_event_name(args.trigger_name):
-    CevContext.fatal("invalid trigger name", trigger_name=args.trigger_name)
+	if not validate_event_name(args.trigger_name):
+		CevContext.error("invalid trigger name", trigger_name=args.trigger_name)
+		return
 
-  with CevContext.context(event_stream=args.event_stream, trigger_kind=args.trigger_kind, trigger_name=args.trigger_name):
-    if not os.path.isfile(args.trigger_path):
-      CevContext.fatal("trigger file does not exist", trigger_path=str(args.trigger_path))
+	with CevContext.context(event_stream=args.event_stream, trigger_kind=args.trigger_kind, trigger_name=args.trigger_name):
+		if not os.path.isfile(args.trigger_path):
+			CevContext.fatal("trigger file does not exist", trigger_path=str(args.trigger_path))
 
-    if not os.access(args.trigger_path, os.X_OK):
-      CevContext.fatal("trigger file is not executable", trigger_path=str(args.trigger_path))
+		if not os.access(args.trigger_path, os.X_OK):
+			CevContext.fatal("trigger file is not executable", trigger_path=str(args.trigger_path))
 
-    data_dir = CevContext.data_dir()
-    with CevLock(data_dir, "config"):
-      event_stream_dir = data_dir / args.event_stream
-      trigger_dir = event_stream_dir / f"{args.trigger_kind}s"
-      inner_lock_path = event_stream_dir / "event.flock"
+		data_dir = CevContext.data_dir()
+		with CevLock(data_dir, "config"):
+			event_stream_dir = data_dir / args.event_stream
+			trigger_dir = event_stream_dir / f"{args.trigger_kind}s"
+			inner_lock_path = event_stream_dir / "event.flock"
 
-      if args.trigger_kind not in {'handler', 'extractor', 'task'}:
-        CevContext.fatal("undefined trigger kind", trigger_kind=trigger_kind)
+			if args.trigger_kind not in {'handler', 'extractor', 'task'}:
+				CevContext.fatal("undefined trigger kind", trigger_kind=trigger_kind)
 
-      if args.trigger_kind == "extractor":
-        lock_type = "extraction"
-      else:
-        lock_type = "event"
+			if args.trigger_kind == "extractor":
+				lock_type = "extraction"
+			else:
+				lock_type = "event"
 
-      with CevLock(event_stream_dir, lock_type):
-        trigger_dir.mkdir(parents=True, exist_ok=True)
-        new_trigger_path = trigger_dir / args.trigger_name
+		with CevLock(event_stream_dir, lock_type):
+			trigger_dir.mkdir(parents=True, exist_ok=True)
+			new_trigger_path = trigger_dir / args.trigger_name
 
-        if args.copy_trigger:
-          with open(args.trigger_path, "rb") as src, open(new_trigger_path, "wb") as trig:
-            trig.write(src.read())
+			if args.copy_trigger:
+				with open(args.trigger_path, "rb") as src, open(new_trigger_path, "wb") as trig:
+					trig.write(src.read())
 
-          new_trigger_path.chmod(0o755)
-        else:
-          new_trigger_path.symlink_to(args.trigger_path)
+				new_trigger_path.chmod(0o755)
+			else:
+				new_trigger_path.symlink_to(args.trigger_path)
 
-    CevContext.info("defined trigger")
+		CevContext.debug("defined trigger")
 
 
 def cmd_info():
-  data_dir = CevContext.data_dir()
+	data_dir = CevContext.data_dir()
 
-  # todo: need to report some general stream information (what streams are present, how many total
-  # & processed events, etc...
+	# todo: need to report some general stream information (what streams are present, how many total
+	# & processed events, etc...
 
-  CevContext.info("system info", data_directory=str(data_dir), version=VERSION)
+	CevContext.info("system info", data_directory=str(data_dir), version=VERSION)
 
 
-def cmd_is_clean(event_stream: str):
+def cmd_is_clean(event_stream: str) -> bool:
   with CevContext.context(event_stream=event_stream):
     if not event_stream_is_active(event_stream):
       CevContext.fatal("event stream must exist and be active to check dirty status")
 
+    data_dir = CevContext.data_dir()
     event_stream_dir = data_dir / event_stream
 
-    current_index = get_current_stream_index(event_stream_dir)
+    current_index = get_stream_index(event_stream, "current")
     CevContext.set("current_index", current_index)
     if current_index is None:
-      CevContext.info("stream is clean (no events)", status="clean")
-      sys.exit(0)
+      CevContext.debug("stream is clean (no events)", status="clean")
+      return True
 
-    processed_index = get_processed_stream_index(event_stream_dir)
+    processed_index = get_stream_index(event_stream, "processed")
     CevContext.set("processed_index", processed_index)
     if processed_index is None:
-      CevContext.info("stream is dirty (no processed events)", status="dirty")
-      sys.exit(1)
+      CevContext.debug("stream is dirty (no processed events)", status="dirty")
+      return False
 
-    if int(current_index, 16) > int(processed_index, 16):
-      CevContext.info("stream is dirty (unprocessed events)", status="dirty")
-      sys.exit(1)
+    if current_index > processed_index:
+      CevContext.debug("stream is dirty (unprocessed events)", status="dirty")
+      return False
 
     CevContext.info("stream is clean", status="clean")
-    sys.exit(0)
+    return True
 
 
-def cmd_is_newer(event_stream: str, stream_index: str):
+def cmd_is_newer(event_stream: str, stream_index: int) -> bool:
   with CevContext.context(event_stream=event_stream, stream_index=stream_index):
     data_dir = CevContext.data_dir()
 
     if not event_stream_is_active(event_stream):
-      # This has the added benefit of the exit code mapping to "no its not newer than the requested ID"
-      CevContext.fatal("event stream must exist and be active to check if an index has been included in the state")
-
-    try:
-      dec_stream_index = int(stream_index, 16)
-    except ValueError:
-      # This one however is a user error and may not be the correct response but its the best we can do
-      CevContext.fatal("invalid stream index format (should be base16)")
+      CevContext.error("event stream must exist and be active to check if an index has been included in the state")
+      return False
 
     event_stream_dir = data_dir / event_stream
+    processed_index = get_stream_index(event_stream, "processed")
 
-    processed_index = get_processed_stream_index(event_stream_dir)
     with CevContext.context(processed_index=processed_index):
       if processed_index is None:
         CevContext.info("state doesn't exist yet (no processed events)")
-        sys.exit(1)
+        return False
 
-      if processed_index > dec_stream_index:
+      if processed_index > stream_index:
         CevContext.info("state is newer than the provided id")
-        sys.exit(0)
+        return True
       else:
         CevContext.info("state has not been processed beyond the provided id")
-        sys.exit(1)
+        return False
 
 
 def cmd_process(event_stream: str):
-  with CevContext.context(event_stream=event_stream):
-    if not event_stream_is_active(event_stream):
-      CevContext.fatal("event stream must be active to check dirty status")
+	with CevContext.context(event_stream=event_stream):
+		if not event_stream_is_active(event_stream):
+			CevContext.fatal("event stream must be active to check dirty status")
 
-    data_dir = CevContext.data_dir()
-    event_stream_dir = data_dir / event_stream
+		data_dir = CevContext.data_dir()
+		event_stream_dir = data_dir / event_stream
 
-    if event_stream == "system-events/extraction":
-      process_extraction_events()
-      return
+		if event_stream == "system-events/extraction":
+			process_extraction_events()
+			return
 
-    if event_stream == "system-events/scheduled":
-      process_scheduled_event_stream()
-      return
+		if event_stream == "system-events/scheduled":
+			process_scheduled_event_stream()
+			return
 
-    CevContext.debug("processing event stream")
+		CevContext.debug("processing event stream")
 
-    with CevLock(event_stream_dir, "state"):
-      current_index = get_current_stream_index(event_stream_dir)
-      if current_index is None:
-        CevContext.info("no events to process")
-        return
+		with CevLock(event_stream_dir, "state"):
+			current_index = get_stream_index(event_stream, "current")
+			if current_index is None:
+				CevContext.info("no events to process")
+				return
 
-      processed_index = get_processed_stream_index(event_stream_dir)
-      if processed_index is None:
-        next_index = 0
-      else:
-        next_index = processed_index + 1
+			processed_index = get_stream_index(event_stream, "processed")
+			if processed_index is None:
+				next_index = 0
+			else:
+				next_index = processed_index + 1
 
-      state_update = None
-      prev_state_file = get_latest_state_snapshot_file(event_stream_dir)
+			state_update = None
+			state_file = get_latest_state_file(event_stream)
 
-      CevContext.debug("processing event range", next_index=next_index, current_index=current_index)
+			CevContext.debug("processing event range", next_index=next_index, current_index=current_index)
 
-      # Note: if processing the stream results in new events to the stream being processed those
-      # will not be handled just queued for future runs. This is by design to ensure event streams
-      # have bounded execution.
-      for idx in range(next_index, current_index + 1):
-        events_dir = event_stream_dir / "events"
-        event_files = list(events_dir.glob(f"{idx:08x}-*"))
+			# Note: if processing the stream results in new events to the stream being processed those
+			# will not be handled just queued for future runs. This is by design to ensure event streams
+			# have bounded execution.
+			for idx in range(next_index, current_index + 1):
+				events_dir = event_stream_dir / "events"
+				event_files = list(events_dir.glob(f"{idx:08x}-*"))
 
-        if not event_files:
-          CevContext.error("expected stream index but found gap in sequence", stream_index=f"{idx:08x}")
-          break
+				if not event_files:
+					CevContext.error("expected stream index but found gap in sequence", stream_index=f"{idx:08x}")
+					break
 
-        # Technically there could be multiple events with the same index if there is a concurrency
-        # bug, the event lock should handle this directly
-        event_path = events_dir / event_files[0]
-        _, recorded_at, event_name = meta_from_event_file(event_path)
+				# Technically there could be multiple events with the same index if there is a concurrency
+				# bug, the event lock should handle this directly
+				event_path = events_dir / event_files[0]
+				_, recorded_at, event_name = meta_from_event_file(event_path)
 
-        with CevContext.context(event_id=idx, event_name=event_name):
-          CevContext.debug("running scheduled handler")
+				with CevContext.context(event_id=idx, event_name=event_name):
+					CevContext.debug("running scheduled handler")
 
-          start_time = time.time()
-          extra_args = [str(event_path)]
-          exit_code, state_update, commands = run_trigger(event_stream, "handler", event_name, extra_args)
-          duration_ms = int((time.time() - start_time) * 1000)
+					start_time = time.time()
+					extra_args = [str(event_path)]
+					exit_code, state_update, commands = run_trigger(event_stream, "handler", event_name, extra_args)
+					duration_ms = int((time.time() - start_time) * 1000)
 
-          if exit_code != 0:
-            CevContext.warn("scheduled handler failed", event_id=idx, duration_ms=duration_ms, exit_code=exit_code)
-            break
+					if exit_code != 0:
+						CevContext.warn("scheduled handler failed", event_id=idx, duration_ms=duration_ms, exit_code=exit_code)
+						break
 
-          if validate_command_list(commands, False):
-            execute_commands(commands)
-          else:
-            CevContext.warn("scheduled handler produced invalid commands", duration_ms=duration_ms, exit_code=exit_code)
-            break
+					if validate_command_list(commands, False):
+						execute_commands(commands)
+					else:
+						CevContext.warn("scheduled handler produced invalid commands", duration_ms=duration_ms, exit_code=exit_code)
+						break
 
-          set_processed_stream_index(event_stream_dir, idx)
-          if state_update:
-            prev_state_file = persist_state(event_stream, idx, state_update, prev_state_file)
+					set_stream_index(event_stream, "processed", idx)
+					if state_update:
+						state_file = persist_state(event_stream, idx, state_update)
 
-          CevContext.info("scheuled handler succeeded", event_id=idx, duration_ms=duration_ms, exit_code=exit_code)
+					CevContext.debug("scheduled handler succeeded", event_id=idx, duration_ms=duration_ms, exit_code=exit_code)
 
 
 def cmd_run(event_stream: str, trigger_name: str, extra_args: Optional[List[str]] = None) -> Tuple[bool, Optional[Dict[str, Any]]]:
-  if extra_args and extra_args[0] == "--":
-    extra_args = extra_args[1:]
+	if extra_args and extra_args[0] == "--":
+		extra_args = extra_args[1:]
 
-  with CevContext.context(event_stream=event_stream, trigger_name=trigger_name, args=extra_args):
-    CevContext.debug("running trigger")
+	if not cmd_is_clean(event_stream):
+		CevContext.debug("processing dirty stream before running trigger")
+		cmd_process(event_stream)
 
-    start_time = time.time()
-    exit_code, state_update, commands = run_trigger(event_stream, "task", trigger_name, extra_args)
-    duration_ms = int((time.time() - start_time) * 1000)
+	with CevContext.context(event_stream=event_stream, trigger_name=trigger_name, args=extra_args):
+		CevContext.debug("running trigger")
 
-    # Only perform additional processing if the command was successful
-    if exit_code != 0:
-      CevContext.error("trigger exited with error", duration_ms=duration_ms, exit_code=exit_code)
-      return False, None
+		start_time = time.time()
+		exit_code, state_update, commands = run_trigger(event_stream, "task", trigger_name, extra_args)
+		duration_ms = int((time.time() - start_time) * 1000)
 
-    # Commands are how tasks can modify state in this stream and others, we want to have high
-    # assurity that they're all valid before we attempt to apply them to our state.
-    if validate_command_list(commands, False):
-      execute_commands(commands)
-    else:
-      CevContext.error("trigger produced invalid command list", duration_ms=duration_ms, exit_code=exit_code)
-      return False, None
+		# Only perform additional processing if the command was successful
+		if exit_code != 0:
+			CevContext.error("trigger exited with error", duration_ms=duration_ms, exit_code=exit_code)
+			return False, None
 
-    CevContext.warn("watcher notification annoucements not yet implemented")
+		# Commands are how tasks can modify state in this stream and others, we want to have high
+		# assurity that they're all valid before we attempt to apply them to our state.
+		if validate_command_list(commands, False):
+			execute_commands(commands)
+		else:
+			CevContext.error("trigger produced invalid command list", duration_ms=duration_ms, exit_code=exit_code)
+			return False, None
 
-    # Check for watchers interested in this stream
-    #watchers = get_watchers(event_stream_dir)
-    #if watchers:
-    #  for watcher_stream, extraction_trigger in watchers:
-    #    schedule_extraction(data_dir, watcher_stream, args.event_stream, extraction_trigger, target_index, logger)
+		CevContext.debug("trigger completed successfully", duration_ms=duration_ms, exit_code=exit_code)
 
-    CevContext.info("trigger completed successfully", duration_ms=duration_ms, exit_code=exit_code)
-
-    return True, state_update
+	return True, state_update
 
 
 #@dataclass
@@ -1530,139 +1483,147 @@ def cmd_run(event_stream: str, trigger_name: str, extra_args: Optional[List[str]
 
 
 def main():
-  parser = argparse.ArgumentParser(description="Common Event system")
+	parser = argparse.ArgumentParser(description="Common Event system")
 
-  # Global arguments
-  parser.add_argument("-v", "--verbose", action="store_true", help="output debug information")
-  parser.add_argument("-d", "--data-dir", help="Override default data directory")
+	# Global arguments
+	parser.add_argument("-v", "--verbose", action="store_true", help="output debug information")
+	parser.add_argument("-d", "--data-dir", help="Override default data directory")
 
-  subparsers = parser.add_subparsers(dest="command", required=True)
+	subparsers = parser.add_subparsers(dest="command", required=True)
 
-  # Command specific arguments
-  add_event_parser = subparsers.add_parser("add-event", help="Add an event to a stream")
-  add_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
-  add_event_parser.add_argument("-n", "--name", required=True, help="Event name")
-  add_event_parser.add_argument("-f", "--file", help="Event JSON file path")
-  add_event_parser.add_argument("-p", "--process", action="store_true", help="Process stream after adding event")
+	# Command specific arguments
+	add_event_parser = subparsers.add_parser("add-event", help="Add an event to a stream")
+	add_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	add_event_parser.add_argument("-n", "--name", required=True, help="Event name")
+	add_event_parser.add_argument("-f", "--file", help="Event JSON file path")
+	add_event_parser.add_argument("-p", "--process", action="store_true", help="Process stream after adding event")
 
-  create_event_parser = subparsers.add_parser("create-event", help="Create an event stub")
-  create_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
-  create_event_parser.add_argument("-n", "--name", required=True, help="Event name")
-  create_event_parser.add_argument("-f", "--file", help="Output file path")
+	create_event_parser = subparsers.add_parser("create-event", help="Create an event stub")
+	create_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	create_event_parser.add_argument("-n", "--name", required=True, help="Event name")
+	create_event_parser.add_argument("-f", "--file", help="Output file path")
 
-  define_event_parser = subparsers.add_parser("define-event", help="Define an event schema")
-  define_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
-  define_event_parser.add_argument("-n", "--name", required=True, help="Event name")
-  define_event_parser.add_argument("-f", "--file", help="JSON schema file path")
+	define_event_parser = subparsers.add_parser("define-event", help="Define an event schema")
+	define_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	define_event_parser.add_argument("-n", "--name", required=True, help="Event name")
+	define_event_parser.add_argument("-f", "--file", help="JSON schema file path")
 
-  define_trigger_parser = subparsers.add_parser("define-trigger", help="Define a trigger")
-  define_trigger_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
-  define_trigger_parser.add_argument("-n", "--name", required=True, help="Trigger name")
-  define_trigger_parser.add_argument("-t", "--trigger", required=True, help="Trigger executable path")
-  define_trigger_parser.add_argument("-k", "--kind", required=True, help="Trigger kind (handler, extractor, task)")
-  define_trigger_parser.add_argument("-c", "--copy", help="Copy the provided executable into the data directory (will symlink if not copied)")
+	define_trigger_parser = subparsers.add_parser("define-trigger", help="Define a trigger")
+	define_trigger_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	define_trigger_parser.add_argument("-n", "--name", required=True, help="Trigger name")
+	define_trigger_parser.add_argument("-t", "--trigger", required=True, help="Trigger executable path")
+	define_trigger_parser.add_argument("-k", "--kind", required=True, help="Trigger kind (handler, extractor, task)")
+	define_trigger_parser.add_argument("-c", "--copy", help="Copy the provided executable into the data directory (will symlink if not copied)")
 
-  is_clean_parser = subparsers.add_parser("is-clean", help="Verify all events are in a stream have been processed")
-  is_clean_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	is_clean_parser = subparsers.add_parser("is-clean", help="Verify all events are in a stream have been processed")
+	is_clean_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
 
-  is_newer_parser = subparsers.add_parser("is-newer", help="Check if a stream's latest state snapshot is newer than provided index")
-  is_newer_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
-  is_newer_parser.add_argument("-i", required=True, help="Stream index to compare against (in base16)")
+	is_newer_parser = subparsers.add_parser("is-newer", help="Check if a stream's latest state snapshot is newer than provided index")
+	is_newer_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	is_newer_parser.add_argument("-i", "--index", required=True, help="Stream index to compare against (in base16)")
 
-  subparsers.add_parser("info", help="Display system summary information")
+	subparsers.add_parser("info", help="Display system summary information")
 
-  process_parser = subparsers.add_parser("process", help="Process events in a stream")
-  process_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	process_parser = subparsers.add_parser("process", help="Process events in a stream")
+	process_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
 
-  run_parser = subparsers.add_parser("run", help="Run a specific task in an event stream")
-  run_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
-  run_parser.add_argument("-n", "--name", required=True, help="Task trigger name")
-  run_parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Additional arguments to pass to the trigger (after --)")
+	run_parser = subparsers.add_parser("run", help="Run a specific task in an event stream")
+	run_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	run_parser.add_argument("-n", "--name", required=True, help="Task trigger name")
+	run_parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Additional arguments to pass to the trigger (after --)")
 
-  #unwatch_parser = subparsers.add_parser("unwatch", help="Remove a watched stream relationship")
-  #unwatch_parser.add_argument("-s", "--watcher", required=True, help="Watcher stream name")
-  #unwatch_parser.add_argument("-t", "--target", required=True, help="Target stream to stop watching")
+	#unwatch_parser = subparsers.add_parser("unwatch", help="Remove a watched stream relationship")
+	#unwatch_parser.add_argument("-s", "--watcher", required=True, help="Watcher stream name")
+	#unwatch_parser.add_argument("-t", "--target", required=True, help="Target stream to stop watching")
 
-  #watch_parser = subparsers.add_parser("watch", help="Establish a watched stream relationship")
-  #watch_parser.add_argument("-s", "--watcher", required=True, help="Watcher stream name")
-  #watch_parser.add_argument("-t", "--target", required=True, help="Target stream to watch")
-  #watch_parser.add_argument("-e", "--extractor", required=True, help="Name of state extraction trigger")
+	#watch_parser = subparsers.add_parser("watch", help="Establish a watched stream relationship")
+	#watch_parser.add_argument("-s", "--watcher", required=True, help="Watcher stream name")
+	#watch_parser.add_argument("-t", "--target", required=True, help="Target stream to watch")
+	#watch_parser.add_argument("-e", "--extractor", required=True, help="Name of state extraction trigger")
 
-  args = parser.parse_args()
-  data_dir = get_data_directory(args.data_dir)
+	args = parser.parse_args()
+	data_dir = get_data_directory(args.data_dir)
 
-  CevContext.init(data_dir, args.verbose)
-  CevContext.debug("starting new session", command=args.command, version=VERSION)
+	CevContext.init(data_dir, args.verbose)
+	CevContext.debug("starting new session", command=args.command, version=VERSION)
 
-  if args.command == "add-event":
-    event_path = Path(args.file).expanduser().resolve()
-    if not event_path.exists():
-      CevContext.fatal("provided file doesn't exist", event_path=event_path)
+	if args.command == "add-event":
+		event_path = Path(args.file).expanduser().resolve()
+		if not event_path.exists():
+			CevContext.fatal("provided file doesn't exist", event_path=event_path)
 
-    payload = event_path.read_text().strip()
-    cmd_add_event(AddEventArgs(
-        event_stream=args.stream,
-        event_name=args.name,
-        payload=payload,
-    ))
+		payload = event_path.read_text().strip()
+		cmd_add_event(AddEventArgs(
+			event_stream=args.stream,
+			event_name=args.name,
+			payload=payload,
+		))
 
-    # Process event immediately if requested by the caller
-    if args.process:
-      cmd_process(args.event_stream)
-  elif args.command == "create-event":
-    cmd_create_event(args.stream, args.name, args.file)
-  elif args.command == "define-event":
-    schema_path = Path(args.file).expanduser().resolve()
-    if not schema_path.exists():
-      CevContext.fatal("provided file doesn't exist", schema_path=schema_path)
+		# Process event immediately if requested by the caller
+		if args.process:
+			cmd_process(args.event_stream)
+	elif args.command == "create-event":
+		cmd_create_event(args.stream, args.name, args.file)
+	elif args.command == "define-event":
+		schema_path = Path(args.file).expanduser().resolve()
+		if not schema_path.exists():
+			CevContext.fatal("provided file doesn't exist", schema_path=schema_path)
 
-    schema = schema_path.read_text().strip()
-    cmd_define_event(
-      DefineEventArgs(
-        event_stream=args.stream,
-        event_name=args.name,
-        schema=schema,
-      )
-    )
-  elif args.command == "define-trigger":
-    trigger_path = Path(args.trigger).expanduser().resolve()
+		schema = schema_path.read_text().strip()
+		cmd_define_event(DefineEventArgs(
+			event_stream=args.stream,
+			event_name=args.name,
+			schema=schema,
+		))
+	elif args.command == "define-trigger":
+		trigger_path = Path(args.trigger).expanduser().resolve()
 
-    cmd_define_trigger(
-      DefineTriggerArgs(
-        event_stream=args.stream,
-        trigger_name=args.name,
-        trigger_kind=args.kind,
-        trigger_path=trigger_path,
-        copy_trigger=args.copy,
-      )
-    )
-  elif args.command == "info":
-    cmd_info()
-  elif args.command == "is-dirty":
-    cmd_is_clean(args.stream)
-  elif args.command == "is-newer":
-    cmd_is_newer(args.stream, args.i)
-  elif args.command == "process":
-    cmd_process(args.stream)
-  elif args.command == "run":
-    cmd_run(args.stream, args.name, args.extra_args)
-  #elif args.command == "watch":
-  #  watch_args = WatchArgs(
-  #    watcher_stream=args.watcher,
-  #    target_stream=args.target,
-  #    extraction_trigger=args.extraction,
-  #  )
-  #  cmd_watch(watch_args, logger, data_dir)
-  #elif args.command == "unwatch":
-  #  unwatch_args = UnwatchArgs(
-  #    watcher_stream=args.watcher,
-  #    target_stream=args.target,
-  #  )
-  #  cmd_unwatch(unwatch_args, logger, data_dir)
+		cmd_define_trigger(DefineTriggerArgs(
+			event_stream=args.stream,
+			trigger_name=args.name,
+			trigger_kind=args.kind,
+			trigger_path=trigger_path,
+			copy_trigger=args.copy,
+		))
+	elif args.command == "info":
+		cmd_info()
+	elif args.command == "is-dirty":
+		if cmd_is_clean(args.stream):
+			sys.exit(0)
+		else:
+			sys.exit(1)
+	elif args.command == "is-newer":
+		try:
+			stream_index = int(stream_index, 16)
+		except ValueError:
+			# This one however is a user error and may not be the correct response but its the best we can do
+			CevContext.fatal("invalid stream index format (should be base16)")
+
+		if cmd_is_newer(args.stream, stream_index):
+			sys.exit(0)
+		else:
+			sys.exit(1)
+	elif args.command == "process":
+		cmd_process(args.stream)
+	elif args.command == "run":
+		cmd_run(args.stream, args.name, args.extra_args)
+	#elif args.command == "watch":
+	#  watch_args = WatchArgs(
+	#    watcher_stream=args.watcher,
+	#    target_stream=args.target,
+	#    extraction_trigger=args.extraction,
+	#  )
+	#  cmd_watch(watch_args, logger, data_dir)
+	#elif args.command == "unwatch":
+	#  unwatch_args = UnwatchArgs(
+	#    watcher_stream=args.watcher,
+	#    target_stream=args.target,
+	#  )
+	#  cmd_unwatch(unwatch_args, logger, data_dir)
 
 if __name__ != "__main__":
-  printf("utility is not available as a library")
-  sys.exit(1)
+	printf("utility is not available as a library")
+	sys.exit(1)
 
 # Explicit exit is important to ensure we don't try and execute the embedded schemas
 sys.exit(main())
@@ -1670,126 +1631,126 @@ sys.exit(main())
 __EMBEDDED_SCHEMAS__
 # [system-events-extraction-extract-task-schema]
 {
-  "type": "object",
-  "properties": {
-    "event_stream": {"type": "string"},
-    "trigger_name": {"type": "string"},
-    "data_stream": {"type": "string"},
-    "state_file": {"type": "string"}
-  },
-  "required": ["event_stream", "trigger_name", "data_stream", "state_file"]
+	"type": "object",
+	"properties": {
+		"event_stream": {"type": "string"},
+		"trigger_name": {"type": "string"},
+		"data_stream": {"type": "string"},
+		"state_file": {"type": "string"}
+	},
+	"required": ["event_stream", "trigger_name", "data_stream", "state_file"]
 }
 
 # [system-events-scheduled-cancel-task-schema]
 {
-  "type": "object",
-  "properties": {
-    "task_id": {"type": "string"},
-    "cev_ctx_id": {"type": "string"}
-  },
-  "required": ["cev_ctx_id", "task_id"]
+	"type": "object",
+	"properties": {
+		"task_id": {"type": "string"},
+		"cev_ctx_id": {"type": "string"}
+	},
+	"required": ["cev_ctx_id", "task_id"]
 }
 
 # [system-events-scheduled-complete-task-schema]
 {
-  "type": "object",
-  "properties": {
-    "task_id": {"type": "string"}
-  },
-  "required": ["task_id"]
+	"type": "object",
+	"properties": {
+		"task_id": {"type": "string"}
+	},
+	"required": ["task_id"]
 }
 
 # [system-events-scheduled-state-schema]
 {
-  "type": "object",
-  "properties": {
-    "scheduled_tasks": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "task_id": {"type": "string"},
-          "event_stream": {"type": "string"},
-          "trigger_name": {"type": "string"},
-          "extra_args": { "type": "array", "items": { "type": "string" } },
-          "scheduled_for": {"type": "string", "format": "date-time"}
-        },
-        "required": ["task_id", "event_stream", "trigger_name", "extra_args", "scheduled_for"]
-      }
-    }
-  },
-  "required": ["scheduled_tasks"]
+	"type": "object",
+	"properties": {
+		"scheduled_tasks": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"task_id": {"type": "string"},
+					"event_stream": {"type": "string"},
+					"trigger_name": {"type": "string"},
+					"extra_args": { "type": "array", "items": { "type": "string" } },
+					"scheduled_for": {"type": "string", "format": "date-time"}
+				},
+				"required": ["task_id", "event_stream", "trigger_name", "extra_args", "scheduled_for"]
+			}
+		}
+	},
+	"required": ["scheduled_tasks"]
 }
 
 # [system-events-scheduled-schedule-task-schema]
 {
-  "type": "object",
-  "properties": {
-    "event_stream": {"type": "string"},
-    "trigger_name": {"type": "string"},
-    "extra_args": { "type": "array", "items": { "type": "string" } },
-    "scheduled_for": {"type": "string", "format": "date-time"}
-  },
-  "required": ["event_stream", "trigger_name", "scheduled_for"]
+	"type": "object",
+	"properties": {
+		"event_stream": {"type": "string"},
+		"trigger_name": {"type": "string"},
+		"extra_args": { "type": "array", "items": { "type": "string" } },
+		"scheduled_for": {"type": "string", "format": "date-time"}
+	},
+	"required": ["event_stream", "trigger_name", "scheduled_for"]
 }
 
 # [cmd-add-event-command-schema]
 {
-  "type": "object",
-  "properties": {
-    "command": {"type": "string", "enum": ["add-event"]},
-    "event_stream": {"type": "string"},
-    "event_name": {"type": "string"},
-    "payload": {"type": "object"}
-  },
-  "required": ["command", "event_stream", "event_name", "payload"]
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["add-event"]},
+		"event_stream": {"type": "string"},
+		"event_name": {"type": "string"},
+		"payload": {"type": "object"}
+	},
+	"required": ["command", "event_stream", "event_name", "payload"]
 }
 
 # [cmd-define-event-command-schema]
 {
-  "type": "object",
-  "properties": {
-    "command": {"type": "string", "enum": ["define-event"]},
-    "event_stream": {"type": "string"},
-    "event_name": {"type": "string"},
-    "schema": {"type": "object"}
-  },
-  "required": ["command", "event_stream", "event_name", "schema"]
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["define-event"]},
+		"event_stream": {"type": "string"},
+		"event_name": {"type": "string"},
+		"schema": {"type": "object"}
+	},
+	"required": ["command", "event_stream", "event_name", "schema"]
 }
 
 # [cmd-define-trigger-command-schema]
 {
-  "type": "object",
-  "properties": {
-    "command": {"type": "string", "enum": ["define-trigger"]},
-    "event_stream": {"type": "string"},
-    "trigger_name": {"type": "string"},
-    "trigger_kind": {"type": "string"},
-    "trigger_path": {"type": "string"},
-    "copy_trigger": {"type": "bool"}
-  },
-  "required": ["command", "event_stream", "trigger_name", "trigger_kind", "trigger_path"]
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["define-trigger"]},
+		"event_stream": {"type": "string"},
+		"trigger_name": {"type": "string"},
+		"trigger_kind": {"type": "string"},
+		"trigger_path": {"type": "string"},
+		"copy_trigger": {"type": "bool"}
+	},
+	"required": ["command", "event_stream", "trigger_name", "trigger_kind", "trigger_path"]
 }
 
 # [cmd-unwatch-command-schema]
 {
-  "type": "object",
-  "properties": {
-    "command": {"type": "string", "enum": ["unwatch"]},
-    "watching_stream": {"type": "string"},
-    "event_stream": {"type": "string"}
-  },
-  "required": ["command", "watching_stream", "event_stream"]
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["unwatch"]},
+		"watching_stream": {"type": "string"},
+		"event_stream": {"type": "string"}
+	},
+	"required": ["command", "watching_stream", "event_stream"]
 }
 
 # [cmd-watch-command-schema]
 {
-  "type": "object",
-  "properties": {
-    "command": {"type": "string", "enum": ["watch"]},
-    "watching_stream": {"type": "string"},
-    "event_stream": {"type": "string"},
-    "extractor": {"type": "string"}
-  },
-  "required": ["command", "watching_stream", "event_stream", "extractor"]
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["watch"]},
+		"watching_stream": {"type": "string"},
+		"event_stream": {"type": "string"},
+		"extractor": {"type": "string"}
+	},
+	"required": ["command", "watching_stream", "event_stream", "extractor"]
 }
