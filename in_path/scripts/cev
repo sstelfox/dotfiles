@@ -104,16 +104,16 @@ class CevContext:
 			raise RuntimeError("CevContext not initialized")
 
 		if key == "ctx_id":
-			return
+			return None
 
-		_CURRENT_CONTEXT["attrs"].pop(key, None)
+		return _CURRENT_CONTEXT["attrs"].pop(key, None)
 
 	@staticmethod
 	def ctx_id() -> str:
 		if "attrs" not in _CURRENT_CONTEXT:
 			raise RuntimeError("CevContext not initialized")
 
-		_CURRENT_CONTEXT["ctx_id"]
+		return _CURRENT_CONTEXT["ctx_id"]
 
 	@staticmethod
 	def data_dir():
@@ -231,11 +231,14 @@ class CevLock:
 	def __enter__(self):
 		self.lock_file.parent.mkdir(parents=True, exist_ok=True)
 		self.lock_fd = open(self.lock_file, "w+")
+		lock_acquired = False
 
 		CevContext.trace("attempting to retrieve lock")
 
 		try:
 			fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+			lock_acquired = True
+
 			CevContext.set(f"{self.lock_type}_lock", True)
 			CevContext.trace("lock acquired")
 		except BlockingIOError:
@@ -249,11 +252,13 @@ class CevLock:
 					CevContext.set(f"{self.lock_type}_lock", True)
 					CevContext.trace("acquired lock after wait", lock_type=self.lock_type, wait_duration=time.time() - start_time)
 
+					lock_acquired = True
 					break
 				except BlockingIOError:
 					time.sleep(0.1)
-				else:
-					CevContext.fatal("could not acquire lock within timeout", lock_type=self.lock_type, timeout=self.wait_timeout_seconds, path=self.lock_file)
+
+		if not lock_acquired:
+			CevContext.fatal("could not acquire lock within timeout", lock_type=self.lock_type, timeout=self.wait_timeout_seconds, path=self.lock_file)
 
 		# Write PID to the file after acquiring the lock, can be useful in diagnostics
 		self.lock_fd.write(str(os.getpid()))
@@ -354,9 +359,11 @@ def execute_scheduled_events(extra_args: Optional[List[str]]):
 
 		start_time = time.time()
 		executed_tasks = []
+		# todo: since failure of a scheduled event likely only impacts a single stream this should maintain
+		# a list of "failed" streams and allow execution of any other streams's tasks
 		for task in due_tasks:
 			time_elapsed = time.time() - start_time
-			time_remaining = MAX_RUNTIME_SECONDS - time_elapsed
+			time_remaining = runtime_limit - time_elapsed
 
 			event_file_name = task["event_file"]
 			if not event_file_name:
@@ -564,7 +571,7 @@ def get_user_event_schema(event_stream: str, event_name: str) -> Optional[Dict[s
 			return json.load(f)
 	except json.JSONDecodeError as e:
 		CevContext.error("failed to load schema: invalid JSON", error=str(e))
-	except FileNotFoundError:
+	except FileNotFoundError as e:
 		CevContext.error("failed to load schema: file not found", error=str(e))
 
 	return None
@@ -682,7 +689,6 @@ def process_scheduled_event_stream():
 							"extra_args": data.get("extra_args", []),
 							"scheduled_for": data["scheduled_for"],
 					})
-					state_changed = True
 				elif trigger_name in {"complete-task", "cancel-task"}:
 					remaining_tasks = [task for task in state["scheduled_tasks"] if task["task_id"] != data["task_id"]]
 					state["scheduled_tasks"] = remaining_tasks
@@ -882,6 +888,28 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 				except (IOError, OSError) as e:
 					if e.errno != errno.EAGAIN:	# Ignore would-block errors
 						raise
+
+		try:
+			final_stdout = process.stdout.read()
+			if final_stdout:
+				stdout_buffer += final_stdout
+
+			final_stderr = process.stderr.read()
+			if final_stderr:
+				stderr_buffer += final_stderr
+
+				# todo: need to extract stderr buffer processing to a function to remove the duplication here
+				if '\n' in stderr_buffer:
+					lines = stderr_buffer.split('\n')
+					stderr_buffer = lines.pop()
+
+					for line in lines:
+						command = filter_trigger_command(line)
+						if command:
+							output_commands.append(command)
+		except (IOError, OSError) as e:
+			if e.errno != errno.EAGAIN:
+				raise
 
 		# Process any remaining stderr content after the process completes
 		if stderr_buffer:
