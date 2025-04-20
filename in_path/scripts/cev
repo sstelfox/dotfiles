@@ -17,9 +17,11 @@ import subprocess
 import sys
 import time
 
+from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from operator import itemgetter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -217,14 +219,14 @@ class _TempContextManager:
 
 class CevLock:
 	def __init__(self, lock_dir: Path, lock_type: str = "state"):
-		valid_lock_types = {"config", "event", "extraction", "state"}
+		valid_lock_types = {"config", "event", "state"}
 		if lock_type not in valid_lock_types:
 			CevContext.fatal("unknown lock type requested", lock_type=lock_type)
 
-		if lock_type in {"config", "event", "extraction"}:
+		if lock_type in {"config", "event"}:
 			self.wait_timeout_seconds = 5
 		else:
-			self.wait_timeout_seconds = 45
+			self.wait_timeout_seconds = 15
 
 		self.lock_file = lock_dir / f"{lock_type}.flock"
 		self.lock_type = lock_type
@@ -313,13 +315,80 @@ def execute_commands(commands: List[Dict[str, Any]]) -> bool:
 	return True
 
 
-def execute_scheduled_events(extra_args: Optional[List[str]]) -> bool:
-	CevContext.debug("executing scheduled events using built-in handler")
+def execute_extraction_queue() -> bool:
+	CevContext.info("executing extraction events using built-in handler")
 
-	runtime_limit = DEFAULT_SCHEDULE_TIME_LIMIT_SECS
+	event_stream = "system-events/extraction"
+	event_stream_dir = CevContext.data_dir() / event_stream
+
+	successful = True
+
+	with CevLock(event_stream_dir, "state"):
+		state = read_event_stream_state(event_stream)
+		if not state:
+			CevContext.info("no extraction tasks available")
+			return True
+
+		# Group tasks by watcher
+		tasks_by_watcher = defaultdict(list)
+		for task in state.get("tasks", []):
+			tasks_by_watcher[task["watcher"]].append(task)
+
+		# Process each watcher group all at once so we can reduce lock transitions
+		for watching_stream, tasks in tasks_by_watcher.items():
+			sorted_tasks = sorted(tasks, key=itemgetter("task_id"))
+			CevContext.debug("processing extractions for watcher", watching_stream=watching_stream, task_count=len(sorted_tasks))
+
+			watching_stream_dir = CevContext.data_dir() / watching_stream
+			with CevLock(watching_stream_dir, "event"):
+				for task in sorted_tasks:
+					start_time = time.time()
+
+					target_state_dir = CevContext.data_dir() / task["target"] / "state"
+					new_state_path = target_state_dir / task["new_state_name"]
+					extra_args = [str(new_state_path)]
+
+					previous_state_name = task.get("previous_state_name")
+					if previous_state_name:
+						previous_state_path = target_state_dir / previous_state_name
+						extra_args.append(str(previous_state_path))
+
+					exit_code, _, commands = run_trigger(task["watcher"], "extractor", task["extractor"], extra_args)
+					duration_ms = int((time.time() - start_time) * 1000)
+
+					CevContext.warn("extraction trigger commands are not being processed!", ignored_commands=len(commands))
+
+					# If the extractor fails, don't process any further queued extraction events for this stream
+					# until its resolved.
+					if exit_code != 0:
+						successful = False
+						break
+
+					cmd_add_event(AddEventArgs(
+						event_stream="system-events/extraction",
+						event_name="complete-task",
+						payload={
+							"task_id": task["task_id"],
+							"ctx_id": CevContext.ctx_id(),
+							"generated_events": len(commands),
+						}
+					))
+
+
+	# Process any emitted events to ensure the resulting state file is inspectable
+	if not cmd_process("system-events/extraction"):
+		CevContext.error("failed to process extraction queue after executing tasks")
+		return False
+
+	return successful
+
+
+def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
+	CevContext.info("executing scheduled events using built-in handler")
+
 	if extra_args:
 		parser = argparse.ArgumentParser(description="Common Event system - Scheduled Event Execution")
-		parser.add_argument("-t", "--limit-time", type=int, help="Specify a custom time limit (in seconds) for processing all outstanding tasks during this run. Specifying a time limit of 45 seconds or less will prevent warning signals from triggering")
+		parser.add_argument("-t", "--limit-time", type=int, help="Specify a time limit (in seconds) for processing all outstanding tasks during this run. Specifying a time limit of 25 seconds or less will prevent warning signals from triggering")
 
 		args = parser.parse_args(extra_args)
 		if args.limit_time:
@@ -332,14 +401,14 @@ def execute_scheduled_events(extra_args: Optional[List[str]]) -> bool:
 	with CevLock(event_stream_dir, "state"):
 		state = read_event_stream_state(event_stream)
 		if not state:
-			CevContext.debug("no scheduled tasks have been processed; scheduled tasks execution complete")
+			CevContext.info("no scheduled tasks available")
 			return True
 
 		now_dt = datetime.now(timezone.utc)
 		now = now_dt.isoformat()
 
 		due_tasks = []
-		for task in state["scheduled_tasks"]:
+		for task in state["tasks"]:
 			scheduled_dt = datetime.fromisoformat(task["scheduled_for"])
 			if scheduled_dt <= now_dt:
 				due_tasks.append(task)
@@ -347,7 +416,7 @@ def execute_scheduled_events(extra_args: Optional[List[str]]) -> bool:
 		due_tasks.sort(key=lambda x: x.get("scheduled_for"))
 
 		if len(due_tasks) == 0:
-			CevContext.debug("no tasks due for execution; scheduled task execution complete")
+			CevContext.info("no tasks due for execution; scheduled task execution complete")
 			return True
 
 		CevContext.trace("scheduled task state", state=state, tasks_ready=len(due_tasks))
@@ -360,7 +429,7 @@ def execute_scheduled_events(extra_args: Optional[List[str]]) -> bool:
 			time_elapsed = time.time() - start_time
 			time_remaining = runtime_limit - time_elapsed
 
-			if time_remaining < runtime_limit * 0.25:
+			if time_remaining < 25:
 				CevContext.warn("insufficient buffer time remaining, skipping remaining tasks")
 				break
 
@@ -380,7 +449,7 @@ def execute_scheduled_events(extra_args: Optional[List[str]]) -> bool:
 			))
 
 			executed_task_count += 1
-			CevContext.trace("completed task", task_id=task["task_id"], event_stream=task["event_stream"], trigger_name=task["trigger_name"])
+			CevContext.trace("registered task completion", task_id=task["task_id"], event_stream=task["event_stream"], trigger_name=task["trigger_name"])
 
 	# Process any emitted events to ensure the resulting state file is inspectable
 	if not cmd_process("system-events/scheduled"):
@@ -508,6 +577,7 @@ def get_schema(event_stream: str, trigger_name: Optional[str] = None) -> Optiona
 			return None
 
 		return get_user_schema(event_stream, trigger_name)
+
 
 def get_embedded_schema(key: str) -> Optional[Dict[str, Any]]:
 	CevContext.debug("looking for embedded schema", key=key)
@@ -649,6 +719,9 @@ class Envelope:
 	state: Dict[str, Any]
 
 def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, Any]):
+	current_state_path = get_latest_state_file(event_stream)
+	current_state_name = current_state_path.name if current_state_path else None
+
 	metadata = StateMetadata(
 			event_stream=event_stream,
 			stream_idx=f"{stream_idx:08x}",
@@ -676,7 +749,7 @@ def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, A
 	#watchers = get_watchers(event_stream_dir)
 	#if watchers:
 	#	for watcher_stream, extraction_trigger in watchers:
-	#		schedule_extraction(watcher, target, extractor, state)
+	#		schedule_extraction(watcher, target, extractor, state_path.name, current_state_name)
 
 	CevContext.debug("persisted event stream state")
 
@@ -710,8 +783,8 @@ def subprocess_executor(cmd: List[str], env_vars: Dict[str, str]) -> Tuple[int, 
 	import fcntl
 	import errno
 
-	target_time_limit = 60
-	kill_grace_period = 15
+	target_time_limit = 30
+	kill_grace_period = 5
 	warning_time_limit = target_time_limit - kill_grace_period
 	warning_sent = False
 
@@ -810,6 +883,37 @@ def subprocess_executor(cmd: List[str], env_vars: Dict[str, str]) -> Tuple[int, 
 		return 237, None, []
 
 
+def run_extraction_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
+	task_id = f"{stream_index:08x}"
+
+	event = read_json_file(event_path)
+	if not event:
+		CevContext.error("unable to load persisted event")
+		return False, None
+
+	if event_name == "extract-task":
+		CevContext.debug("planning state extraction", task_id=task_id, watching_stream=event["watcher"], target_stream=event["target"])
+
+		extract_tasks = state.get("tasks", [])
+		extract_tasks.append(event | {"task_id": task_id})
+
+		state_update = { "tasks": extract_tasks }
+		return True, state_update
+	elif event_name == "complete-task":
+		CevContext.debug("completing task", task_id=event["task_id"])
+
+		state_update = {}
+
+		remaining_tasks = [task for task in state["tasks"] if task["task_id"] != event["task_id"]]
+		if remaining_tasks:
+			state_update["tasks"] = remaining_tasks
+
+		return True, state_update
+	else:
+		CevContext.error("unknown trigger for stream")
+		return False, None
+
+
 def run_scheduled_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
 	task_id = f"{stream_index:08x}"
 
@@ -821,25 +925,19 @@ def run_scheduled_event_handler(state: Dict[str, Any], event_name: str, stream_i
 	if event_name == "schedule-task":
 		CevContext.debug("scheduling task", task_id=task_id, scheduled_for=event["scheduled_for"])
 
-		scheduled_tasks = state.get("scheduled_tasks", [])
-		scheduled_tasks.append({
-			"task_id": task_id,
-			"event_stream": event["event_stream"],
-			"trigger_name": event["trigger_name"],
-			"extra_args": event.get("extra_args", []),
-			"scheduled_for": event["scheduled_for"],
-		})
+		tasks = state.get("tasks", [])
+		tasks.append(event | { "task_id": task_id })
 
-		state_update = { "scheduled_tasks": scheduled_tasks }
+		state_update = { "tasks": tasks }
 		return True, state_update
 	elif event_name == "complete-task":
 		CevContext.debug("completing task", task_id=event["task_id"], status=event["status"])
 
 		state_update = {}
 
-		remaining_tasks = [task for task in state["scheduled_tasks"] if task["task_id"] != event["task_id"]]
+		remaining_tasks = [task for task in state["tasks"] if task["task_id"] != event["task_id"]]
 		if remaining_tasks:
-			state_update["scheduled_tasks"] = remaining_tasks
+			state_update["tasks"] = remaining_tasks
 
 		return True, state_update
 	else:
@@ -854,18 +952,21 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 	if not is_valid_event_name(trigger_name):
 		CevContext.fatal("invalid trigger name", trigger_name=trigger_name)
 
-	if event_stream == "system-events/extraction":
+	CevContext.debug("running trigger", event_stream=event_stream, kind=kind, trigger_name=trigger_name, extra_args=extra_args)
+
+	if kind == "task" and event_stream == "system-events/extraction":
 		if trigger_name == "execute-queue":
-			CevContext.fatal("can't execute extraction events yet")
+			status = execute_extraction_queue()
+			exit_code = 0 if status else 1
+			return exit_code, None, []
 		else:
 			CevContext.fatal("unknown scheduled queue trigger name")
 
-	if event_stream == "system-events/scheduled":
+	if kind == "task" and event_stream == "system-events/scheduled":
 		if trigger_name == "execute-queue":
-			if execute_scheduled_events(extra_args):
-				return 0, None, []
-			else:
-				return 1, None, []
+			status = execute_scheduled_queue(extra_args)
+			exit_code = 0 if status else 1
+			return exit_code, None, []
 		else:
 			CevContext.fatal("unknown scheduled queue trigger name")
 
@@ -898,16 +999,21 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
 
 
-def schedule_extraction(watcher_stream: str, target_stream: str, extractor: str, state_name: str) -> bool:
+def schedule_extraction(watcher_stream: str, target_stream: str, extractor: str, new_state_name: str, previous_state_name: Optional[str] = None) -> bool:
+	payload = {
+		"watcher": watcher_stream,
+		"target": target_stream,
+		"extractor": extractor,
+		"new_state_name": new_state_name,
+	}
+
+	if previous_state_name:
+		payload["previous_state_name"] = previous_state_name
+
 	return cmd_add_event(AddEventArgs(
 		event_stream="system-events/extraction",
 		event_name="extract-task",
-		payload={
-			"watcher": watcher_stream,
-			"target": target_stream,
-			"extractor": extractor,
-			"state": state_name
-		}
+		payload=payload
 	))
 
 
@@ -1194,12 +1300,7 @@ def cmd_define_trigger(args: DefineTriggerArgs):
 			if args.trigger_kind not in {'handler', 'extractor', 'task'}:
 				CevContext.fatal("undefined trigger kind", trigger_kind=args.trigger_kind)
 
-			if args.trigger_kind == "extractor":
-				lock_type = "extraction"
-			else:
-				lock_type = "event"
-
-			with CevLock(event_stream_dir, lock_type):
+			with CevLock(event_stream_dir, "event"):
 				trigger_dir.mkdir(parents=True, exist_ok=True)
 				new_trigger_path = trigger_dir / args.trigger_name
 
@@ -1280,7 +1381,7 @@ def cmd_process(event_stream: str) -> bool:
 		with CevLock(event_stream_dir, "state"):
 			current_index = get_stream_index(event_stream, "current")
 			if current_index is None:
-				CevContext.info("no events to process")
+				CevContext.debug("no events to process")
 				return True
 
 			processed_index = get_stream_index(event_stream, "processed")
@@ -1288,7 +1389,7 @@ def cmd_process(event_stream: str) -> bool:
 				next_index = 0
 			else:
 				if current_index == processed_index:
-					CevContext.info("stream fully processed")
+					CevContext.debug("stream fully processed")
 					return True
 
 				next_index = processed_index + 1
@@ -1302,7 +1403,7 @@ def cmd_process(event_stream: str) -> bool:
 				if state_schema and not validate_against_schema(state_schema, state):
 					CevContext.error("persisted state failed to validate against recorded schema")
 					return False
-			elif state_schema:
+			else:
 				state = {}
 
 			CevContext.debug("processing event range", next_index=next_index, current_index=current_index)
@@ -1338,6 +1439,11 @@ def cmd_process(event_stream: str) -> bool:
 						if not success:
 							CevContext.error("failed to process scheduled event")
 							return False
+					elif event_stream == "system-events/extraction":
+						success, state_update = run_extraction_event_handler(state, event_name, idx, event_path)
+						if not success:
+							CevContext.error("failed to process extraction events")
+							return False
 					else:
 						extra_args = [str(event_path)]
 						exit_code, state_update, commands = run_trigger(event_stream, "handler", event_name, extra_args)
@@ -1358,9 +1464,10 @@ def cmd_process(event_stream: str) -> bool:
 							return False
 
 					if state_update:
+						CevContext.trace("state and schema", state=state_update, schema=state_schema)
+
 						if state_schema and not validate_against_schema(state_schema, state_update):
 							CevContext.error("produced state did not validate against the schema")
-							CevContext.trace("incompatible state and schema", state=state_update, schema=state_schema)
 							return False
 
 						state = state_update
@@ -1677,9 +1784,44 @@ __EMBEDDED_SCHEMAS__
 		"watcher": {"type": "string"},
 		"target": {"type": "string"},
 		"extractor": {"type": "string"},
-		"state": {"type": "string"}
+		"new_state_name": {"type": "string"},
+		"previous_state_name": {"type": "string"}
 	},
-	"required": ["watcher", "target", "extractor", "state"]
+	"required": ["watcher", "target", "extractor", "new_state_name"]
+}
+
+# [system-events-extraction-complete-task-schema]
+{
+	"type": "object",
+	"properties": {
+		"task_id": {"type": "string"},
+		"ctx_id": {"type": "string"},
+		"generated_events": {"type": "integer"}
+	},
+	"required": ["task_id", "ctx_id", "generated_events"]
+}
+
+# [system-events-extraction-state-schema]
+{
+	"type": "object",
+	"properties": {
+		"tasks": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"task_id": {"type": "string"},
+					"watcher": {"type": "string"},
+					"target": {"type": "string"},
+					"extractor": {"type": "string"},
+					"new_state_name": {"type": "string"},
+					"previous_state_name": {"type": "string"}
+				},
+				"required": ["task_id", "watcher", "target", "extractor", "new_state_name"]
+			}
+		}
+	},
+	"required": ["tasks"]
 }
 
 # [system-events-scheduled-complete-task-schema]
@@ -1697,7 +1839,7 @@ __EMBEDDED_SCHEMAS__
 {
 	"type": "object",
 	"properties": {
-		"scheduled_tasks": {
+		"tasks": {
 			"type": "array",
 			"items": {
 				"type": "object",
@@ -1712,7 +1854,7 @@ __EMBEDDED_SCHEMAS__
 			}
 		}
 	},
-	"required": ["scheduled_tasks"]
+	"required": ["tasks"]
 }
 
 # [system-events-scheduled-schedule-task-schema]
