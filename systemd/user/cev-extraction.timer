@@ -1,0 +1,10 @@
+[Unit]
+Description=Run CEV extraction tasks every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
