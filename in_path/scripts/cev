@@ -397,9 +397,9 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 		parser.add_argument("-t", "--limit-time", type=int, help="Specify a time limit (in seconds) for processing all outstanding tasks during this run. Specifying a time limit of 25 seconds or less will prevent warning signals from triggering")
 
 		args = parser.parse_args(extra_args)
-		if args.limit_time:
-			CevContext.debug("setting user specified time limit for event processing", time_limit=args.limit_time)
-			runtime_limit = args.limit_time
+		#if args.limit_time:
+		#	CevContext.debug("setting user specified time limit for event processing", time_limit=args.limit_time)
+		#	runtime_limit = args.limit_time
 
 	event_stream = "system-events/scheduled"
 	event_stream_dir = CevContext.data_dir() / event_stream
@@ -432,12 +432,12 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 		failed_streams = set()
 
 		for task in due_tasks:
-			time_elapsed = time.time() - start_time
-			time_remaining = runtime_limit - time_elapsed
+			#time_elapsed = time.time() - start_time
+			#time_remaining = runtime_limit - time_elapsed
 
-			if time_remaining < 25:
-				CevContext.warn("insufficient buffer time remaining, skipping remaining tasks")
-				break
+			#if time_remaining < 25:
+			#	CevContext.warn("insufficient buffer time remaining, skipping remaining tasks")
+			#	break
 
 			if task["event_stream"] in failed_streams:
 				CevContext.debug("skipping ready task in failed stream")
@@ -751,9 +751,8 @@ def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, A
 
 	# If there were interested watchers, we need to let them know about the new version
 	if watchers:
-		CevContext.warn("watched stream state announcements not yet implemented")
-		#for watcher_stream, extraction_trigger in watchers:
-		#	schedule_extraction(watcher, target, extractor, state_path.name, current_state_name)
+		for watcher_stream, extraction_trigger in watchers:
+			schedule_extraction(watcher_stream, event_stream, extraction_trigger, state_path.name, current_state_name)
 
 	CevContext.debug("persisted event stream state")
 
@@ -1004,6 +1003,8 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
 
 def schedule_extraction(watcher_stream: str, target_stream: str, extractor: str, new_state_name: str, previous_state_name: Optional[str] = None) -> bool:
+	CevContext.debug("scheduling extraction for watching stream", watcher_stream=watcher_stream, extractor=extractor)
+
 	payload = {
 		"watcher": watcher_stream,
 		"target": target_stream,
@@ -1347,7 +1348,7 @@ def cmd_is_clean(event_stream: str) -> bool:
 				CevContext.debug("stream is dirty (unprocessed events)", status="dirty")
 				return False
 
-			CevContext.info("stream is clean", status="clean")
+			CevContext.debug("stream is clean", status="clean")
 			return True
 
 
