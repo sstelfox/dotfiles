@@ -316,7 +316,7 @@ def execute_commands(commands: List[Dict[str, Any]]) -> bool:
 
 
 def execute_extraction_queue() -> bool:
-	CevContext.info("executing extraction events using built-in handler")
+	CevContext.debug("executing extraction events using built-in handler")
 
 	event_stream = "system-events/extraction"
 	event_stream_dir = CevContext.data_dir() / event_stream
@@ -326,7 +326,7 @@ def execute_extraction_queue() -> bool:
 	with CevLock(event_stream_dir, "state"):
 		state = read_event_stream_state(event_stream)
 		if not state:
-			CevContext.info("no extraction tasks available")
+			CevContext.debug("no extraction tasks available")
 			return True
 
 		# Group tasks by watcher
@@ -334,45 +334,51 @@ def execute_extraction_queue() -> bool:
 		for task in state.get("tasks", []):
 			tasks_by_watcher[task["watcher"]].append(task)
 
-		# Process each watcher group all at once so we can reduce lock transitions
 		for watching_stream, tasks in tasks_by_watcher.items():
 			sorted_tasks = sorted(tasks, key=itemgetter("task_id"))
 			CevContext.debug("processing extractions for watcher", watching_stream=watching_stream, task_count=len(sorted_tasks))
 
-			watching_stream_dir = CevContext.data_dir() / watching_stream
-			with CevLock(watching_stream_dir, "event"):
-				for task in sorted_tasks:
-					start_time = time.time()
+			for task in sorted_tasks:
+				target_state_dir = CevContext.data_dir() / task["target"] / "state"
+				new_state_path = target_state_dir / task["new_state_name"]
+				extra_args = [str(new_state_path)]
 
-					target_state_dir = CevContext.data_dir() / task["target"] / "state"
-					new_state_path = target_state_dir / task["new_state_name"]
-					extra_args = [str(new_state_path)]
+				previous_state_name = task.get("previous_state_name")
+				if previous_state_name:
+					previous_state_path = target_state_dir / previous_state_name
+					extra_args.append(str(previous_state_path))
 
-					previous_state_name = task.get("previous_state_name")
-					if previous_state_name:
-						previous_state_path = target_state_dir / previous_state_name
-						extra_args.append(str(previous_state_path))
+				exit_code, _, commands = run_trigger(task["watcher"], "extractor", task["extractor"], extra_args)
 
-					exit_code, _, commands = run_trigger(task["watcher"], "extractor", task["extractor"], extra_args)
-					duration_ms = int((time.time() - start_time) * 1000)
+				# If the extractor fails, don't process any further queued extraction events for this stream
+				# until its resolved.
+				if exit_code != 0:
+					successful = False
+					break
 
-					CevContext.warn("extraction trigger commands are not being processed!", ignored_commands=len(commands))
+				if commands:
+					CevContext.debug("extractor produced commands", cmd_count=len(commands))
 
-					# If the extractor fails, don't process any further queued extraction events for this stream
-					# until its resolved.
-					if exit_code != 0:
+					# Extractors make changes through data events only, other commands are restricted
+					if validate_command_list(commands, True):
+						if not execute_commands(commands):
+							CevContext.error("failed to execute commands produced by extractor")
+							successful = False
+							break
+					else:
+						CevContext.error("extractor produced invalid command list")
 						successful = False
 						break
 
-					cmd_add_event(AddEventArgs(
-						event_stream="system-events/extraction",
-						event_name="complete-task",
-						payload={
-							"task_id": task["task_id"],
-							"ctx_id": CevContext.ctx_id(),
-							"generated_events": len(commands),
-						}
-					))
+				cmd_add_event(AddEventArgs(
+					event_stream="system-events/extraction",
+					event_name="complete-task",
+					payload={
+						"task_id": task["task_id"],
+						"ctx_id": CevContext.ctx_id(),
+						"generated_events": len(commands),
+					}
+				))
 
 
 	# Process any emitted events to ensure the resulting state file is inspectable
@@ -384,7 +390,7 @@ def execute_extraction_queue() -> bool:
 
 
 def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
-	CevContext.info("executing scheduled events using built-in handler")
+	CevContext.debug("executing scheduled events using built-in handler")
 
 	if extra_args:
 		parser = argparse.ArgumentParser(description="Common Event system - Scheduled Event Execution")
@@ -401,7 +407,7 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 	with CevLock(event_stream_dir, "state"):
 		state = read_event_stream_state(event_stream)
 		if not state:
-			CevContext.info("no scheduled tasks available")
+			CevContext.debug("no scheduled tasks available")
 			return True
 
 		now_dt = datetime.now(timezone.utc)
@@ -416,7 +422,7 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 		due_tasks.sort(key=lambda x: x.get("scheduled_for"))
 
 		if len(due_tasks) == 0:
-			CevContext.info("no tasks due for execution; scheduled task execution complete")
+			CevContext.debug("no tasks due for execution; scheduled task execution complete")
 			return True
 
 		CevContext.trace("scheduled task state", state=state, tasks_ready=len(due_tasks))
@@ -458,6 +464,7 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 
 	remaining = len(due_tasks) - executed_task_count
 	CevContext.debug("scheduled task execution complete", executed=executed_task_count, remaining=remaining)
+	return True
 
 
 def process_stderr_buffer(buffer: str, output_commands: List[Dict[str, Any]]) -> str:
@@ -661,21 +668,21 @@ def get_user_schema(event_stream: str, event_name: str) -> Optional[Dict[str, An
 	return read_json_file(schema_path)
 
 
-#def get_watchers(event_stream_dir: Path) -> List[Tuple[str, str]]:
-#    watchers_file = event_stream_dir / "watchers"
-#    watchers = []
-#
-#    if not watchers_file.exists():
-#        return watchers
-#
-#    with open(watchers_file, "r") as f:
-#        for line in f:
-#            entry = line.strip()
-#            if entry and ":" in entry:
-#                watcher, trigger = entry.split(":", 1)
-#                watchers.append((watcher, trigger))
-#
-#    return watchers
+def get_watchers(event_stream: str) -> List[Tuple[str, str]]:
+    watchers_file = CevContext.data_dir() / event_stream / "watchers"
+    watchers = []
+
+    if not watchers_file.exists():
+        return watchers
+
+    with open(watchers_file, "r") as f:
+        for line in f:
+            entry = line.strip()
+            if entry and ":" in entry:
+                watcher, trigger = entry.split(":", 1)
+                watchers.append((watcher, trigger))
+
+    return watchers
 
 
 #def get_watched_streams_info(event_stream_dir: Path) -> List[str]:
@@ -710,8 +717,8 @@ class StateMetadata:
 	event_stream: str
 	stream_idx: str
 	timestamp: str
-	schema_versions: Dict[str, str] = field(default_factory=dict)
-	watched_streams: List[str] = field(default_factory=list)
+	schema_versions: Dict[str, str]
+	watched_streams: List[str]
 
 @dataclass
 class Envelope:
@@ -722,15 +729,15 @@ def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, A
 	current_state_path = get_latest_state_file(event_stream)
 	current_state_name = current_state_path.name if current_state_path else None
 
+	watchers = get_watchers(event_stream)
+
 	metadata = StateMetadata(
 			event_stream=event_stream,
 			stream_idx=f"{stream_idx:08x}",
-			timestamp=datetime.now(timezone.utc).isoformat()
+			timestamp=datetime.now(timezone.utc).isoformat(),
+			schema_versions=get_active_schema_versions(event_stream),
+			watched_streams=watchers
 	)
-
-	active_schema_versions = get_active_schema_versions(event_stream)
-	if active_schema_versions:
-		metadata.schema_versions = active_schema_versions
 
 	envelope = asdict(Envelope(metadata=metadata, state=state_payload))
 	CevContext.trace("persisting new state", envelope=envelope)
@@ -742,14 +749,11 @@ def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, A
 	with open(state_path, "w") as f:
 		json.dump(envelope, f, indent=2)
 
-	# todo: read and record watched streams
-	CevContext.warn("watched stream state announcements not yet implemented")
-
-	# Check for watchers interested in this stream
-	#watchers = get_watchers(event_stream_dir)
-	#if watchers:
-	#	for watcher_stream, extraction_trigger in watchers:
-	#		schedule_extraction(watcher, target, extractor, state_path.name, current_state_name)
+	# If there were interested watchers, we need to let them know about the new version
+	if watchers:
+		CevContext.warn("watched stream state announcements not yet implemented")
+		#for watcher_stream, extraction_trigger in watchers:
+		#	schedule_extraction(watcher, target, extractor, state_path.name, current_state_name)
 
 	CevContext.debug("persisted event stream state")
 
