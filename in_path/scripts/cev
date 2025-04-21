@@ -4,26 +4,32 @@
 
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["jsonschema>=4.23"]
+# dependencies = ["jsonschema>=4.23", "cryptography>=41.0.0"]
 # ///
 
 import argparse
+import base64
 import fcntl
+import hashlib
 import json
 import os
 import re
+import secrets
 import signal
 import subprocess
 import sys
 import time
 
 from collections import defaultdict
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from operator import itemgetter
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import jsonschema
 
@@ -97,6 +103,181 @@ class CevLogger:
 	def fatal(self, message: str, **kwargs):
 		self.log(LogLevel.FATAL, message, **kwargs)
 		sys.exit(127)
+
+
+class CevSecrets:
+	def __init__(self, data_dir: Path):
+		self.secrets_file = data_dir / "secrets.enc"
+		self._secrets = {}
+		self._acl = {}
+		self._loaded = False
+
+	def _derive_key(self, key_material: str) -> bytes:
+		digest = hashes.Hash(hashes.SHA256())
+		digest.update(key_material.encode())
+		return digest.finalize()
+
+	def _get_encryption_key(self) -> Optional[bytes]:
+		key_material = os.environ.get("CEV_SECRETS_KEY")
+		if not key_material:
+			return None
+		return self._derive_key(key_material)
+
+	def _encrypt(self, data: bytes, key: bytes) -> bytes:
+		nonce = secrets.token_bytes(12)
+		aesgcm = AESGCM(key)
+		ciphertext = aesgcm.encrypt(nonce, data, None)
+		return nonce + ciphertext
+
+	def _decrypt(self, data: bytes, key: bytes) -> bytes:
+		if len(data) < 12:
+			raise ValueError("Data too short to contain nonce")
+
+		nonce = data[:12]
+		ciphertext = data[12:]
+		aesgcm = AESGCM(key)
+		return aesgcm.decrypt(nonce, ciphertext, None)
+
+	def load(self) -> bool:
+		key = self._get_encryption_key()
+		if not key:
+			CevContext.error("no secrets key provided, secrets not available")
+			return False
+
+		if not self.secrets_file.exists():
+			CevContext.debug("no secrets file found, creating empty secrets store")
+			self._secrets = {}
+			self._acl = {}
+			self._loaded = True
+			return True
+
+		try:
+			encoded_data = self.secrets_file.read_bytes()
+			encrypted_data = base64.b64decode(encoded_data)
+			decrypted_data = self._decrypt(encrypted_data, key)
+			data = json.loads(decrypted_data.decode())
+
+			self._secrets = data.get("secrets", {})
+			self._acl = data.get("acl", {})
+			self._loaded = True
+
+			CevContext.debug("secrets loaded successfully", secret_count=len(self._secrets), acl_entry_count=len(self._acl))
+
+			return True
+		except Exception as e:
+			CevContext.error("failed to load secrets", error=str(e))
+			return False
+
+	def save(self) -> bool:
+		if not self._loaded:
+			CevContext.error("cannot save secrets that haven't been loaded")
+			return False
+
+		key = self._get_encryption_key()
+		if not key:
+			CevContext.error("no secrets key provided, cannot save secrets")
+			return False
+
+		try:
+			data = {
+				"secrets": self._secrets,
+				"acl": self._acl
+			}
+
+			serialized = json.dumps(data).encode()
+			encrypted_data = self._encrypt(serialized, key)
+			encoded_data = base64.b64encode(encrypted_data)
+
+			self.secrets_file.parent.mkdir(parents=True, exist_ok=True)
+			self.secrets_file.write_bytes(encoded_data)
+
+			CevContext.debug("secrets saved successfully")
+			return True
+		except Exception as e:
+			CevContext.error("failed to save secrets", error=str(e))
+			return False
+
+	def set_secret(self, name: str, value: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		self._secrets[name] = value
+		return self.save()
+
+	def delete_secret(self, name: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		if name in self._secrets:
+			del self._secrets[name]
+
+			for trigger_key in self._acl:
+				if name in self._acl[trigger_key]:
+					self._acl[trigger_key].remove(name)
+
+			return self.save()
+
+		return True
+
+	def grant_access(self, event_stream: str, trigger_name: str, secret_name: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		if secret_name not in self._secrets:
+			CevContext.error("cannot grant access to nonexistent secret", secret_name=secret_name)
+			return False
+
+		trigger_key = f"{event_stream}/{trigger_name}"
+		if trigger_key not in self._acl:
+			self._acl[trigger_key] = []
+
+		if secret_name not in self._acl[trigger_key]:
+			self._acl[trigger_key].append(secret_name)
+
+		return self.save()
+
+	def revoke_access(self, event_stream: str, trigger_name: str, secret_name: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		trigger_key = f"{event_stream}/{trigger_name}"
+		if trigger_key in self._acl and secret_name in self._acl[trigger_key]:
+			self._acl[trigger_key].remove(secret_name)
+			return self.save()
+
+		return True
+
+	def get_trigger_env(self, event_stream: str, trigger_name: str) -> Dict[str, str]:
+		if not self._loaded and not self.load():
+			return {}
+
+		trigger_key = f"{event_stream}/{trigger_name}"
+		result = {}
+
+		if trigger_key in self._acl:
+			for secret_name in self._acl[trigger_key]:
+				if secret_name in self._secrets:
+					CevContext.debug("exposing secret to trigger", secret_name=secret_name)
+					env_var_name = f"CEV_SECRET_{secret_name.upper()}"
+					result[env_var_name] = self._secrets[secret_name]
+
+		return result
+
+	def list_secrets(self) -> List[Tuple[str, List[str]]]:
+		if not self._loaded and not self.load():
+			return []
+
+		result = []
+		for secret_name in sorted(self._secrets.keys()):
+			triggers = []
+
+			for trigger_key, secret_list in self._acl.items():
+				if secret_name in secret_list:
+					triggers.append(trigger_key)
+
+			result.append((secret_name, sorted(triggers)))
+
+		return result
 
 
 _CURRENT_CONTEXT = {}
@@ -432,6 +613,7 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 		failed_streams = set()
 
 		for task in due_tasks:
+			# todo: restore
 			#time_elapsed = time.time() - start_time
 			#time_remaining = runtime_limit - time_elapsed
 
@@ -668,37 +850,26 @@ def get_user_schema(event_stream: str, event_name: str) -> Optional[Dict[str, An
 	return read_json_file(schema_path)
 
 
-def get_watchers(event_stream: str) -> List[Tuple[str, str]]:
-    watchers_file = CevContext.data_dir() / event_stream / "watchers"
-    watchers = []
+def get_watchers(event_stream: str) -> Dict[str, List[str]]:
+	watchers_file = CevContext.data_dir() / event_stream / "watchers"
+	watchers = {}
 
-    if not watchers_file.exists():
-        return watchers
+	if not watchers_file.exists():
+		return watchers
 
-    with open(watchers_file, "r") as f:
-        for line in f:
-            entry = line.strip()
-            if entry and ":" in entry:
-                watcher, trigger = entry.split(":", 1)
-                watchers.append((watcher, trigger))
+	with open(watchers_file, "r") as f:
+		for line in f:
+			entry = line.strip()
 
-    return watchers
+			if entry and ":" in entry:
+				watcher, trigger = entry.split(":", 1)
 
+				if not watchers.get(watcher):
+					watchers[watcher] = []
 
-#def get_watched_streams_info(event_stream_dir: Path) -> List[str]:
-#    watched_streams_file = event_stream_dir / "watched_streams"
-#    watched_streams = []
-#
-#    if not watched_streams_file.exists():
-#        return watched_streams
-#
-#    with open(watched_streams_file, "r") as f:
-#        for line in f:
-#            stream = line.strip().split(':')[0]
-#            if stream and stream not in watched_streams:
-#                watched_streams.append(stream)
-#
-#    return watched_streams
+				watchers[watcher].append(trigger)
+
+	return watchers
 
 
 def meta_from_event_file(file: Path) -> Tuple[Optional[int], Optional[str], Optional[str]]:
@@ -730,7 +901,6 @@ def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, A
 	current_state_name = current_state_path.name if current_state_path else None
 
 	watchers = get_watchers(event_stream)
-
 	metadata = StateMetadata(
 			event_stream=event_stream,
 			stream_idx=f"{stream_idx:08x}",
@@ -751,8 +921,9 @@ def persist_state(event_stream: str, stream_idx: int, state_payload: Dict[str, A
 
 	# If there were interested watchers, we need to let them know about the new version
 	if watchers:
-		for watcher_stream, extraction_trigger in watchers:
-			schedule_extraction(watcher_stream, event_stream, extraction_trigger, state_path.name, current_state_name)
+		for watcher, extractors in watchers.items():
+			for extr in extractors:
+				schedule_extraction(watcher, event_stream, extr, state_path.name, current_state_name)
 
 	CevContext.debug("persisted event stream state")
 
@@ -777,6 +948,17 @@ def read_json_file(file_path: Path) -> Optional[Dict[str, Any]]:
 			return json.load(f)
 	except (json.JSONDecodeError, FileNotFoundError) as e:
 		CevContext.fatal("failed to load data file", error=str(e))
+
+
+def set_watchers(event_stream: str, watchers: Dict[str, List[str]]):
+	event_stream_dir = CevContext.data_dir() / event_stream
+	with CevLock(event_stream_dir, "state"):
+
+		watchers_file = event_stream_dir / "watchers"
+		with open(watchers_file, "w") as f:
+			for watching_stream, extractors in watchers.items():
+				for extractor in extractors:
+					f.write(f"{watching_stream}:{extractor}\n")
 
 
 def subprocess_executor(cmd: List[str], env_vars: Dict[str, str]) -> Tuple[int, Optional[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -980,6 +1162,10 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 	if not trigger_path.exists():
 		CevContext.fatal("specified trigger task does not exist with the specified type", kind=kind)
 
+	# todo: should filter down to a subset of these variables that are safe
+	#trig_env = os.environ.copy()
+	trig_env = {}
+
 	env_vars = {
 		"CEV_BIN": sys.argv[0],
 		"CEV_DATA_DIR": str(data_dir),
@@ -991,14 +1177,18 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 	if latest_snapshot:
 		env_vars["CEV_LATEST_STATE_SNAPSHOT"] = str(latest_snapshot)
 
-	trig_env = os.environ.copy()
 	trig_env.update(env_vars)
+
+	# Before launching the process, add secret environment variables
+	secrets = CevSecrets(CevContext.data_dir())
+	secret_env = secrets.get_trigger_env(event_stream, trigger_name)
+	trig_env.update(secret_env)
 
 	cmd = [str(trigger_path)]
 	if extra_args:
 		cmd.extend(extra_args)
 
-	return subprocess_executor(cmd, env_vars)
+	return subprocess_executor(cmd, trig_env)
 
 
 
@@ -1526,63 +1716,36 @@ def cmd_run(event_stream: str, trigger_name: str, extra_args: Optional[List[str]
 		return True, state_update
 
 
-#@dataclass
-#class UnwatchArgs:
-#  watcher_stream: str
-#  target_stream: str
+@dataclass
+class UnwatchArgs:
+	watcher_stream: str
+	target_stream: str
+	extractor: str
 
-#def cmd_unwatch(args: UnwatchArgs, logger: CevLogger, data_dir: Path):
-#  if not is_valid_stream_name(args.watcher_stream):
-#    logger.fatal("invalid watcher stream name", watcher_stream=args.watcher_stream)
-#
-#  if not is_valid_stream_name(args.target_stream):
-#    logger.fatal("invalid target stream name", target_stream=args.target_stream)
-#
-#  # Check if streams exist
-#  watcher_stream_dir = get_event_stream_directory(data_dir, args.watcher_stream)
-#  target_stream_dir = get_event_stream_directory(data_dir, args.target_stream)
-#
-#  if not watcher_stream_dir.exists():
-#    logger.fatal("watcher stream does not exist", watcher_stream=args.watcher_stream)
-#
-#  if not target_stream_dir.exists():
-#    logger.fatal("target stream does not exist", target_stream=args.target_stream)
-#
-#  # Update watchers file in target stream
-#  watchers_file = target_stream_dir / "watchers"
-#  if not watchers_file.exists():
-#    logger.info("no watchers defined", target_stream=args.target_stream)
-#    return
-#
-#  # Remove the watcher from the file
-#  watchers = []
-#  removed = False
-#  with open(watchers_file, "r") as f:
-#    for line in f:
-#      entry = line.strip()
-#      if entry.split(":")[0] != args.watcher_stream:
-#        watchers.append(entry)
-#      else:
-#        removed = True
-#
-#  # Write back the updated watchers list
-#  with open(watchers_file, "w") as f:
-#    for entry in watchers:
-#      f.write(f"{entry}\n")
-#
-#  # Remove entry from watched_streams file in watcher stream if it exists
-#  watched_streams_file = watcher_stream_dir / "watched_streams"
-#  if watched_streams_file.exists():
-#    watched_streams = []
-#      with open(watched_streams_file, "r") as f:
-#        for line in f:
-#          entry = line.strip()
-#          if not entry.startswith(f"{args.target_stream}:"):
-#            watched_streams.append(entry)
-#
-#      with open(watched_streams_file, "w") as f:
-#        for entry in watched_streams:
-#          f.write(f"{entry}\n")
+def cmd_unwatch(args: UnwatchArgs) -> bool:
+	if not is_stream_active(args.watcher):
+		CevContext.error("watching event stream must exist and be active")
+		return False
+
+	if not is_stream_active(args.target):
+		CevContext.error("target event stream must exist and be active")
+		return False
+
+	if not is_valid_event_name(args.extractor):
+		CevContext.error("invalid extration trigger name", extractor=args.extractor)
+		return False
+
+	with CevContext.context(watcher=args.watcher, target=args.target, extractor=args.extractor):
+		watchers = get_watchers(args.target)
+
+		current_extractors = watchers.get(args.watcher, [])
+		remaining_extractors = [extr for extr in current_extractors if extr != args.extractor]
+		watchers[args.watcher] = remaining_extractors
+
+		set_watchers(args.target, watchers)
+
+		return True
+
 
 
 @dataclass
@@ -1605,21 +1768,12 @@ def cmd_watch(args: WatchArgs) -> bool:
 		return False
 
 	with CevContext.context(watcher=args.watcher, target=args.target, extractor=args.extractor):
-		target_stream_dir = CevContext.data_dir() / args.target
-		with CevLock(target_stream_dir, "state"):
-			watchers = set()
-			watchers_file = target_stream_dir / "watchers"
+		watchers = get_watchers(args.target)
+		if not watchers.get(args.watcher):
+			watchers[args.watcher] = []
 
-			if watchers_file.exists():
-				with open(watchers_file, "r") as f:
-					for line in f:
-						watchers.add(line.strip())
-
-			watchers.add(f"{args.watcher}:{args.extractor}")
-
-			with open(watchers_file, "w") as f:
-				for entry in watchers:
-					f.write(f"{entry}\n")
+		watchers[args.watcher].append(args.extractor)
+		set_watchers(args.target, watchers)
 
 		# We intentionally do not process the target event stream, if it hasn't already been processed or
 		# there are no events to process we produce a warning but this isn't a failure. When the state
@@ -1684,10 +1838,29 @@ def main():
 	run_parser.add_argument("-n", "--name", required=True, help="Task trigger name")
 	run_parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Additional arguments to pass to the trigger (after --)")
 
-	#unwatch_parser = subparsers.add_parser("unwatch", help="Remove a watched stream relationship")
-	#unwatch_parser.add_argument("-w", "--watcher", required=True, help="Watcher stream name")
-	#unwatch_parser.add_argument("-t", "--target", required=True, help="Target stream to watch")
-	#unwatch_parser.add_argument("-e", "--extractor", required=True, help="Name of state extraction trigger")
+	secrets_parser = subparsers.add_parser("secrets", help="Manage encrypted secrets")
+	secrets_subparsers = secrets_parser.add_subparsers(dest="secrets_command", required=True)
+
+	set_secret_parser = secrets_subparsers.add_parser("set", help="Set a secret value")
+	set_secret_parser.add_argument("-n", "--name", required=True, help="Secret name")
+	set_secret_parser.add_argument("-v", "--value", help="Secret value (omit to read from stdin)")
+
+	grant_parser = secrets_subparsers.add_parser("grant", help="Grant a trigger access to a secret")
+	grant_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	grant_parser.add_argument("-t", "--trigger", required=True, help="Trigger name")
+	grant_parser.add_argument("-n", "--name", required=True, help="Secret name")
+
+	revoke_parser = secrets_subparsers.add_parser("revoke", help="Revoke a trigger's access to a secret")
+	revoke_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	revoke_parser.add_argument("-t", "--trigger", required=True, help="Trigger name")
+	revoke_parser.add_argument("-n", "--name", required=True, help="Secret name")
+
+	list_parser = secrets_subparsers.add_parser("list", help="List available secrets")
+
+	unwatch_parser = subparsers.add_parser("unwatch", help="Remove a watched stream relationship")
+	unwatch_parser.add_argument("-w", "--watcher", required=True, help="Watcher stream name")
+	unwatch_parser.add_argument("-t", "--target", required=True, help="Target stream to watch")
+	unwatch_parser.add_argument("-e", "--extractor", required=True, help="Name of state extraction trigger")
 
 	watch_parser = subparsers.add_parser("watch", help="Establish a watched stream relationship")
 	watch_parser.add_argument("-w", "--watcher", required=True, help="Watcher stream name")
@@ -1761,18 +1934,44 @@ def main():
 		cmd_process(args.stream)
 	elif args.command == "run":
 		cmd_run(args.stream, args.name, args.extra_args)
+	elif args.command == "secrets":
+		secrets = CevSecrets(data_dir)
+
+		if args.secrets_command == "set":
+			value = args.value
+			if value is None:
+				CevContext.fatal("value from stdin not yet implemented")
+
+			if secrets.set_secret(args.name, value):
+				CevContext.info("secret set successfully", name=args.name)
+
+		elif args.secrets_command == "grant":
+			if secrets.grant_access(args.stream, args.trigger, args.name):
+				CevContext.info("secret access granted", stream=args.stream, trigger=args.trigger, secret=args.name)
+
+		elif args.secrets_command == "revoke":
+			if secrets.revoke_access(args.stream, args.trigger, args.name):
+				CevContext.info("secret access revoked", stream=args.stream, trigger=args.trigger, secret=args.name)
+
+		elif args.secrets_command == "list":
+			secrets = secrets.load()
+			if not secrets:
+				CevContext.info("no secrets currently stored")
+
+			CevContext.fatal("listing current secrets not yet implemented")
+
 	elif args.command == "watch":
 		cmd_watch(WatchArgs(
 			watcher=args.watcher,
 			target=args.target,
 			extractor=args.extractor,
 		))
-	#elif args.command == "unwatch":
-	#  unwatch_args = UnwatchArgs(
-	#    watcher_stream=args.watcher,
-	#    target_stream=args.target,
-	#  )
-	#  cmd_unwatch(unwatch_args, logger, data_dir)
+	elif args.command == "unwatch":
+	  cmd_unwatch(UnwatchArgs(
+	    watcher_stream=args.watcher,
+	    target_stream=args.target,
+		extractor=args.extractor,
+	  ))
 
 if __name__ != "__main__":
 	print("utility is not available as a library", file=sys.stderr)
