@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-EnvironmentFile=/home/sstelfox/.config/cev-secrets/cev-secrets.env
+Environment=CEV_CFG_DIR=/home/sstelfox/.config/cev
 Environment=CEV_DATA_DIR=/home/sstelfox/.local/share/cev
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/home/sstelfox/.local/bin
 ExecStart=/home/sstelfox/.dotfiles/in_path/scripts/cev --log-level warn run -s system-events/extraction -n execute-queue

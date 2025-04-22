@@ -10,6 +10,9 @@
 # todo: remove non-JSON file formats...
 # todo: consider command timeout handling again, it may be worth loosing the live process logs from
 #   the async process execution in favor of simplicity...
+# todo: handle commands being piped into the cev process
+# todo: secrets should include handler kind
+# todo: secret grants should support wildcards for the matches
 
 import argparse
 import base64
@@ -141,29 +144,6 @@ class CevLogger:
 
 
 class CevSecrets:
-	def __init__(self, data_dir: Path):
-		self.secrets_file = data_dir / "secrets.enc"
-		self._secrets = {}
-		self._acl = {}
-		self._loaded = False
-
-	def _derive_key(self, key_material: str) -> bytes:
-		digest = hashes.Hash(hashes.SHA256())
-		digest.update(key_material.encode())
-		return digest.finalize()
-
-	def _get_encryption_key(self) -> Optional[bytes]:
-		key_material = os.environ.get("CEV_SECRETS_KEY")
-		if not key_material:
-			return None
-		return self._derive_key(key_material)
-
-	def _encrypt(self, data: bytes, key: bytes) -> bytes:
-		nonce = secrets.token_bytes(12)
-		aesgcm = AESGCM(key)
-		ciphertext = aesgcm.encrypt(nonce, data, None)
-		return nonce + ciphertext
-
 	def _decrypt(self, data: bytes, key: bytes) -> bytes:
 		if len(data) < 12:
 			raise ValueError("archived secret data too short to contain nonce")
@@ -171,7 +151,101 @@ class CevSecrets:
 		nonce = data[:12]
 		ciphertext = data[12:]
 		aesgcm = AESGCM(key)
+
 		return aesgcm.decrypt(nonce, ciphertext, None)
+
+	def _derive_key(self, key_material: str) -> bytes:
+		digest = hashes.Hash(hashes.SHA256())
+		digest.update(key_material.encode())
+
+		return digest.finalize()
+
+	def _encrypt(self, data: bytes, key: bytes) -> bytes:
+		nonce = secrets.token_bytes(12)
+		aesgcm = AESGCM(key)
+		ciphertext = aesgcm.encrypt(nonce, data, None)
+
+		return nonce + ciphertext
+
+	def _get_encryption_key(self) -> Optional[bytes]:
+		key_material = os.environ.get("CEV_SECRET_KEY")
+		if key_material:
+			return self._derive_key(key_material)
+
+		return None
+
+	def __init__(self, cfg_dir: Path, data_dir: Path):
+		self._acl = {}
+		self._loaded = False
+		self._secrets = {}
+
+		self.secrets_file = data_dir / "secrets.arxiv"
+
+	def delete_secret(self, name: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		name = name.replace("-", "_").lower()
+		if name in self._secrets:
+			del self._secrets[name]
+
+			for trigger_key in self._acl:
+				if name in self._acl[trigger_key]:
+					self._acl[trigger_key].remove(name)
+
+			return self.save()
+
+		return True
+
+	def get_trigger_env(self, event_stream: str, kind: str, trigger_name: str) -> Dict[str, str]:
+		if not self._loaded and not self.load():
+			return {}
+
+		trigger_key = f"{event_stream}:{kind}:{trigger_name}"
+		result = {}
+
+		if trigger_key in self._acl:
+			for secret_name in self._acl[trigger_key]:
+				if secret_name in self._secrets:
+					CevContext.debug("exposing secret to trigger", secret_name=secret_name)
+					env_var_name = f"CEV_SECRET_{secret_name.upper()}"
+					result[env_var_name] = self._secrets[secret_name]
+
+		return result
+
+	def grant_access(self, event_stream: str, kind: str, trigger_name: str, secret_name: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		secret_name = secret_name.replace("-", "_").lower()
+		if secret_name not in self._secrets:
+			CevContext.error("cannot grant access to nonexistent secret", secret_name=secret_name)
+			return False
+
+		trigger_key = f"{event_stream}:{kind}:{trigger_name}"
+		if trigger_key not in self._acl:
+			self._acl[trigger_key] = []
+
+		if secret_name not in self._acl[trigger_key]:
+			self._acl[trigger_key].append(secret_name)
+
+		return self.save()
+
+	def list_secrets(self) -> List[Tuple[str, List[str]]]:
+		if not self._loaded and not self.load():
+			return []
+
+		result = []
+		for secret_name in sorted(self._secrets.keys()):
+			triggers = []
+
+			for trigger_key, secret_list in self._acl.items():
+				if secret_name in secret_list:
+					triggers.append(trigger_key)
+
+			result.append((secret_name, sorted(triggers)))
+
+		return result
 
 	def load(self) -> bool:
 		key = self._get_encryption_key()
@@ -181,9 +255,11 @@ class CevSecrets:
 
 		if not self.secrets_file.exists():
 			CevContext.debug("no secrets archive exists")
-			self._secrets = {}
+
 			self._acl = {}
 			self._loaded = True
+			self._secrets = {}
+
 			return True
 
 		try:
@@ -192,8 +268,9 @@ class CevSecrets:
 			decrypted_data = self._decrypt(encrypted_data, key)
 			data = json.loads(decrypted_data.decode())
 
-			self._secrets = data.get("secrets", {})
 			self._acl = data.get("acl", {})
+			self._secrets = data.get("secrets", {})
+
 			self._loaded = True
 
 			CevContext.debug("secrets loaded successfully", secret_count=len(self._secrets), acl_entry_count=len(self._acl))
@@ -202,6 +279,18 @@ class CevSecrets:
 		except Exception as e:
 			CevContext.error("failed to load existing secrets", error=str(e))
 			return False
+
+	def revoke_access(self, event_stream: str, kind: str, trigger_name: str, secret_name: str) -> bool:
+		if not self._loaded and not self.load():
+			return False
+
+		secret_name = secret_name.replace("-", "_").lower()
+		trigger_key = f"{event_stream}:{kind}:{trigger_name}"
+		if trigger_key in self._acl and secret_name in self._acl[trigger_key]:
+			self._acl[trigger_key].remove(secret_name)
+			return self.save()
+
+		return True
 
 	def save(self) -> bool:
 		if not self._loaded:
@@ -227,6 +316,7 @@ class CevSecrets:
 			self.secrets_file.write_bytes(encoded_data)
 
 			CevContext.debug("secrets saved successfully")
+
 			return True
 		except Exception as e:
 			CevContext.error("failed to save secrets", error=str(e))
@@ -236,83 +326,10 @@ class CevSecrets:
 		if not self._loaded and not self.load():
 			return False
 
+		name = name.replace("-", "_").lower()
 		self._secrets[name] = value
-		return self.save()
-
-	def delete_secret(self, name: str) -> bool:
-		if not self._loaded and not self.load():
-			return False
-
-		if name in self._secrets:
-			del self._secrets[name]
-
-			for trigger_key in self._acl:
-				if name in self._acl[trigger_key]:
-					self._acl[trigger_key].remove(name)
-
-			return self.save()
-
-		return True
-
-	def grant_access(self, event_stream: str, trigger_name: str, secret_name: str) -> bool:
-		if not self._loaded and not self.load():
-			return False
-
-		if secret_name not in self._secrets:
-			CevContext.error("cannot grant access to nonexistent secret", secret_name=secret_name)
-			return False
-
-		trigger_key = f"{event_stream}:{trigger_name}"
-		if trigger_key not in self._acl:
-			self._acl[trigger_key] = []
-
-		if secret_name not in self._acl[trigger_key]:
-			self._acl[trigger_key].append(secret_name)
 
 		return self.save()
-
-	def revoke_access(self, event_stream: str, trigger_name: str, secret_name: str) -> bool:
-		if not self._loaded and not self.load():
-			return False
-
-		trigger_key = f"{event_stream}:{trigger_name}"
-		if trigger_key in self._acl and secret_name in self._acl[trigger_key]:
-			self._acl[trigger_key].remove(secret_name)
-			return self.save()
-
-		return True
-
-	def get_trigger_env(self, event_stream: str, trigger_name: str) -> Dict[str, str]:
-		if not self._loaded and not self.load():
-			return {}
-
-		trigger_key = f"{event_stream}:{trigger_name}"
-		result = {}
-
-		if trigger_key in self._acl:
-			for secret_name in self._acl[trigger_key]:
-				if secret_name in self._secrets:
-					CevContext.debug("exposing secret to trigger", secret_name=secret_name)
-					env_var_name = f"CEV_SECRET_{secret_name.upper()}"
-					result[env_var_name] = self._secrets[secret_name]
-
-		return result
-
-	def list_secrets(self) -> List[Tuple[str, List[str]]]:
-		if not self._loaded and not self.load():
-			return []
-
-		result = []
-		for secret_name in sorted(self._secrets.keys()):
-			triggers = []
-
-			for trigger_key, secret_list in self._acl.items():
-				if secret_name in secret_list:
-					triggers.append(trigger_key)
-
-			result.append((secret_name, sorted(triggers)))
-
-		return result
 
 
 _CURRENT_CONTEXT = {}
@@ -329,6 +346,13 @@ class CevContext:
 		return _CURRENT_CONTEXT["attrs"].pop(key, None)
 
 	@staticmethod
+	def cfg_dir() -> str:
+		if "cfg_dir" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
+
+		return _CURRENT_CONTEXT["cfg_dir"]
+
+	@staticmethod
 	def ctx_id() -> str:
 		if "attrs" not in _CURRENT_CONTEXT:
 			raise RuntimeError("CevContext not initialized")
@@ -343,7 +367,7 @@ class CevContext:
 		return _CURRENT_CONTEXT["data_dir"]
 
 	@staticmethod
-	def init(data_dir: Path, min_log_level: str = "info"):
+	def init(cfg_dir: Path, data_dir: Path, min_log_level: str = "info"):
 		global _CURRENT_CONTEXT
 		log_file = data_dir / "system.log"
 
@@ -356,6 +380,7 @@ class CevContext:
 
 		_CURRENT_CONTEXT = {
 			"logger": CevLogger(log_file, LogLevel.from_string(min_log_level)),
+			"cfg_dir": cfg_dir,
 			"data_dir": data_dir,
 			"attrs": {
 				"ctx_id": ctx_id
@@ -372,6 +397,16 @@ class CevContext:
 		merged_kwargs.update(kwargs)
 
 		_CURRENT_CONTEXT["logger"].log(level, message, **merged_kwargs)
+
+	@staticmethod
+	def secrets() -> "CevSecrets":
+		if "cfg_dir" not in _CURRENT_CONTEXT or "data_dir" not in _CURRENT_CONTEXT:
+			raise RuntimeError("CevContext not initialized")
+
+		return CevSecrets(
+			_CURRENT_CONTEXT["cfg_dir"],
+			_CURRENT_CONTEXT["data_dir"]
+		)
 
 	@staticmethod
 	def set(key: str, value: Any):
@@ -525,6 +560,21 @@ def create_smart_symlink(link_path: Path, target_path: Path) -> bool:
 		link_path.symlink_to(target_path)
 
 	return True
+
+
+def get_config_directory(cfg_dir: Optional[Path]) -> Path:
+	if cfg_dir:
+		return Path(cfg_dir).expanduser().resolve()
+
+	env_cfg_dir = os.environ.get("CEV_CFG_DIR")
+	if env_cfg_dir:
+		return Path(env_cfg_dir).expanduser().resolve()
+
+	xdg_data_home = os.environ.get("XDG_CONFIG")
+	if xdg_data_home:
+		return Path(xdg_data_home) / "cev"
+
+	return Path.home() / ".config" / "cev"
 
 
 def get_data_directory(data_dir: Optional[Path]) -> Path:
@@ -1260,7 +1310,8 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 		"CEV_BIN": str(Path(sys.argv[0]).resolve()),
 		"CEV_DATA_DIR": str(data_dir),
 		"CEV_EVENT_STREAM": event_stream,
-		"CEV_TRIGGER_NAME": trigger_name
+		"CEV_TRIGGER_NAME": trigger_name,
+		"CEV_TRIGGER_KIND": kind
 	}
 
 	latest_snapshot = get_latest_state_file(event_stream)
@@ -1271,8 +1322,8 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
 	# Before launching the process, add secret environment variables. These override anything already
 	# present but are in a reserved namespace of CEV_SECRET_* that shouldn't impact others.
-	secrets = CevSecrets(CevContext.data_dir())
-	secret_env = secrets.get_trigger_env(event_stream, trigger_name)
+	secrets = CevContext.secrets()
+	secret_env = secrets.get_trigger_env(event_stream, kind, trigger_name)
 	trig_env.update(secret_env)
 
 	cmd = [str(trigger_path)]
@@ -1962,8 +2013,9 @@ def main():
 	parser = argparse.ArgumentParser(description="Common Event system")
 
 	# Global arguments
-	parser.add_argument("-l", "--log-level", default="info", choices=["trace", "debug", "info", "warn", "error", "fatal"], help="Set minimum log level (default: info)")
+	parser.add_argument("--cfg-dir", help="Override default config directory")
 	parser.add_argument("-d", "--data-dir", help="Override default data directory")
+	parser.add_argument("-l", "--log-level", default="info", choices=["trace", "debug", "info", "warn", "error", "fatal"], help="Set minimum log level (default: info)")
 
 	subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -2021,15 +2073,17 @@ def main():
 
 	set_secret_parser = secrets_subparsers.add_parser("set", help="Set a secret value")
 	set_secret_parser.add_argument("-n", "--name", required=True, help="Secret name")
-	set_secret_parser.add_argument("-v", "--value", help="Secret value (omit to read from stdin)")
+	set_secret_parser.add_argument("-v", "--value", required=True, help="Secret value (omit to read from stdin)")
 
 	grant_parser = secrets_subparsers.add_parser("grant", help="Grant a trigger access to a secret")
 	grant_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	grant_parser.add_argument("-k", "--kind", required=True, help="Trigger kind")
 	grant_parser.add_argument("-t", "--trigger", required=True, help="Trigger name")
 	grant_parser.add_argument("-n", "--name", required=True, help="Secret name")
 
 	revoke_parser = secrets_subparsers.add_parser("revoke", help="Revoke a trigger's access to a secret")
 	revoke_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
+	revoke_parser.add_argument("-k", "--kind", required=True, help="Trigger kind")
 	revoke_parser.add_argument("-t", "--trigger", required=True, help="Trigger name")
 	revoke_parser.add_argument("-n", "--name", required=True, help="Secret name")
 
@@ -2046,9 +2100,10 @@ def main():
 	watch_parser.add_argument("-e", "--extractor", required=True, help="Name of state extraction trigger")
 
 	args = parser.parse_args()
+	cfg_dir = get_config_directory(args.cfg_dir)
 	data_dir = get_data_directory(args.data_dir)
 
-	CevContext.init(data_dir, args.log_level)
+	CevContext.init(cfg_dir, data_dir, args.log_level)
 	CevContext.debug("starting new session", command=args.command, version=VERSION)
 
 	if args.command == "add-event":
@@ -2122,7 +2177,7 @@ def main():
 	elif args.command == "run":
 		cmd_run(args.stream, args.name, args.extra_args)
 	elif args.command == "secrets":
-		secrets = CevSecrets(data_dir)
+		secrets = CevContext.secrets()
 
 		if args.secrets_command == "set":
 			value = args.value
@@ -2133,19 +2188,20 @@ def main():
 				CevContext.info("secret set successfully", name=args.name)
 
 		elif args.secrets_command == "grant":
-			if secrets.grant_access(args.stream, args.trigger, args.name):
+			if secrets.grant_access(args.stream, args.kind, args.trigger, args.name):
 				CevContext.info("secret access granted", stream=args.stream, trigger=args.trigger, secret=args.name)
 
 		elif args.secrets_command == "revoke":
-			if secrets.revoke_access(args.stream, args.trigger, args.name):
+			if secrets.revoke_access(args.stream, args.kind, args.trigger, args.name):
 				CevContext.info("secret access revoked", stream=args.stream, trigger=args.trigger, secret=args.name)
 
 		elif args.secrets_command == "list":
-			secrets = secrets.load()
+			secrets = secrets.list_secrets()
 			if not secrets:
 				CevContext.info("no secrets currently stored")
 
-			CevContext.fatal("listing current secrets not yet implemented")
+			for name, triggers in secrets:
+				CevContext.info("secret", name=name, triggers=triggers)
 
 	elif args.command == "watch":
 		cmd_watch(WatchArgs(
