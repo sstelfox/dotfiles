@@ -11,8 +11,9 @@
 # todo: consider command timeout handling again, it may be worth loosing the live process logs from
 #   the async process execution in favor of simplicity...
 # todo: handle commands being piped into the cev process
-# todo: secrets should include handler kind
 # todo: secret grants should support wildcards for the matches
+# todo: emitted commands should have their origin event tracked for tracing purposes to prevent
+#   users from having to reimplement this
 
 import argparse
 import base64
@@ -1265,6 +1266,8 @@ def run_scheduled_event_handler(state: Dict[str, Any], event_name: str, stream_i
 		return False, None
 
 
+# todo: switch from integer to bool for status, may want to consider exceptions of all things to
+#   simplify these APIs _sad_
 def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Optional[List[str]] = None) -> Tuple[int, Optional[Dict[str, Any]], List[Dict[str, Any]]]:
 	if not is_stream_active(event_stream):
 		CevContext.fatal("event stream must exist and be active to call trigger", event_stream=event_stream)
@@ -1330,7 +1333,14 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 	if extra_args:
 		cmd.extend(extra_args)
 
-	return subprocess_executor(cmd, trig_env)
+	exit_code, state_update, commands = subprocess_executor(cmd, trig_env)
+
+	# To keep the audit and event history consistent and clean, tasks must modify state using events.
+	# To enforce this we intentionally drop any attempts at modifying state for those task kinds.
+	if kind == "task":
+		state_update = None
+
+	return exit_code, state_update, commands
 
 
 
