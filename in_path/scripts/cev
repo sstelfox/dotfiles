@@ -30,6 +30,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+
 from enum import Enum
 from operator import itemgetter
 from pathlib import Path
@@ -115,7 +116,7 @@ class CevLogger:
 				context_parts = [f"{k}={repr(v)}" for k, v in safe_kwargs.items()]
 				context_str = f" ({', '.join(context_parts)})"
 
-			# Something readable: [TIMESTAMP] LEVEL: MESSAGE (key1=value1, key2=value2, ...)
+			# Create a readable message format: [TIMESTAMP] LEVEL: MESSAGE (key1=value1, key2=value2, ...)
 			readable_output = f"[{timestamp}] {level.value.upper()}: {message}{context_str}"
 			sys.stderr.write(f"{readable_output}\n")
 
@@ -498,6 +499,34 @@ class CevLock:
 			CevContext.trace("lock released", **{f"{self.lock_type}_lock": False})
 
 
+def create_smart_symlink(link_path: Path, target_path: Path) -> bool:
+	"""
+	Create a symlink that uses relative paths when the target is inside the data directory.
+
+	Parameters:
+	- link_path: Path object where the symlink will be created (must be inside data_dir)
+	- target_path: Path object to the target the symlink will point to
+
+	All paths should already be resolved.
+	"""
+	data_dir = CevContext.data_dir()
+
+	# verify the link is inside the data directory
+	if data_dir not in link_path.parents and link_path != data_dir:
+		CevContext.error("link path must be inside data directory")
+		return False
+
+	# Determine if target is inside data directory, we'll either create a relative link or an
+	# absolute link depending on what we link to.
+	if data_dir in target_path.parents or target_path == data_dir:
+		rel_target = target_path.relative_to(link_path.parent)
+		link_path.symlink_to(rel_target)
+	else:
+		link_path.symlink_to(target_path)
+
+	return True
+
+
 def get_data_directory(data_dir: Optional[Path]) -> Path:
 	if data_dir:
 		return Path(data_dir).expanduser().resolve()
@@ -516,18 +545,23 @@ def get_data_directory(data_dir: Optional[Path]) -> Path:
 def execute_commands(commands: List[Dict[str, Any]]) -> bool:
 	CevContext.debug("executing event generated commands", count=len(commands))
 
-	for cmd in commands:
-		command_type = cmd.pop("command")
-		if command_type == "add-event":
-			if not cmd_add_event(AddEventArgs(**cmd)):
-				CevContext.warn("command failed to add event")
-				return False
-		else:
-			# todo: implement and make a test example for the other commands
-			CevContext.error("command type not implemented", command_type=command_type)
-			return False
+	try:
+		for index, cmd in enumerate(commands):
+			command_type = cmd.pop("command")
+			CevContext.debug("executing command event", command_type=command_type, index=index)
 
-	return True
+			if command_type == "add-event":
+				if not cmd_add_event(AddEventArgs(**cmd)):
+					CevContext.warn("command failed to add event")
+					return False
+			else:
+				CevContext.error("command type not implemented", command_type=command_type)
+				return False
+
+		return True
+	except ValueError as err:
+		CevContext.error("command failed to load into appropriate type", error=str(err))
+		return False
 
 
 def execute_extraction_queue() -> bool:
@@ -1404,6 +1438,85 @@ def cmd_add_event(args: AddEventArgs) -> bool:
 	return True
 
 
+@dataclass
+class AliasTriggerArgs:
+	source_stream: str
+	source_name: str
+	source_kind: str = "handler"
+
+	dest_stream: Optional[str] = None
+	dest_name: Optional[str] = None
+	dest_kind: Optional[str] = None
+
+def cmd_alias_trigger(args: AliasTriggerArgs) -> bool:
+	if not is_valid_stream_name(args.source_stream):
+		CevContext.error("invalid source event stream name", event_stream=args.source_stream)
+		return False
+
+	if not is_valid_event_name(args.source_name):
+		CevContext.error("invalid source trigger name", trigger_name=args.source_name)
+		return False
+
+	if args.source_kind not in {'handler', 'extractor', 'task'}:
+		CevContext.error("undefined source trigger kind", trigger_kind=args.source_kind)
+		return False
+
+	# Default to the source values
+	dest_stream = args.dest_stream if args.dest_stream else args.source_stream
+	dest_name = args.dest_name if args.dest_name else args.source_name
+	dest_kind = args.dest_kind if args.dest_kind else args.source_kind
+
+	# At least one must differ or we're just copying over the source
+	if dest_stream == args.source_stream and dest_name == args.source_name and dest_kind == args.source_kind:
+		CevContext.error("at least one different destination parameter must be provided")
+		return False
+
+	if not is_valid_stream_name(dest_stream):
+		CevContext.error("invalid destination event stream name", event_stream=dest_stream)
+		return False
+
+	if not is_valid_event_name(dest_name):
+		CevContext.error("invalid destination trigger name", trigger_name=dest_name)
+		return False
+
+	if dest_kind not in {'handler', 'extractor', 'task'}:
+		CevContext.error("undefined destination trigger kind", trigger_kind=dest_kind)
+		return False
+
+	with CevContext.context(
+		source_stream=args.source_stream,
+		source_name=args.source_name,
+		source_kind=args.source_kind,
+		dest_stream=dest_stream,
+		dest_name=dest_name,
+		dest_kind=dest_kind
+	):
+		data_dir = CevContext.data_dir()
+		source_trigger_path = data_dir / args.source_stream / f"{args.source_kind}s" / args.source_name
+		if not source_trigger_path.exists():
+			CevContext.error("source trigger does not exist")
+			return False
+
+		with CevLock(data_dir, "config"):
+			dest_stream_dir = data_dir / dest_stream
+
+			with CevLock(dest_stream_dir, "event"):
+				dest_trigger_dir = dest_stream_dir / f"{dest_kind}s"
+				dest_trigger_dir.mkdir(parents=True, exist_ok=True)
+
+				dest_trigger_path = dest_trigger_dir / dest_name
+				if dest_trigger_path.exists():
+					CevContext.error("destination trigger already exists", dest_trigger_path=str(dest_trigger_path))
+					return False
+
+				if create_smart_symlink(dest_trigger_path, source_trigger_path):
+					CevContext.debug("successfully aliased trigger")
+					return True
+				else:
+					CevContext.error("failed to create symlink for trigger")
+					return False
+
+
 def cmd_create_event(event_stream: str, event_name: str, output_path: Optional[Path]) -> bool:
 	with CevContext.context(event_stream=event_stream, event_name=event_name):
 		if not is_valid_stream_name(event_stream):
@@ -1550,8 +1663,7 @@ def cmd_define_trigger(args: DefineTriggerArgs):
 
 					new_trigger_path.chmod(0o755)
 				else:
-					# todo: make this relative to the new script
-					new_trigger_path.symlink_to(args.trigger_path)
+					create_smart_symlink(new_trigger_path, args.trigger_path)
 
 		CevContext.debug("defined trigger")
 
@@ -1850,6 +1962,14 @@ def main():
 	add_event_parser.add_argument("-f", "--file", help="Event JSON file path")
 	add_event_parser.add_argument("-p", "--process", action="store_true", help="Process stream after adding event")
 
+	alias_trigger_parser = subparsers.add_parser("alias-trigger", help="Create an alias of an existing trigger")
+	alias_trigger_parser.add_argument("-s", "--source-stream", required=True, help="Source event stream name")
+	alias_trigger_parser.add_argument("-n", "--source-name", required=True, help="Source trigger name")
+	alias_trigger_parser.add_argument("-k", "--source-kind", default="handler", help="Source trigger kind (handler, extractor, task)")
+	alias_trigger_parser.add_argument("-d", "--dest-stream", help="Destination event stream name (defaults to source stream)")
+	alias_trigger_parser.add_argument("-m", "--dest-name", help="Destination trigger name (defaults to source name)")
+	alias_trigger_parser.add_argument("-j", "--dest-kind", help="Destination trigger kind (defaults to source kind)")
+
 	create_event_parser = subparsers.add_parser("create-event", help="Create an event stub")
 	create_event_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
 	create_event_parser.add_argument("-n", "--name", required=True, help="Event name")
@@ -1934,6 +2054,15 @@ def main():
 		# Process event immediately if requested by the caller
 		if args.process:
 			cmd_process(args.stream)
+	elif args.command == "alias-trigger":
+		cmd_alias_trigger(AliasTriggerArgs(
+			source_stream=args.source_stream,
+			source_name=args.source_name,
+			source_kind=args.source_kind,
+			dest_stream=args.dest_stream,
+			dest_name=args.dest_name,
+			dest_kind=args.dest_kind
+		))
 	elif args.command == "create-event":
 		cmd_create_event(args.stream, args.name, args.file)
 	elif args.command == "define-event":
@@ -2129,6 +2258,21 @@ __EMBEDDED_SCHEMAS__
 		"payload": {"type": "object"}
 	},
 	"required": ["command", "event_stream", "event_name", "payload"]
+}
+
+# [cmd-alias-trigger-command-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["alias-trigger"]},
+		"source_stream": {"type": "string"},
+		"source_name": {"type": "string"},
+		"source_kind": {"type": "string", "enum": ["handler", "extractor", "task"]},
+		"dest_stream": {"type": "string"},
+		"dest_name": {"type": "string"},
+		"dest_kind": {"type": "string", "enum": ["handler", "extractor", "task"]}
+	},
+	"required": ["command", "source_stream", "source_name"]
 }
 
 # [cmd-define-event-command-schema]
