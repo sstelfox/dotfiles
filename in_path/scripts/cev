@@ -551,11 +551,23 @@ def execute_commands(commands: List[Dict[str, Any]]) -> bool:
 			CevContext.debug("executing command event", command_type=command_type, index=index)
 
 			if command_type == "add-event":
-				if not cmd_add_event(AddEventArgs(**cmd)):
-					CevContext.warn("command failed to add event")
-					return False
+				successful = cmd_add_event(AddEventArgs(**cmd))
+			elif command_type == "alias-trigger":
+				successful = cmd_alias_trigger(AliasTriggerArgs(**cmd))
+			elif command_type == "define-event":
+				successful = cmd_define_event(DefineEventArgs(**cmd))
+			elif command_type == "define-trigger":
+				successful = cmd_define_trigger(DefineTriggerArgs(**cmd))
+			elif command_type == "unwatch":
+				successful = cmd_unwatch(UnwatchArgs(**cmd))
+			elif command_type == "watch":
+				successful = cmd_watch(WatchArgs(**cmd))
 			else:
-				CevContext.error("command type not implemented", command_type=command_type)
+				CevContext.error("unknown command type", command_type=command_type, index=index)
+				return False
+
+			if not successful:
+				CevContext.warn("internal command failed", command_type=command_type, cmd=cmd, index=index)
 				return False
 
 		return True
