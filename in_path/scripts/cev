@@ -14,6 +14,10 @@
 # todo: secret grants should support wildcards for the matches
 # todo: emitted commands should have their origin event tracked for tracing purposes to prevent
 #   users from having to reimplement this
+# todo: for robustness against validation, should prune null values from events before validating
+#   them...
+# todo: respect CEV_LOG_LEVEL environment variable in CevLogger as well as CLI arguments
+# todo: it seems like tasks may not be getting properly removed from the scheduled state
 
 import argparse
 import base64
@@ -170,7 +174,13 @@ class CevSecrets:
 
 	def _get_encryption_key(self) -> Optional[bytes]:
 		key_material = os.environ.get("CEV_SECRET_KEY")
+
+		if not key_material and self.key_file.exists():
+			CevContext.trace("reading secret key from on disk cache")
+			key_material = self.key_file.read_text().strip()
+
 		if key_material:
+			CevContext.trace("found key material")
 			return self._derive_key(key_material)
 
 		return None
@@ -180,6 +190,7 @@ class CevSecrets:
 		self._loaded = False
 		self._secrets = {}
 
+		self.key_file = cfg_dir / "secrets.key"
 		self.secrets_file = data_dir / "secrets.arxiv"
 
 	def delete_secret(self, name: str) -> bool:
@@ -263,23 +274,23 @@ class CevSecrets:
 
 			return True
 
-		try:
-			encoded_data = self.secrets_file.read_bytes()
-			encrypted_data = base64.b64decode(encoded_data)
-			decrypted_data = self._decrypt(encrypted_data, key)
-			data = json.loads(decrypted_data.decode())
+		#try:
+		encoded_data = self.secrets_file.read_bytes()
+		encrypted_data = base64.b64decode(encoded_data)
+		decrypted_data = self._decrypt(encrypted_data, key)
+		data = json.loads(decrypted_data.decode())
 
-			self._acl = data.get("acl", {})
-			self._secrets = data.get("secrets", {})
+		self._acl = data.get("acl", {})
+		self._secrets = data.get("secrets", {})
 
-			self._loaded = True
+		self._loaded = True
 
-			CevContext.debug("secrets loaded successfully", secret_count=len(self._secrets), acl_entry_count=len(self._acl))
+		CevContext.debug("secrets loaded successfully", secret_count=len(self._secrets), acl_entry_count=len(self._acl))
 
-			return True
-		except Exception as e:
-			CevContext.error("failed to load existing secrets", error=str(e))
-			return False
+		return True
+		#except Exception as err:
+		#	CevContext.error("failed to load existing secrets", error=str(err))
+		#	return False
 
 	def revoke_access(self, event_stream: str, kind: str, trigger_name: str, secret_name: str) -> bool:
 		if not self._loaded and not self.load():
@@ -547,7 +558,7 @@ def create_smart_symlink(link_path: Path, target_path: Path) -> bool:
 	"""
 	data_dir = CevContext.data_dir()
 
-	# verify the link is inside the data directory
+	# We only create symlinks to destinations we control in the data directory
 	if data_dir not in link_path.parents and link_path != data_dir:
 		CevContext.error("link path must be inside data directory")
 		return False
@@ -555,10 +566,30 @@ def create_smart_symlink(link_path: Path, target_path: Path) -> bool:
 	# Determine if target is inside data directory, we'll either create a relative link or an
 	# absolute link depending on what we link to.
 	if data_dir in target_path.parents or target_path == data_dir:
-		rel_target = target_path.relative_to(link_path.parent)
+		link_parts = link_path.parent.parts
+		target_parts = target_path.parts
+
+		# Find the deepest common parent between link_path's parent and target_path
+		common_len = 0
+		for i in range(min(len(link_parts), len(target_parts))):
+			if link_parts[i] == target_parts[i]:
+				common_len += 1
+			else:
+				break
+
+		# Add '..' for each level we need to go up
+		rel_path_parts = []
+		for _ in range(len(link_parts) - common_len):
+			rel_path_parts.append('..')
+
+		# Add the remaining parts of the target path
+		rel_path_parts.extend(target_parts[common_len:])
+		rel_target = Path(*rel_path_parts)
+		CevContext.debug("creating smart symlink", link_path=str(link_path), target_path=str(rel_target))
 		link_path.symlink_to(rel_target)
 	else:
-		link_path.symlink_to(target_path)
+		# Use absolute path for targets outside the data directory
+		link_path.symlink_to(target_path.resolve())
 
 	return True
 
@@ -728,6 +759,9 @@ def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
 		due_tasks = []
 		for task in state["tasks"]:
 			scheduled_dt = datetime.fromisoformat(task["scheduled_for"])
+			if scheduled_dt.tzinfo is None:
+				scheduled_dt = scheduled_dt.replace(tzinfo=timezone.utc)
+
 			if scheduled_dt <= now_dt:
 				due_tasks.append(task)
 
@@ -1189,7 +1223,7 @@ def subprocess_executor(cmd: List[str], env_vars: Dict[str, str]) -> Tuple[int, 
 					CevContext.warn("trigger produced non-dict JSON on stdout")
 					new_state = None
 			except json.JSONDecodeError:
-				CevContext.warn("trigger produced invalid output on stdout")
+				CevContext.warn("trigger produced invalid output on stdout", buffer=stdout_buffer)
 				new_state = None
 
 		exit_status = process.returncode if process.returncode is not None else 200
@@ -1226,8 +1260,7 @@ def run_extraction_event_handler(state: Dict[str, Any], event_name: str, stream_
 		state_update = {}
 
 		remaining_tasks = [task for task in state["tasks"] if task["task_id"] != event["task_id"]]
-		if remaining_tasks:
-			state_update["tasks"] = remaining_tasks
+		state_update["tasks"] = remaining_tasks
 
 		return True, state_update
 	else:
@@ -1257,8 +1290,7 @@ def run_scheduled_event_handler(state: Dict[str, Any], event_name: str, stream_i
 		state_update = {}
 
 		remaining_tasks = [task for task in state["tasks"] if task["task_id"] != event["task_id"]]
-		if remaining_tasks:
-			state_update["tasks"] = remaining_tasks
+		state_update["tasks"] = remaining_tasks
 
 		return True, state_update
 	else:
@@ -1277,21 +1309,24 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
 	CevContext.debug("running trigger", event_stream=event_stream, kind=kind, trigger_name=trigger_name, extra_args=extra_args)
 
-	if kind == "task" and event_stream == "system-events/extraction":
-		if trigger_name == "execute-queue":
+	if kind == "task":
+		# Tasks rely on the state being fully up to date. To that end we need to make sure outstanding
+		# events are fully processed before we run one. This also allows us to usefully bubble up
+		# processing errors for any kind of external interaction.
+		if not cmd_process(event_stream):
+			CevContext.error("failed to process event queue before executing task")
+			return False
+
+		# Handle special built-in system tasks
+		if event_stream == "system-events/extraction" and trigger_name == "execute-queue":
 			status = execute_extraction_queue()
 			exit_code = 0 if status else 1
 			return exit_code, None, []
-		else:
-			CevContext.fatal("unknown scheduled queue trigger name")
 
-	if kind == "task" and event_stream == "system-events/scheduled":
-		if trigger_name == "execute-queue":
+		if event_stream == "system-events/scheduled" and trigger_name == "execute-queue":
 			status = execute_scheduled_queue(extra_args)
 			exit_code = 0 if status else 1
 			return exit_code, None, []
-		else:
-			CevContext.fatal("unknown scheduled queue trigger name")
 
 	data_dir = CevContext.data_dir()
 	event_stream_dir = data_dir / event_stream
@@ -1304,14 +1339,20 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
 	# Pull in a selective set of environment variables from the OS, we'll include some that are
 	# relevant to cev if they're not security sensitive.
-	for var_name in {"CEV_VERBOSE", "HOME", "LC_ALL", "PATH", "SHELL", "USER"}:
+	for var_name in {"CEV_LOG_LEVEL", "HOME", "LC_ALL", "SHELL", "USER"}:
 		var_value = os.environ.get(var_name)
 		if var_value:
 			trig_env[var_name] = var_value
 
+	# The path is an interesting thing. I want to make this customizable, probably using another
+	# externally passed CEV_ variable like CEV_EXTRA_PATH but for now just hard-code a minimal set
+	# that can be customized by the user.
+	trig_env["PATH"] = "/sbin:/bin:/usr/sbin:/usr/bin:$HOME/.local/bin"
+
 	env_vars = {
 		"CEV_BIN": str(Path(sys.argv[0]).resolve()),
 		"CEV_DATA_DIR": str(data_dir),
+
 		"CEV_EVENT_STREAM": event_stream,
 		"CEV_TRIGGER_NAME": trigger_name,
 		"CEV_TRIGGER_KIND": kind
