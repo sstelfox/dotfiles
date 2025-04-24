@@ -220,8 +220,8 @@ class CevSecrets:
 			for secret_name in self._acl[trigger_key]:
 				if secret_name in self._secrets:
 					CevContext.debug("exposing secret to trigger", secret_name=secret_name)
-					env_var_name = f"CEV_SECRET_{secret_name.upper()}"
-					result[env_var_name] = self._secrets[secret_name]
+					env_var_name = secret_name.replace("-", "_").upper()
+					result[f"CEV_SECRET_{env_var_name}"] = self._secrets[secret_name]
 
 		return result
 
@@ -274,23 +274,23 @@ class CevSecrets:
 
 			return True
 
-		#try:
-		encoded_data = self.secrets_file.read_bytes()
-		encrypted_data = base64.b64decode(encoded_data)
-		decrypted_data = self._decrypt(encrypted_data, key)
-		data = json.loads(decrypted_data.decode())
+		try:
+			encoded_data = self.secrets_file.read_bytes()
+			encrypted_data = base64.b64decode(encoded_data)
+			decrypted_data = self._decrypt(encrypted_data, key)
+			data = json.loads(decrypted_data.decode())
 
-		self._acl = data.get("acl", {})
-		self._secrets = data.get("secrets", {})
+			self._acl = data.get("acl", {})
+			self._secrets = data.get("secrets", {})
 
-		self._loaded = True
+			self._loaded = True
 
-		CevContext.debug("secrets loaded successfully", secret_count=len(self._secrets), acl_entry_count=len(self._acl))
+			CevContext.debug("secrets loaded successfully", secret_count=len(self._secrets), acl_entry_count=len(self._acl))
 
-		return True
-		#except Exception as err:
-		#	CevContext.error("failed to load existing secrets", error=str(err))
-		#	return False
+			return True
+		except Exception as err:
+			CevContext.error("failed to load existing secrets", error=str(err))
+			return False
 
 	def revoke_access(self, event_stream: str, kind: str, trigger_name: str, secret_name: str) -> bool:
 		if not self._loaded and not self.load():
@@ -316,8 +316,8 @@ class CevSecrets:
 
 		try:
 			data = {
-				"secrets": self._secrets,
-				"acl": self._acl
+				"acl": self._acl,
+				"secrets": self._secrets
 			}
 
 			serialized = json.dumps(data).encode()
@@ -640,6 +640,10 @@ def execute_commands(commands: List[Dict[str, Any]]) -> bool:
 				successful = cmd_define_event(DefineEventArgs(**cmd))
 			elif command_type == "define-trigger":
 				successful = cmd_define_trigger(DefineTriggerArgs(**cmd))
+			elif command_type == "define-trigger":
+				successful = cmd_define_trigger(DefineTriggerArgs(**cmd))
+			elif command_type == "queue-process":
+				successful = cmd_queue_process(QueueProcessArgs(**cmd))
 			elif command_type == "unwatch":
 				successful = cmd_unwatch(UnwatchArgs(**cmd))
 			elif command_type == "watch":
@@ -1238,7 +1242,7 @@ def subprocess_executor(cmd: List[str], env_vars: Dict[str, str]) -> Tuple[int, 
 		return 237, None, []
 
 
-def run_extraction_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
+def process_extraction_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
 	task_id = f"{stream_index:08x}"
 
 	event = read_json_file(event_path)
@@ -1268,7 +1272,33 @@ def run_extraction_event_handler(state: Dict[str, Any], event_name: str, stream_
 		return False, None
 
 
-def run_scheduled_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
+def process_process_queue_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
+	task_id = f"{stream_index:08x}"
+
+	event = read_json_file(event_path)
+	if not event:
+		CevContext.error("unable to load persisted event")
+		return False, None
+
+	if event_name == "request-task":
+		event_stream = event["event_stream"]
+		priority = event.get("priority", 15)
+
+		CevContext.debug("queueing stream for processing", event_stream=event_stream, priority=priority)
+
+		pending = state.get("pending", dict())
+		stream_requests = pending.get(event_stream, dict(count=0, priority=0, requested=datetime.now))
+		stream_requests[count] += 1
+		stream_requests[count] += priority
+
+		state_update["pending"][event_stream] = stream_requests
+		return True, state_update
+	else:
+		CevContext.error("unknown trigger for stream")
+		return False, None
+
+
+def process_scheduled_event_handler(state: Dict[str, Any], event_name: str, stream_index: int, event_path: Path) -> Tuple[bool, Optional[Dict[str, Any]]]:
 	task_id = f"{stream_index:08x}"
 
 	event = read_json_file(event_path)
@@ -1320,6 +1350,13 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 		# Handle special built-in system tasks
 		if event_stream == "system-events/extraction" and trigger_name == "execute-queue":
 			status = execute_extraction_queue()
+			exit_code = 0 if status else 1
+			return exit_code, None, []
+
+		if event_stream == "system-events/process-queue" and trigger_name == "execute-queue":
+			CevContext.error("process queue not yet implemented")
+			#status = execute_process_queue(extra_args)
+			status = false
 			exit_code = 0 if status else 1
 			return exit_code, None, []
 
@@ -1411,29 +1448,14 @@ def set_stream_index(event_stream: str, index_kind: str, stream_index: int):
 	index_file.write_text(f"{stream_index:08x}")
 
 
-def validate_against_schema(schema: Dict[str, Any], data: Dict[str, Any]) -> bool:
-	try:
-		jsonschema.validate(data, schema)
-		CevContext.debug("schema passed validation")
-		return True
-	except jsonschema.exceptions.SchemaError as e:
-		CevContext.error("provided schema wasn't valid", error=str(e))
-		CevContext.trace("invalid schema", schema=schema)
-		return False
-	except jsonschema.exceptions.ValidationError as e:
-		CevContext.error("data failed to conform to provided schema", error=str(e))
-		CevContext.trace("failed data and schema", schema=schema, data=data)
-		return False
-
-
-def validate_command(command: Dict[str, Any], restricted: bool) -> bool:
+def is_authorized_command(command: Dict[str, Any], restricted: bool) -> bool:
 	command_identity = command.get("command")
 	if not command_identity:
 		CevContext.error("command identity missing")
 		return False
 
 	with CevContext.context(command=True, command_identity=command_identity, restricted=restricted):
-		schema = get_embedded_schema(f"cmd-{command_identity}-command-schema")
+		schema = get_embedded_schema(f"cmd-{command_identity}-schema")
 		if not schema:
 			CevContext.error("provided command not recognized")
 			return False
@@ -1451,9 +1473,39 @@ def validate_command(command: Dict[str, Any], restricted: bool) -> bool:
 	return True
 
 
+def is_stream_active(event_stream: str) -> bool:
+	if not is_valid_stream_name(event_stream):
+		CevContext.error("invalid event stream name")
+		return False
+
+	# Handle the special system event streams
+	if event_stream in {"system-events/extraction", "system-events/process-queue", "system-events/scheduled"}:
+		return True
+
+	event_stream_dir = CevContext.data_dir() / event_stream
+	if not event_stream_dir.exists():
+		CevContext.error("event stream does not exist")
+		return False
+
+	return True
+
+
+def is_valid_against_schema(schema: Dict[str, Any], data: Dict[str, Any]) -> bool:
+	try:
+		jsonschema.validate(data, schema)
+		CevContext.debug("schema passed validation")
+		return True
+	except jsonschema.exceptions.SchemaError as e:
+		CevContext.error("provided schema wasn't valid", error=str(e))
+	except jsonschema.exceptions.ValidationError as e:
+		CevContext.error("data failed to conform to provided schema", error=str(e))
+
+	return False
+
+
 def is_valid_command_list(commands: List[Dict[str, Any]], restricted: bool = True) -> bool:
 	for cmd in commands:
-		if not validate_command(cmd, restricted):
+		if not is_authorized_command(cmd, restricted):
 			return False
 
 	return True
@@ -1483,23 +1535,6 @@ def validate_json_schema(schema: Dict[str, Any]) -> bool:
 		return False
 
 
-def is_stream_active(event_stream: str) -> bool:
-	if not is_valid_stream_name(event_stream):
-		CevContext.error("invalid event stream name")
-		return False
-
-	# Handle the special system event streams
-	if event_stream in {"system-events/scheduled", "system-events/extraction"}:
-		return True
-
-	event_stream_dir = CevContext.data_dir() / event_stream
-	if not event_stream_dir.exists():
-		CevContext.error("event stream does not exist")
-		return False
-
-	return True
-
-
 @dataclass
 class AddEventArgs:
 	event_stream: str
@@ -1525,7 +1560,7 @@ def cmd_add_event(args: AddEventArgs) -> bool:
 				CevContext.error("unknown event can't be added")
 				return False
 
-			if not validate_against_schema(schema, args.payload):
+			if not is_valid_against_schema(schema, args.payload):
 				CevContext.error("event failed to validate against schema", schema=schema, event=args.payload)
 				return False
 
@@ -1571,7 +1606,7 @@ def cmd_alias_trigger(args: AliasTriggerArgs) -> bool:
 		CevContext.error("invalid source trigger name", trigger_name=args.source_name)
 		return False
 
-	if args.source_kind not in {'handler', 'extractor', 'task'}:
+	if args.source_kind not in {"handler", "extractor", "task"}:
 		CevContext.error("undefined source trigger kind", trigger_kind=args.source_kind)
 		return False
 
@@ -1764,7 +1799,7 @@ def cmd_define_trigger(args: DefineTriggerArgs):
 			event_stream_dir = data_dir / args.event_stream
 			trigger_dir = event_stream_dir / f"{args.trigger_kind}s"
 
-			if args.trigger_kind not in {'handler', 'extractor', 'task'}:
+			if args.trigger_kind not in {"handler", "extractor", "task"}:
 				CevContext.fatal("undefined trigger kind", trigger_kind=args.trigger_kind)
 
 			with CevLock(event_stream_dir, "event"):
@@ -1867,7 +1902,7 @@ def cmd_process(event_stream: str) -> bool:
 			state = read_event_stream_state(event_stream)
 
 			if state:
-				if state_schema and not validate_against_schema(state_schema, state):
+				if state_schema and not is_valid_against_schema(state_schema, state):
 					CevContext.error("persisted state failed to validate against recorded schema")
 					return False
 			else:
@@ -1901,15 +1936,20 @@ def cmd_process(event_stream: str) -> bool:
 						CevContext.error("unknown event trigger, no schema available")
 						return False
 
-					if event_stream == "system-events/scheduled":
-						success, state_update = run_scheduled_event_handler(state, event_name, idx, event_path)
-						if not success:
-							CevContext.error("failed to process scheduled event")
-							return False
-					elif event_stream == "system-events/extraction":
-						success, state_update = run_extraction_event_handler(state, event_name, idx, event_path)
+					if event_stream == "system-events/extraction":
+						success, state_update = process_extraction_event_handler(state, event_name, idx, event_path)
 						if not success:
 							CevContext.error("failed to process extraction events")
+							return False
+					elif event_stream == "system-events/process-queue":
+						success, state_update = process_process_queue_event_handler(state, event_name, idx, event_path)
+						if not success:
+							CevContext.error("failed to process queued process events")
+							return False
+					elif event_stream == "system-events/scheduled":
+						success, state_update = process_scheduled_event_handler(state, event_name, idx, event_path)
+						if not success:
+							CevContext.error("failed to process scheduled events")
 							return False
 					else:
 						extra_args = [str(event_path)]
@@ -1933,7 +1973,7 @@ def cmd_process(event_stream: str) -> bool:
 					if state_update:
 						CevContext.trace("state and schema", state=state_update, schema=state_schema)
 
-						if state_schema and not validate_against_schema(state_schema, state_update):
+						if state_schema and not is_valid_against_schema(state_schema, state_update):
 							CevContext.error("produced state did not validate against the schema")
 							return False
 
@@ -1948,6 +1988,23 @@ def cmd_process(event_stream: str) -> bool:
 	return True
 
 
+@dataclass
+class QueueProcessArgs:
+	event_stream: str
+	priority: Optional[int] = 15
+
+def cmd_queue_process(args: QueueProcessArgs):
+	process_queue_event = { "event_stream": args.event_stream }
+	if args.priority:
+		process_queue_event["priority"] = args.priority
+
+	cmd_add_event(AddEventArgs(
+		event_stream="system-events/process-queue",
+		event_name="request-task",
+		payload=process_queue_event
+	))
+
+
 def cmd_run(event_stream: str, trigger_name: str, extra_args: Optional[List[str]] = None) -> Tuple[bool, Optional[Dict[str, Any]]]:
 	if extra_args and extra_args[0] == "--":
 		extra_args = extra_args[1:]
@@ -1955,11 +2012,9 @@ def cmd_run(event_stream: str, trigger_name: str, extra_args: Optional[List[str]
 	with CevContext.context(event_stream=event_stream, trigger_name=trigger_name, args=extra_args):
 		CevContext.debug("running trigger")
 
-		if not cmd_is_clean(event_stream):
-			CevContext.debug("processing dirty stream before running trigger")
-			if not cmd_process(event_stream):
-				CevContext.error("failed to process stream not executing trigger")
-				return False, None
+		if not cmd_process(event_stream):
+			CevContext.error("failed to process stream, aborting trigger")
+			return False, None
 
 		start_time = time.time()
 		exit_code, state_update, commands = run_trigger(event_stream, "task", trigger_name, extra_args)
@@ -2017,7 +2072,6 @@ def cmd_unwatch(args: UnwatchArgs) -> bool:
 		set_watchers(args.target, watchers)
 
 		return True
-
 
 
 @dataclass
@@ -2275,6 +2329,95 @@ if __name__ != "__main__":
 sys.exit(main())
 
 __EMBEDDED_SCHEMAS__
+# [cmd-add-event-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["add-event"]},
+		"event_stream": {"type": "string"},
+		"event_name": {"type": "string"},
+		"payload": {"type": "object"}
+	},
+	"required": ["command", "event_stream", "event_name", "payload"]
+}
+
+# [cmd-alias-trigger-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["alias-trigger"]},
+		"source_stream": {"type": "string"},
+		"source_name": {"type": "string"},
+		"source_kind": {"type": "string", "enum": ["handler", "extractor", "task"]},
+		"dest_stream": {"type": "string"},
+		"dest_name": {"type": "string"},
+		"dest_kind": {"type": "string", "enum": ["handler", "extractor", "task"]}
+	},
+	"required": ["command", "source_stream", "source_name"]
+}
+
+# [cmd-define-event-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["define-event"]},
+		"event_stream": {"type": "string"},
+		"event_name": {"type": "string"},
+		"schema": {"type": "object"}
+	},
+	"required": ["command", "event_stream", "event_name", "schema"]
+}
+
+# [cmd-define-trigger-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["define-trigger"]},
+		"event_stream": {"type": "string"},
+		"trigger_name": {"type": "string"},
+		"trigger_kind": {"type": "string"},
+		"trigger_path": {"type": "string"},
+		"copy_trigger": {"type": "bool"}
+	},
+	"required": ["command", "event_stream", "trigger_name", "trigger_kind", "trigger_path"]
+}
+
+# [cmd-queue-process-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": { "type": "string", "enum": ["queue-process"] },
+		"event_stream": { "type": "string" },
+		"priority": { "type": "integer", "minimum": 0, "maximum": 15 },
+		"extractor": { "type": "string" }
+	},
+	"required": ["command", "watcher", "target", "extractor"]
+}
+
+# [cmd-unwatch-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["unwatch"]},
+		"watcher": {"type": "string"},
+		"target": {"type": "string"},
+		"extractor": {"type": "string"}
+	},
+	"required": ["command", "watcher", "target", "extractor"]
+}
+
+# [cmd-watch-schema]
+{
+	"type": "object",
+	"properties": {
+		"command": {"type": "string", "enum": ["watch"]},
+		"watcher": {"type": "string"},
+		"target": {"type": "string"},
+		"extractor": {"type": "string"}
+	},
+	"required": ["command", "watcher", "target", "extractor"]
+}
+
 # [system-events-extraction-extract-task-schema]
 {
 	"type": "object",
@@ -2292,8 +2435,8 @@ __EMBEDDED_SCHEMAS__
 {
 	"type": "object",
 	"properties": {
-		"task_id": {"type": "string"},
 		"ctx_id": {"type": "string"},
+		"task_id": {"type": "string"},
 		"generated_events": {"type": "integer"}
 	},
 	"required": ["task_id", "ctx_id", "generated_events"]
@@ -2320,6 +2463,40 @@ __EMBEDDED_SCHEMAS__
 		}
 	},
 	"required": ["tasks"]
+}
+
+# [system-events-process-queue-request-task-schema]
+{
+	"type": "object",
+	"properties": {
+		"event_stream": { "type": "string" },
+		"priority": { "type": "integer", "minimum": 0, "maximum": 31 }
+	},
+	"required": ["event_stream"]
+}
+
+# [system-events-process-queue-state-schema]
+{
+	"type": "object",
+	"properties": {
+		"pending": {
+			"type": "object",
+			"patternProperties": {
+				"^[a-zA-Z0-9-/]+$": {
+					"type": "object",
+					"properties": {
+						"requested": { "type": "string", "format": "date-time" },
+						"priority": { "type": "integer", "minimum": 0, "maximum": 4095 },
+						"count": { "type": "integer" }
+					},
+					"additionalProperties": false,
+					"required": ["requested", "priority", "count"]
+				}
+			}
+		}
+	},
+	"additionalProperties": false,
+	"required": ["pending"]
 }
 
 # [system-events-scheduled-complete-task-schema]
@@ -2365,81 +2542,4 @@ __EMBEDDED_SCHEMAS__
 		"scheduled_for": {"type": "string", "format": "date-time"}
 	},
 	"required": ["event_stream", "trigger_name", "scheduled_for"]
-}
-
-# [cmd-add-event-command-schema]
-{
-	"type": "object",
-	"properties": {
-		"command": {"type": "string", "enum": ["add-event"]},
-		"event_stream": {"type": "string"},
-		"event_name": {"type": "string"},
-		"payload": {"type": "object"}
-	},
-	"required": ["command", "event_stream", "event_name", "payload"]
-}
-
-# [cmd-alias-trigger-command-schema]
-{
-	"type": "object",
-	"properties": {
-		"command": {"type": "string", "enum": ["alias-trigger"]},
-		"source_stream": {"type": "string"},
-		"source_name": {"type": "string"},
-		"source_kind": {"type": "string", "enum": ["handler", "extractor", "task"]},
-		"dest_stream": {"type": "string"},
-		"dest_name": {"type": "string"},
-		"dest_kind": {"type": "string", "enum": ["handler", "extractor", "task"]}
-	},
-	"required": ["command", "source_stream", "source_name"]
-}
-
-# [cmd-define-event-command-schema]
-{
-	"type": "object",
-	"properties": {
-		"command": {"type": "string", "enum": ["define-event"]},
-		"event_stream": {"type": "string"},
-		"event_name": {"type": "string"},
-		"schema": {"type": "object"}
-	},
-	"required": ["command", "event_stream", "event_name", "schema"]
-}
-
-# [cmd-define-trigger-command-schema]
-{
-	"type": "object",
-	"properties": {
-		"command": {"type": "string", "enum": ["define-trigger"]},
-		"event_stream": {"type": "string"},
-		"trigger_name": {"type": "string"},
-		"trigger_kind": {"type": "string"},
-		"trigger_path": {"type": "string"},
-		"copy_trigger": {"type": "bool"}
-	},
-	"required": ["command", "event_stream", "trigger_name", "trigger_kind", "trigger_path"]
-}
-
-# [cmd-unwatch-command-schema]
-{
-	"type": "object",
-	"properties": {
-		"command": {"type": "string", "enum": ["unwatch"]},
-		"watcher": {"type": "string"},
-		"target": {"type": "string"},
-		"extractor": {"type": "string"}
-	},
-	"required": ["command", "watcher", "target", "extractor"]
-}
-
-# [cmd-watch-command-schema]
-{
-	"type": "object",
-	"properties": {
-		"command": {"type": "string", "enum": ["watch"]},
-		"watcher": {"type": "string"},
-		"target": {"type": "string"},
-		"extractor": {"type": "string"}
-	},
-	"required": ["command", "watcher", "target", "extractor"]
 }
