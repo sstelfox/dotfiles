@@ -7,17 +7,39 @@
 # dependencies = ["jsonschema>=4.23", "cryptography>=41.0.0"]
 # ///
 
+# todo: separate stream handler definitions and general config from event/state/status data?
+# todo: implement time and reference based archiving
+# todo: content addressable store (store the handlers there as well? digests could be useful...)
 # todo: remove non-JSON file formats...
 # todo: consider command timeout handling again, it may be worth loosing the live process logs from
 #   the async process execution in favor of simplicity...
-# todo: handle commands being piped into the cev process
+# todo: handle commands being piped into the cev process, be careful that this implementation
+#   doesn't break the possibility of piping state into the handlers.
 # todo: secret grants should support wildcards for the matches
 # todo: emitted commands should have their origin event tracked for tracing purposes to prevent
 #   users from having to reimplement this
 # todo: for robustness against validation, should prune null values from events before validating
 #   them...
-# todo: respect CEV_LOG_LEVEL environment variable in CevLogger as well as CLI arguments
-# todo: it seems like tasks may not be getting properly removed from the scheduled state
+# todo: pass in state to triggers, event handlers, and extractors to STDIN so they don't need to be
+#   persisted to disk. What happens when we call a trigger from the same stream but haven't
+#   persisted the state to disk yet? Maybe I need an execution queue that automatically persists the
+#   last known completely persisted state if it encounters the need to run a trigger from that
+#   stream? Maybe I do an execution cache for the duration of the entire cev run and only write out
+#   once an error occurs or all the commands / tasks have completed?
+# todo: it seems like tasks may not be getting properly removed from the scheduled state or events
+#   are being processed multiple times...
+# todo: ensure cmd_run is not directly callable from event processing and run triggers, queues must
+#   be used to prevent recursion
+# todo: switch to an in memory data store for changes with a more consistent execute then commit
+#   model.
+# !!!TODO!!!: processing commands only needs to happen _up to_ the timestamp a trigger was run at.
+#   Combined with an in-memory data store for uncommitted changes this may be enough to solve my
+#   process/executor tensions...
+# todo: change the CevContext to create stacks of processing so the logs more accurately represent
+#   the "depth" of the processing
+# todo: detect and abort execution with big error if recursion is detected (processing a stream
+#   already in the stack of execution, running any trigger from a stream that is already executing,
+#   etc
 
 import argparse
 import base64
@@ -93,7 +115,14 @@ class LogLevel(str, Enum):
 
 
 class CevLogger:
-	def __init__(self, log_file: Path, min_level: LogLevel = LogLevel.INFO):
+	def __init__(self, log_file: Path, min_level: Optional[LogLevel]):
+		if min_level is None:
+			env_level = os.environ.get("CEV_LOG_LEVEL")
+			if env_level:
+				min_level = LogLevel.from_string(env_level)
+			else:
+				min_level = LogLevel.INFO
+
 		self.min_level = min_level
 
 		self.log_file = log_file
@@ -379,7 +408,7 @@ class CevContext:
 		return _CURRENT_CONTEXT["data_dir"]
 
 	@staticmethod
-	def init(cfg_dir: Path, data_dir: Path, min_log_level: str = "info"):
+	def init(cfg_dir: Path, data_dir: Path, log_level: Optional[LogLevel]):
 		global _CURRENT_CONTEXT
 		log_file = data_dir / "system.log"
 
@@ -391,7 +420,7 @@ class CevContext:
 		ctx_id = ''.join(random.choices(chars, k=8))
 
 		_CURRENT_CONTEXT = {
-			"logger": CevLogger(log_file, LogLevel.from_string(min_log_level)),
+			"logger": CevLogger(log_file, log_level),
 			"cfg_dir": cfg_dir,
 			"data_dir": data_dir,
 			"attrs": {
@@ -695,11 +724,11 @@ def execute_extraction_queue() -> bool:
 					previous_state_path = target_state_dir / previous_state_name
 					extra_args.append(str(previous_state_path))
 
-				exit_code, _, commands = run_trigger(task["watcher"], "extractor", task["extractor"], extra_args)
+				status, _, commands = run_trigger(task["watcher"], "extractor", task["extractor"], extra_args)
 
 				# If the extractor fails, don't process any further queued extraction events for this stream
 				# until its resolved.
-				if exit_code != 0:
+				if not status:
 					successful = False
 					break
 
@@ -734,6 +763,38 @@ def execute_extraction_queue() -> bool:
 		return False
 
 	return successful
+
+
+def execute_process_queue() -> bool:
+    CevContext.debug("executing process queue using built-in handler")
+
+    event_stream = "system-events/process-queue"
+    event_stream_dir = CevContext.data_dir() / event_stream
+
+    with CevLock(event_stream_dir, "state"):
+        state = read_event_stream_state(event_stream)
+        if not state:
+            CevContext.debug("no process tasks available")
+            return True
+
+        # Process the pending streams in priority order
+        pending_streams = sorted(
+            state.get("pending", {}).items(),
+            key=lambda x: (-x[1].get("priority", 0), x[1].get("requested"))
+        )
+
+        for stream_name, details in pending_streams:
+            if not cmd_process(stream_name):
+                CevContext.error(f"Failed to process stream {stream_name}")
+                continue
+
+            cmd_add_event(AddEventArgs(
+                event_stream="system-events/process-queue",
+                event_name="complete-task",
+                payload={"event_stream": stream_name, "ctx_id": CevContext.ctx_id()}
+            ))
+
+    return True
 
 
 def execute_scheduled_queue(extra_args: Optional[List[str]]) -> bool:
@@ -1287,14 +1348,25 @@ def process_process_queue_event_handler(state: Dict[str, Any], event_name: str, 
 		CevContext.debug("queueing stream for processing", event_stream=event_stream, priority=priority)
 
 		pending = state.get("pending", dict())
-		stream_requests = pending.get(event_stream, dict(count=0, priority=0, requested=datetime.now))
-		stream_requests[count] += 1
-		stream_requests[count] += priority
 
-		state_update["pending"][event_stream] = stream_requests
-		return True, state_update
+		stream_requests = pending.get(event_stream, dict(count=0, priority=0))
+		if not stream_requests.get("requested"):
+			stream_requests["requested"] = datetime.now().isoformat()
+
+		stream_requests["count"] += 1
+		stream_requests["priority"] += priority
+
+		pending[event_stream] = stream_requests
+		state["pending"] = pending
+
+		CevContext.info("pending pending", state=state)
+
+		return True, state
+	elif event_name == "complete-task":
+		CevContext.error("haven't implemented process queue completion messages yet")
+		return False, None
 	else:
-		CevContext.error("unknown trigger for stream")
+		CevContext.error("unknown trigger for queue processing stream")
 		return False, None
 
 
@@ -1328,10 +1400,8 @@ def process_scheduled_event_handler(state: Dict[str, Any], event_name: str, stre
 		return False, None
 
 
-# todo: switch from integer to bool for status, may want to consider exceptions of all things to
-#   simplify these APIs _sad_
-def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Optional[List[str]] = None) -> Tuple[int, Optional[Dict[str, Any]], List[Dict[str, Any]]]:
-	if not is_stream_active(event_stream):
+def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Optional[List[str]] = None) -> Tuple[bool, Optional[Dict[str, Any]], List[Dict[str, Any]]]:
+	if not cmd_is_stream_defined(event_stream):
 		CevContext.fatal("event stream must exist and be active to call trigger", event_stream=event_stream)
 
 	if not is_valid_event_name(trigger_name):
@@ -1345,25 +1415,21 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 		# processing errors for any kind of external interaction.
 		if not cmd_process(event_stream):
 			CevContext.error("failed to process event queue before executing task")
-			return False
+			return False, None, []
 
 		# Handle special built-in system tasks
 		if event_stream == "system-events/extraction" and trigger_name == "execute-queue":
 			status = execute_extraction_queue()
-			exit_code = 0 if status else 1
-			return exit_code, None, []
+			return status, None, []
 
 		if event_stream == "system-events/process-queue" and trigger_name == "execute-queue":
 			CevContext.error("process queue not yet implemented")
-			#status = execute_process_queue(extra_args)
-			status = false
-			exit_code = 0 if status else 1
-			return exit_code, None, []
+			status = execute_process_queue()
+			return status, None, []
 
 		if event_stream == "system-events/scheduled" and trigger_name == "execute-queue":
 			status = execute_scheduled_queue(extra_args)
-			exit_code = 0 if status else 1
-			return exit_code, None, []
+			return status, None, []
 
 	data_dir = CevContext.data_dir()
 	event_stream_dir = data_dir / event_stream
@@ -1376,15 +1442,19 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 
 	# Pull in a selective set of environment variables from the OS, we'll include some that are
 	# relevant to cev if they're not security sensitive.
-	for var_name in {"CEV_LOG_LEVEL", "HOME", "LC_ALL", "SHELL", "USER"}:
+	for var_name in {"CEV_EXTRA_PATH", "CEV_LOG_LEVEL", "HOME", "LC_ALL", "PATH", "SHELL", "USER"}:
 		var_value = os.environ.get(var_name)
 		if var_value:
 			trig_env[var_name] = var_value
 
-	# The path is an interesting thing. I want to make this customizable, probably using another
-	# externally passed CEV_ variable like CEV_EXTRA_PATH but for now just hard-code a minimal set
-	# that can be customized by the user.
-	trig_env["PATH"] = "/sbin:/bin:/usr/sbin:/usr/bin:$HOME/.local/bin"
+	# We start from a pretty minimal path as a security measure. Additional paths need to be opted into
+	# by the user if they want to call trigger or reference other binaries in their shebang headers
+	path = "/sbin:/bin:/usr/sbin:/usr/bin"
+	extra_path = os.environ.get("CEV_EXTRA_PATH")
+	if extra_path:
+		path = f"{path}:{extra_path}"
+
+	trig_env["PATH"] = path
 
 	env_vars = {
 		"CEV_BIN": str(Path(sys.argv[0]).resolve()),
@@ -1418,8 +1488,7 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 	if kind == "task":
 		state_update = None
 
-	return exit_code, state_update, commands
-
+	return (exit_code == 0), state_update, commands
 
 
 def schedule_extraction(watcher_stream: str, target_stream: str, extractor: str, new_state_name: str, previous_state_name: Optional[str] = None) -> bool:
@@ -1473,7 +1542,7 @@ def is_authorized_command(command: Dict[str, Any], restricted: bool) -> bool:
 	return True
 
 
-def is_stream_active(event_stream: str) -> bool:
+def cmd_is_stream_defined(event_stream: str) -> bool:
 	if not is_valid_stream_name(event_stream):
 		CevContext.error("invalid event stream name")
 		return False
@@ -1484,7 +1553,7 @@ def is_stream_active(event_stream: str) -> bool:
 
 	event_stream_dir = CevContext.data_dir() / event_stream
 	if not event_stream_dir.exists():
-		CevContext.error("event stream does not exist")
+		CevContext.debug("event stream does not exist")
 		return False
 
 	return True
@@ -1542,7 +1611,7 @@ class AddEventArgs:
 	payload: Dict[str, Any]
 
 def cmd_add_event(args: AddEventArgs) -> bool:
-	if not is_stream_active(args.event_stream):
+	if not cmd_is_stream_defined(args.event_stream):
 		CevContext.error("event stream must exist and be active to add an event", event_stream=args.event_stream)
 		return False
 
@@ -1824,7 +1893,7 @@ def cmd_info():
 
 def cmd_is_clean(event_stream: str) -> bool:
 	with CevContext.context(event_stream=event_stream):
-		if not is_stream_active(event_stream):
+		if not cmd_is_stream_defined(event_stream):
 			CevContext.fatal("event stream must exist and be active to check dirty status")
 
 		data_dir = CevContext.data_dir()
@@ -1851,7 +1920,7 @@ def cmd_is_clean(event_stream: str) -> bool:
 
 def cmd_is_newer(event_stream: str, stream_index: int) -> bool:
 	with CevContext.context(event_stream=event_stream, stream_index=stream_index):
-		if not is_stream_active(event_stream):
+		if not cmd_is_stream_defined(event_stream):
 			CevContext.error("event stream must exist and be active to check if an index has been included in the state")
 			return False
 
@@ -1875,7 +1944,7 @@ def cmd_process(event_stream: str) -> bool:
 	with CevContext.context(event_stream=event_stream):
 		CevContext.debug("processing event stream")
 
-		if not is_stream_active(event_stream):
+		if not cmd_is_stream_defined(event_stream):
 			CevContext.error("event stream must be active to process oustanding events")
 			return False
 
@@ -1910,13 +1979,20 @@ def cmd_process(event_stream: str) -> bool:
 
 			CevContext.debug("processing event range", next_index=next_index, current_index=current_index)
 
-			# Note: if processing the stream results in new events to the stream being processed those
-			# will not be handled just queued for future runs. This is by design to ensure event streams
-			# have bounded execution.
+			# Note: if processing the stream results in new events (add-event command) to the stream being
+			# processed those will not be handled (we'll never advance to those indexes in the same run).
+			# This is by design to ensure event streams have bounded execution.
+			#
+			# We still need to be careful about what commands we allow to be processed for now as we don't
+			# quite have the bounded execution guarantees yet. Because we can run other stream's triggers we
+			# might end up in recursive loops especially if the same stream is called even with a different
+			# trigger. When that happens we'll try and process the event before executing the trigger, and
+			# since we haven't completed running the commands yet we don't have a new state or processed
+			# index and we'll end up repeatedly processing the same event.
 			for idx in range(next_index, current_index + 1):
 				events_dir = event_stream_dir / "events"
-				event_files = list(events_dir.glob(f"{idx:08x}-*"))
 
+				event_files = list(events_dir.glob(f"{idx:08x}-*"))
 				if not event_files:
 					CevContext.error("expected stream index but found gap in sequence", stream_index=f"{idx:08x}")
 					return False
@@ -1953,10 +2029,9 @@ def cmd_process(event_stream: str) -> bool:
 							return False
 					else:
 						extra_args = [str(event_path)]
-						exit_code, state_update, commands = run_trigger(event_stream, "handler", event_name, extra_args)
-
-						if exit_code != 0:
-							CevContext.warn("stream handler failed", event_id=idx, exit_code=exit_code)
+						status, state_update, commands = run_trigger(event_stream, "handler", event_name, extra_args)
+						if not status:
+							CevContext.warn("stream handler failed", event_id=idx)
 							return False
 
 					if commands:
@@ -1971,8 +2046,6 @@ def cmd_process(event_stream: str) -> bool:
 							return False
 
 					if state_update:
-						CevContext.trace("state and schema", state=state_update, schema=state_schema)
-
 						if state_schema and not is_valid_against_schema(state_schema, state_update):
 							CevContext.error("produced state did not validate against the schema")
 							return False
@@ -2017,15 +2090,15 @@ def cmd_run(event_stream: str, trigger_name: str, extra_args: Optional[List[str]
 			return False, None
 
 		start_time = time.time()
-		exit_code, state_update, commands = run_trigger(event_stream, "task", trigger_name, extra_args)
+		status, state_update, commands = run_trigger(event_stream, "task", trigger_name, extra_args)
 		duration_ms = int((time.time() - start_time) * 1000)
 
 		# Only perform additional processing if the command was successful
-		if exit_code != 0:
-			CevContext.error("trigger exited with error", duration_ms=duration_ms, exit_code=exit_code)
+		if not status:
+			CevContext.error("trigger exited with error", duration_ms=duration_ms)
 			return False, None
 
-		CevContext.debug("trigger completed successfully", duration_ms=duration_ms, exit_code=exit_code)
+		CevContext.debug("trigger completed successfully", duration_ms=duration_ms)
 
 		# Commands are how tasks can modify state in this stream and others, we want to have high
 		# assurity that they're all valid before we attempt to apply them to our state.
@@ -2050,11 +2123,11 @@ class UnwatchArgs:
 	extractor: str
 
 def cmd_unwatch(args: UnwatchArgs) -> bool:
-	if not is_stream_active(args.watcher):
+	if not cmd_is_stream_defined(args.watcher):
 		CevContext.error("watching event stream must exist and be active")
 		return False
 
-	if not is_stream_active(args.target):
+	if not cmd_is_stream_defined(args.target):
 		CevContext.error("target event stream must exist and be active")
 		return False
 
@@ -2081,11 +2154,11 @@ class WatchArgs:
 	extractor: str
 
 def cmd_watch(args: WatchArgs) -> bool:
-	if not is_stream_active(args.watcher):
+	if not cmd_is_stream_defined(args.watcher):
 		CevContext.error("watching event stream must exist and be active")
 		return False
 
-	if not is_stream_active(args.target):
+	if not cmd_is_stream_defined(args.target):
 		CevContext.error("target event stream must exist and be active")
 		return False
 
@@ -2120,7 +2193,7 @@ def main():
 	# Global arguments
 	parser.add_argument("--cfg-dir", help="Override default config directory")
 	parser.add_argument("-d", "--data-dir", help="Override default data directory")
-	parser.add_argument("-l", "--log-level", default="info", choices=["trace", "debug", "info", "warn", "error", "fatal"], help="Set minimum log level (default: info)")
+	parser.add_argument("-l", "--log-level", choices=["trace", "debug", "info", "warn", "error", "fatal"], help="Set minimum log level (default: info)")
 
 	subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -2162,6 +2235,9 @@ def main():
 	is_newer_parser = subparsers.add_parser("is-newer", help="Check if a stream's latest state snapshot is newer than provided index")
 	is_newer_parser.add_argument("-s", "--stream", required=True, help="Event stream name")
 	is_newer_parser.add_argument("-i", "--index", required=True, help="Stream index to compare against (in base16)")
+
+	is_stream_defined = subparsers.add_parser("is-stream-defined", help="Query whether or not the provided stream currently exists")
+	is_stream_defined.add_argument("-s", "--stream", required=True, help="Event stream name")
 
 	subparsers.add_parser("info", help="Display system summary information")
 
@@ -2208,7 +2284,11 @@ def main():
 	cfg_dir = get_config_directory(args.cfg_dir)
 	data_dir = get_data_directory(args.data_dir)
 
-	CevContext.init(cfg_dir, data_dir, args.log_level)
+	log_level = args.log_level
+	if log_level is not None:
+		log_level = LogLevel.from_string(log_level)
+
+	CevContext.init(cfg_dir, data_dir, log_level)
 	CevContext.debug("starting new session", command=args.command, version=VERSION)
 
 	if args.command == "add-event":
@@ -2217,15 +2297,14 @@ def main():
 			CevContext.fatal("provided file doesn't exist", event_path=event_path)
 
 		payload = event_path.read_text().strip()
-		cmd_add_event(AddEventArgs(
-			event_stream=args.stream,
-			event_name=args.name,
-			payload=payload,
-		))
+		if not cmd_add_event(AddEventArgs(event_stream=args.stream, event_name=args.name, payload=payload)):
+			CevContext.fatal("failed to add event")
 
-		# Process event immediately if requested by the caller
+		# Process event immediately if requested by the caller, not available to normal events and may be
+		# worth removing...
 		if args.process:
-			cmd_process(args.stream)
+			if not cmd_process(args.stream):
+				CevContext.fatal("failed to process event after adding to the stream")
 	elif args.command == "alias-trigger":
 		cmd_alias_trigger(AliasTriggerArgs(
 			source_stream=args.source_stream,
@@ -2236,7 +2315,8 @@ def main():
 			dest_kind=args.dest_kind
 		))
 	elif args.command == "create-event":
-		cmd_create_event(args.stream, args.name, args.file)
+		if not cmd_create_event(args.stream, args.name, args.file):
+			CevContext.fatal("failed to create event")
 	elif args.command == "define-event":
 		schema_path = Path(args.file).expanduser().resolve()
 
@@ -2250,13 +2330,12 @@ def main():
 			schema=schema,
 		))
 	elif args.command == "define-trigger":
-		trigger_path = Path(args.trigger).expanduser().resolve()
-
 		cmd_define_trigger(DefineTriggerArgs(
 			event_stream=args.stream,
 			trigger_name=args.name,
 			trigger_kind=args.kind,
-			trigger_path=trigger_path,
+
+			trigger_path=Path(args.trigger).expanduser().resolve(),
 			copy_trigger=args.copy,
 		))
 	elif args.command == "info":
@@ -2269,18 +2348,25 @@ def main():
 	elif args.command == "is-newer":
 		try:
 			stream_index = int(args.index, 16)
-		except ValueError:
+		except ValueError as err:
 			# This one however is a user error and may not be the correct response but its the best we can do
-			CevContext.fatal("invalid stream index format (should be base16)")
+			CevContext.fatal("invalid stream index format (should be base16)", error=str(err))
 
 		if cmd_is_newer(args.stream, stream_index):
 			sys.exit(0)
 		else:
 			sys.exit(1)
+	elif args.command == "is-stream-defined":
+		if cmd_is_stream_defined(args.stream):
+			sys.exit(0)
+		else:
+			sys.exit(1)
 	elif args.command == "process":
-		cmd_process(args.stream)
+		if not cmd_process(args.stream):
+			CevContext.fatal("processing command stream failed")
 	elif args.command == "run":
-		cmd_run(args.stream, args.name, args.extra_args)
+		if not cmd_run(args.stream, args.name, args.extra_args):
+			CevContext.fatal("failed to execute trigger")
 	elif args.command == "secrets":
 		secrets = CevContext.secrets()
 
@@ -2289,8 +2375,10 @@ def main():
 			if value is None:
 				CevContext.fatal("value from stdin not yet implemented")
 
-			if secrets.set_secret(args.name, value):
-				CevContext.info("secret set successfully", name=args.name)
+			if not secrets.set_secret(args.name, value):
+				CevContext.fatal("failed to set secret", name=args.name)
+
+			CevContext.info("secret set successfully", name=args.name)
 
 		elif args.secrets_command == "grant":
 			if secrets.grant_access(args.stream, args.kind, args.trigger, args.name):
@@ -2309,17 +2397,10 @@ def main():
 				CevContext.info("secret", name=name, triggers=triggers)
 
 	elif args.command == "watch":
-		cmd_watch(WatchArgs(
-			watcher=args.watcher,
-			target=args.target,
-			extractor=args.extractor,
-		))
+		cmd_watch(WatchArgs(watcher=args.watcher, target=args.target, extractor=args.extractor))
+
 	elif args.command == "unwatch":
-		cmd_unwatch(UnwatchArgs(
-			watcher_stream=args.watcher,
-			target_stream=args.target,
-			extractor=args.extractor,
-		))
+		cmd_unwatch(UnwatchArgs(watcher_stream=args.watcher, target_stream=args.target, extractor=args.extractor))
 
 if __name__ != "__main__":
 	print("utility is not available as a library", file=sys.stderr)
@@ -2473,6 +2554,16 @@ __EMBEDDED_SCHEMAS__
 		"priority": { "type": "integer", "minimum": 0, "maximum": 31 }
 	},
 	"required": ["event_stream"]
+}
+
+# [system-events-process-queue-complete-task-schema]
+{
+	"type": "object",
+	"properties": {
+		"event_stream": { "type": "string" },
+		"ctx_id": { "type": "string" }
+	},
+	"required": ["ctx_id", "event_stream"]
 }
 
 # [system-events-process-queue-state-schema]
