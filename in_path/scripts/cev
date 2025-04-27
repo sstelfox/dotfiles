@@ -7,7 +7,6 @@
 # dependencies = ["jsonschema>=4.23", "cryptography>=41.0.0"]
 # ///
 
-# todo: separate stream handler definitions and general config from event/state/status data?
 # todo: implement time and reference based archiving
 # todo: content addressable store (store the handlers there as well? digests could be useful...)
 # todo: remove non-JSON file formats...
@@ -1348,7 +1347,6 @@ def process_process_queue_event_handler(state: Dict[str, Any], event_name: str, 
 		CevContext.debug("queueing stream for processing", event_stream=event_stream, priority=priority)
 
 		pending = state.get("pending", dict())
-
 		stream_requests = pending.get(event_stream, dict(count=0, priority=0))
 		if not stream_requests.get("requested"):
 			stream_requests["requested"] = datetime.now().isoformat()
@@ -1359,12 +1357,13 @@ def process_process_queue_event_handler(state: Dict[str, Any], event_name: str, 
 		pending[event_stream] = stream_requests
 		state["pending"] = pending
 
-		CevContext.info("pending pending", state=state)
-
 		return True, state
 	elif event_name == "complete-task":
-		CevContext.error("haven't implemented process queue completion messages yet")
-		return False, None
+		pending = state.get("pending", dict())
+		pending.pop(event["event_stream"])
+		state["pending"] = pending
+
+		return True, state
 	else:
 		CevContext.error("unknown trigger for queue processing stream")
 		return False, None
@@ -1423,7 +1422,6 @@ def run_trigger(event_stream: str, kind: str, trigger_name: str, extra_args: Opt
 			return status, None, []
 
 		if event_stream == "system-events/process-queue" and trigger_name == "execute-queue":
-			CevContext.error("process queue not yet implemented")
 			status = execute_process_queue()
 			return status, None, []
 
