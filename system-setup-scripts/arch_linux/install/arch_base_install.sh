@@ -42,9 +42,9 @@ reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https --late
 
 # Core install always present
 # terminus-font is only needed for HiDPI displays
-pacstrap -K ${ROOT_MNT} base amd-ucode efibootmgr git libfido2 linux-firmware \
-  linux-hardened lvm2 man-db man-pages neovim networkmanager nftables \
-  openssh sbctl sudo terminus-font tmux which wireguard-tools xfsprogs zram-generator
+pacstrap -K ${ROOT_MNT} base amd-ucode efibootmgr git libfido2 linux-firmware linux-hardened lvm2 \
+  man-db man-pages neovim networkmanager nftables openssh sbctl sudo terminus-font tmux tpm2-tools \
+  which wireguard-tools xfsprogs zram-generator
 
 genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
 
@@ -178,7 +178,7 @@ fi
 arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
 cat <<EOF >${ROOT_MNT}/etc/mkinitcpio.conf
-MODULES=()
+MODULES=(tpm_tis tpm_crb)
 BINARIES=()
 FILES=()
 
