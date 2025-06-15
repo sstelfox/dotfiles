@@ -39,16 +39,17 @@ USER_PASSWORD=""
 reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https --latest 10 --sort rate --age 12 --fastest 10
 
 # Core install always present
-pacstrap -K ${ROOT_MNT} amd-ucode base efibootmgr git libfido2 linux-firmware \
-  linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
-  openssh sbctl sudo tmux wireguard-tools xfsprogs zram-generator
+# terminus-font is only needed for HiDPI displays
+pacstrap -K ${ROOT_MNT} base amd-ucode efibootmgr git libfido2 linux-firmware \
+  linux-hardened lvm2 man-db man-pages neovim networkmanager nftables \
+  openssh sbctl sudo terminus-font tmux wireguard-tools xfsprogs zram-generator
 
 genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
 
 CRYPT_PART="/dev/nvme0n1p2"
 CRYPT_UUID=$(blkid -s UUID -o value ${CRYPT_PART})
 cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
-system-root   UUID=${CRYPT_UUID}  none  discard,no-read-workqueue,no-write-workqueue
+system-crypt   UUID=${CRYPT_UUID}  none  discard,no-read-workqueue,no-write-workqueue
 EOF
 
 arch-chroot ${ROOT_MNT} ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
@@ -64,12 +65,17 @@ cat <<EOF >${ROOT_MNT}/etc/hosts
 ::1 ${FULL_HOSTNAME} ${HOSTNAME}       localhost6 localhost
 EOF
 
-echo 'KEYMAP=us' >${ROOT_MNT}/etc/vconsole.conf
+cat <<EOF >${ROOT_MNT}/etc/vconsole.conf
+KEYMAP=us
+# For HiDPI/4K displays
+FONT=ter-v32n
+EOF
 
-arch-chroot ${ROOT_MNT} groupadd -r sudoers || true
-arch-chroot ${ROOT_MNT} groupadd -r sshers || true
-arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root || true
-arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME} || true
+arch-chroot ${ROOT_MNT} groupadd -r sudoers
+arch-chroot ${ROOT_MNT} groupadd -r sshers
+arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root
+arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers \
+  --password ${HASHED_ROOT_PASSWORD} --shell /bin/bash ${PRIMARY_USERNAME}
 
 cat <<EOF >${ROOT_MNT}/etc/resolv.conf
 domain ${DOMAIN}
@@ -118,7 +124,33 @@ root       ALL=(ALL)   ALL
 %sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
 EOF
 
-echo '[zram0]' >${ROOT_MNT}/etc/systemd/zram-generator.conf
+cat <<EOF >${ROOT_MNT}/etc/systemd/zram-generator.conf
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+EOF
+
+# Network tuning
+cat <<EOF >${ROOT_MNT}/etc/sysctl.d/99-network.conf
+net.core.default_qdisc = cake
+net.ipv4.tcp_congestion = bbr
+net.ipv4.tcp_fastopen = 3
+EOF
+
+# Ensure network manager keeps its hands off the DNS config
+cat <<EOF >${ROOT_MNT}/etc/NetworkManager/conf.d/dns.conf
+[main]
+dns=none
+systemd-resolved=false
+EOF
+
+# Configure the filesytem trimming
+mkdir -p ${ROOT_MNT}/etc/systemd/system/fstrim.timer.d
+cat <<EOF >${ROOT_MNT}/etc/systemd/system/fstrim.timer.d/override.conf
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=0
+EOF
 
 arch-chroot ${ROOT_MNT} systemctl disable systemd-resolved.service
 arch-chroot ${ROOT_MNT} systemctl mask systemd-resolved.service
@@ -148,7 +180,7 @@ FILES=()
 # * keyboard is intentionally placed early to always include all keyboard drivers early on before
 #   autodetect trims them down.
 # * some of my hosts may need lvm2 which should be loaded between sd-encrypt and filesystems
-HOOKS=(base systemd keyboard autodetect microcode modconf sd-vconsole block sd-encrypt filesystems fsck)
+HOOKS=(base systemd keyboard autodetect microcode modconf sd-vconsole block sd-encrypt lvm2 filesystems fsck)
 EOF
 
 mkdir -p ${ROOT_MNT}/boot/loader/entries
@@ -157,6 +189,7 @@ cat <<EOF >${ROOT_MNT}/boot/loader/loader.conf
 default linux-hardened
 editor no
 timeout 3
+console-mode max
 EOF
 
 # The /etc/kernel/cmdline file is a red herring, these files need to contain the
@@ -175,7 +208,7 @@ linux /vmlinuz-linux-hardened
 initrd /amd-ucode.img
 initrd /initramfs-linux-hardened.img
 
-options rd.luks.options=discard root=/dev/system/root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET}
+options rd.luks.options=discard root=/dev/mapper/system-root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET}
 EOF
 
 cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened-fallback.conf
