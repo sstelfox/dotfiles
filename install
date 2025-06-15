@@ -4,6 +4,8 @@ __DOTFILE_ROOT="${__DOTFILE_ROOT:-${HOME}/.dotfiles}"
 
 source "${__DOTFILE_ROOT}/lib/posix.sh.inc"
 
+set -euo pipefail
+
 # Detect which shell the user is currently running and only install the relevant configurations for
 # it. Just keeping things tidy and I can always run this script again in the VERY RARE chance I
 # switch shells...
@@ -11,10 +13,12 @@ current_shell=$(detect_shell)
 
 case "${current_shell}" in
 bash)
+  rm -f "${HOME}/.bashrc" "${HOME}/.bash_profile"
   safe_symlink ${__DOTFILE_ROOT}/configs/shell/bashrc ${HOME}/.bashrc
   safe_symlink ${__DOTFILE_ROOT}/configs/shell/bash_profile ${HOME}/.bash_profile
   ;;
 zsh)
+  rm -f "${HOME}/.zshrc"
   safe_symlink ${__DOTFILE_ROOT}/configs/shell/zshrc ${HOME}/.zshrc
   ;;
 esac
@@ -27,7 +31,9 @@ safe_symlink ${__DOTFILE_ROOT}/configs/tmux/default.conf ${HOME}/.tmux.conf
 # this on my username to make it less likely to bite others.
 if [ "$(whoami)" = "sstelfox" ]; then
   rebuild_ssh_config
-  autoselect_default_ssh_key
+  # bug(sstelfox): This doesn't work during initial setup as there isn't a system SSH key, I should
+  #   create one as part of this process
+  #autoselect_default_ssh_key
   safe_symlink ${__DOTFILE_ROOT}/configs/ssh/config ${HOME}/.ssh/config
 fi
 

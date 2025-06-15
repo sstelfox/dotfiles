@@ -11,7 +11,7 @@ otp_qr() {
     return 1
   fi
 
-  if ! which qrencode 2>&1 >/dev/null; then
+  if ! posix_which qrencode >/dev/null; then
     echo "otp_qr needs qrencode binary to be present to function"
     return 2
   fi

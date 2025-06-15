@@ -103,7 +103,7 @@ PermitRootLogin prohibit-password
 
 AllowGroups sshers
 AuthorizedKeysFile .ssh/authorized_keys
-AuthenticationMethods publickey,keyboard-interactive,password
+AuthenticationMethods publickey keyboard-interactive
 
 AllowTcpForwarding no
 
