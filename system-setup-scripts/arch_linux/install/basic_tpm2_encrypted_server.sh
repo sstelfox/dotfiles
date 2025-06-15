@@ -295,9 +295,10 @@ arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.
 # be set via a kernel cmdline option its here for consistency and for other
 # tools knowledge, the workqueue options provide better performance on SSDs for
 # encrypted disks.
-CRYPTSETUP_ROOT_UUID="$(cryptsetup luksUUID ${DISK}2)"
+CRYPT_PART="${DISK}2"
+CRYPT_UUID="$(blkid -s UUID -o value ${CRYPT_PART})"
 cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
-system-root   ${DISK}2  none  discard,fido2-device=auto,no-read-workqueue,no-write-workqueue
+system-root   UUID=${CRYPT_UUID}  none  discard,fido2-device=auto,no-read-workqueue,no-write-workqueue
 EOF
 
 # With TPM unlocking as well:

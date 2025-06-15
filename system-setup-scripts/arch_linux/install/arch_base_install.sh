@@ -39,15 +39,16 @@ USER_PASSWORD=""
 reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https --latest 10 --sort rate --age 12 --fastest 10
 
 # Core install always present
-pacstrap -K ${ROOT_MNT} base efibootmgr git libfido2 linux-firmware \
+pacstrap -K ${ROOT_MNT} amd-ucode base efibootmgr git libfido2 linux-firmware \
   linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
   openssh sbctl sudo tmux wireguard-tools xfsprogs zram-generator
 
 genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
 
-DISK="/dev/nvme0n1p2"
+CRYPT_PART="/dev/nvme0n1p2"
+CRYPT_UUID=$(blkid -s UUID -o value ${CRYPT_PART})
 cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
-system-root   ${DISK}  none  discard,no-read-workqueue,no-write-workqueue
+system-root   UUID=${CRYPT_UUID}  none  discard,no-read-workqueue,no-write-workqueue
 EOF
 
 arch-chroot ${ROOT_MNT} ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
@@ -129,7 +130,7 @@ arch-chroot ${ROOT_MNT} systemctl enable systemd-zram-setup@zram0.service
 
 # Swap based suspend/resume (resume hook & kernel opts)
 RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
-RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
+RESUME_OFFSET="$(filefrag -v ${ROOT_MNT}/swapfile | awk '$1=="0:" {print substr($4, 1, length($4)-2)}')"
 
 arch-chroot ${ROOT_MNT} sbctl create-keys
 
@@ -171,7 +172,7 @@ cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened.conf
 title Hardened Linux
 
 linux /vmlinuz-linux-hardened
-initrd /intel-ucode.img
+initrd /amd-ucode.img
 initrd /initramfs-linux-hardened.img
 
 options rd.luks.options=discard root=/dev/system/root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET}

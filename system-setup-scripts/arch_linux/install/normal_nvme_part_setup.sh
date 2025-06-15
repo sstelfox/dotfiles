@@ -49,27 +49,22 @@ unset DISK_PASSPHRASE
 pvcreate -ff -y --zero y /dev/mapper/system-crypt >/dev/null
 vgcreate system /dev/mapper/system-crypt >/dev/null
 
-#lvcreate -L 50G --wipesignatures y --yes -n root system >/dev/null
-#lvcreate -l 100%FREE --wipesignatures y --yes -n home system >/dev/null
 lvcreate -l 100%FREE --wipesignatures y --yes -n root system >/dev/null
 
 # Just in case refresh our logical lists
 lvscan >/dev/null
-
 sleep 1
 
 mkfs.xfs -q -f -L root /dev/mapper/system-root
-#mkfs.xfs -q -f -L home /dev/mapper/system-home
 
 mkdir -p /mnt/root
 mount /dev/mapper/system-root /mnt/root
 
-mkdir -p /mnt/root/{efi,home,root}
-chmod 0700 /mnt/root/{efi,root}
+mkdir -p /mnt/root/{boot,home,root}
+chmod 0700 /mnt/root/{boot,root}
 chmod 0711 /mnt/root/home
 
-mount ${DISK1}${PART1_ID} /mnt/root/efi
-#mount /dev/mapper/system-home /mnt/root/home
+mount ${DISK1}${PART1_ID} /mnt/root/boot
 
 # Create a swapfile instead of a dedicate partition
 dd if=/dev/zero of=/mnt/root/swapfile bs=${SWAP_SIZE}M count=1
