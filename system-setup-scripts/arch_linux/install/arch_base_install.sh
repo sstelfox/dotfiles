@@ -40,10 +40,15 @@ reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https --late
 
 # Core install always present
 pacstrap -K ${ROOT_MNT} base efibootmgr git libfido2 linux-firmware \
-	linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
-	openssh sbctl sudo tmux wireguard-tools xfsprogs zram-generator
+  linux-hardened lvm2 man-db man-pages mdadm neovim networkmanager nftables \
+  openssh sbctl sudo tmux wireguard-tools xfsprogs zram-generator
 
-genfstab -pU ${ROOT_MNT} >> ${ROOT_MNT}/etc/fstab
+genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
+
+DISK="/dev/nvme0n1p2"
+cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
+system-root   ${DISK}  none  discard,no-read-workqueue,no-write-workqueue
+EOF
 
 arch-chroot ${ROOT_MNT} ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 
@@ -53,18 +58,17 @@ echo 'LANG=en_US.UTF-8' >${ROOT_MNT}/etc/locale.conf
 
 echo "${FULL_HOSTNAME}" >${ROOT_MNT}/etc/hostname
 
-cat <<EOF>${ROOT_MNT}/etc/hosts
+cat <<EOF >${ROOT_MNT}/etc/hosts
 127.0.0.1 ${FULL_HOSTNAME} ${HOSTNAME} localhost4 localhost
 ::1 ${FULL_HOSTNAME} ${HOSTNAME}       localhost6 localhost
 EOF
 
 echo 'KEYMAP=us' >${ROOT_MNT}/etc/vconsole.conf
 
-arch-chroot ${ROOT_MNT} groupadd -r sudoers
-arch-chroot ${ROOT_MNT} groupadd -r sshers
-arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root
-# Note: I don't know if audio, video, or storage is actually necessary
-arch-chroot ${ROOT_MNT} useradd --create-home --groups audio,video,storage,sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME}
+arch-chroot ${ROOT_MNT} groupadd -r sudoers || true
+arch-chroot ${ROOT_MNT} groupadd -r sshers || true
+arch-chroot ${ROOT_MNT} usermod --append --groups sudoers --password ${HASHED_ROOT_PASSWORD} root || true
+arch-chroot ${ROOT_MNT} useradd --create-home --groups sudoers,sshers --password ${HASHED_ROOT_PASSWORD} ${PRIMARY_USERNAME} || true
 
 cat <<EOF >${ROOT_MNT}/etc/resolv.conf
 domain ${DOMAIN}
@@ -78,7 +82,7 @@ nameserver 2606:4700:4700::1001
 nameserver 2606:4700:4700::1111
 EOF
 
-cat <<EOF>${ROOT_MNT}/etc/ssh/sshd_config
+cat <<EOF >${ROOT_MNT}/etc/ssh/sshd_config
 AddressFamily any
 
 Port 22
@@ -113,7 +117,7 @@ root       ALL=(ALL)   ALL
 %sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
 EOF
 
-echo '[zram0]' > ${ROOT_MNT}/etc/systemd/zram-generator.conf
+echo '[zram0]' >${ROOT_MNT}/etc/systemd/zram-generator.conf
 
 arch-chroot ${ROOT_MNT} systemctl disable systemd-resolved.service
 arch-chroot ${ROOT_MNT} systemctl mask systemd-resolved.service
@@ -127,59 +131,66 @@ arch-chroot ${ROOT_MNT} systemctl enable systemd-zram-setup@zram0.service
 RESUME_UUID=$(findmnt -no UUID -T ${ROOT_MNT}/swapfile)
 RESUME_OFFSET=$(filefrag -v ${ROOT_MNT}/swapfile)
 
-# TODO: signed kernel
 arch-chroot ${ROOT_MNT} sbctl create-keys
 
-cat<<EOF>${ROOT_MNT}/etc/mkinitcpio.conf
+if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine &>/dev/null; then
+  echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
+fi
+
+arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+
+cat <<EOF >${ROOT_MNT}/etc/mkinitcpio.conf
 MODULES=()
 BINARIES=()
 FILES=()
 
-##   This setup assembles a mdadm array with an encrypted root file system.
-##   Note: See 'mkinitcpio -H mdadm_udev' for more information on RAID devices.
-#    HOOKS=(base udev modconf keyboard keymap consolefont block mdadm_udev encrypt filesystems fsck)
-
-#HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt lvm2 filesystems fsck resume)
-HOOKS=(base udev autodetect microcode modconf kms keyboard keymap block encrypt lvm2 filesystems fsck resume)
-
-MODULES_DECOMPRESS="yes"
+# * keyboard is intentionally placed early to always include all keyboard drivers early on before
+#   autodetect trims them down.
+# * some of my hosts may need lvm2 which should be loaded between sd-encrypt and filesystems
+HOOKS=(base systemd keyboard autodetect microcode modconf sd-vconsole block sd-encrypt filesystems fsck)
 EOF
 
-#cat <<EOF>${ROOT_MNT}/etc/mkinitcpio.conf.d/linux-hardened.preset
-## mkinitcpio preset file for the 'linux-hardened' package
-#
-#ALL_config="/etc/mkinitcpio.conf"
-#ALL_kver="/boot/vmlinuz-linux-hardened"
-#
-#PRESETS=('default' 'fallback')
-#
-##default_config="/etc/mkinitcpio.conf"
-##default_image="/boot/initramfs-linux-hardened.img"
-#default_uki="/efi/EFI/Linux/arch-linux-hardened.efi"
-##default_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp"
-#
-##fallback_config="/etc/mkinitcpio.conf"
-#fallback_image="/boot/initramfs-linux-hardened-fallback.img"
-##fallback_uki="/efi/EFI/Linux/arch-linux-hardened-fallback.efi"
-#fallback_options="-S autodetect"
-#EOF
+mkdir -p ${ROOT_MNT}/boot/loader/entries
 
-LUKS_UUID="$(lsblk --json --bytes --output UUID,PATH | jq -r .blockdevices[] | select(.path == "/dev/sda2").uuid)"
-#LUKS_UUID="$(cryptsetup luksUUID /dev/nvme3n1p2)"
-LUKS_NAME="${LUKS_UUID}:system-crypt"
+cat <<EOF >${ROOT_MNT}/boot/loader/loader.conf
+default linux-hardened
+editor no
+timeout 3
+EOF
 
-cat<<EOF>${ROOT_MNT}/efi/loader/loader.conf
-#timeout 3
-#console-mode keep
+# The /etc/kernel/cmdline file is a red herring, these files need to contain the
+# kernel options.
+#
+# They also need to be manually created for any entries to show up in the
+# bootctl managed menu.
 
-options cryptdevice=UUID=${LUKS_NAME} root=/dev/system/root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET} zswap.enabled=0
+# The discard needs to be present here if the drive is unlocked by systemd
+# during boot (the one in crypttab is kept for consistency and other tools, but
+# does not work on boot).
+cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened.conf
+title Hardened Linux
+
+linux /vmlinuz-linux-hardened
+initrd /intel-ucode.img
+initrd /initramfs-linux-hardened.img
+
+options rd.luks.options=discard root=/dev/system/root resume=UUID=${RESUME_UUID} resume_offset=${RESUME_OFFSET}
+EOF
+
+cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened-fallback.conf
+title Hardened Linux (fallback)
+
+linux /vmlinuz-linux-hardened
+initrd /initramfs-linux-hardened.img
+
+options root=/dev/mapper/system-root rw rootfstype=xfs zswap.enabled=0
 EOF
 
 arch-chroot ${ROOT_MNT} mkinitcpio -P
-
-# requires extra systemd modules in mkinitcpio
-#systemd-cryptenroll --fido2-device=list
-#The above has a device name we'll need
-#systemd-cryptenroll --fido2-device=/dev/somepath /dev/nvme0n1p2
-
 arch-chroot ${ROOT_MNT} bootctl --no-variables install
+
+# Handles updating the bootloader when necessary, with secure boot enabled we
+# need to make sure our kernels are signed before we enable it. With sbctl as
+# long as we've enrolled files to be signed in its database, the signing happens
+# automatically.
+arch-chroot ${ROOT_MNT} systemctl enable systemd-boot-update.service

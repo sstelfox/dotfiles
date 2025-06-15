@@ -6,11 +6,11 @@ set -o pipefail
 set -o nounset
 
 function error_handler() {
-	echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
+  echo "Error occurred in $(basename ${BASH_SOURCE[0]}) executing line ${1} with status code ${2}"
 }
 
 if [ "${DEBUG:-}" = "true" ]; then
-	set -o xtrace
+  set -o xtrace
 fi
 
 ### CONFIG
@@ -30,20 +30,20 @@ SWAP_SIZE="1024" # 1GB Swap
 ### SANITY CHECK
 
 if [ ${EUID} != 0 ]; then
-	echo "This installation script must be as root from an Arch install medium"
-	exit 1
+  echo "This installation script must be as root from an Arch install medium"
+  exit 1
 fi
 
 SYSTEM_HOSTNAME="$(cat /etc/hostname)"
 if [ "${SYSTEM_HOSTNAME}" != "archiso" ]; then
-	echo "This installation script must be run from an Arch install medium"
-	exit 2
+  echo "This installation script must be run from an Arch install medium"
+  exit 2
 fi
 
 if [ -n "${SSID}" -a -n "${SSID_PASSWORD}" ]; then
-	iwctl --passphrase "${SSID_PASSWORD}" station wlan0 connect "${SSID}"
+  iwctl --passphrase "${SSID_PASSWORD}" station wlan0 connect "${SSID}"
 else
-	echo "No wifi configured, assuming ethernet connection..."
+  echo "No wifi configured, assuming ethernet connection..."
 fi
 
 ### SHORTCUT ALIASES & DERIVED CONFIGS
@@ -52,15 +52,15 @@ PARTED_BASE_CMD="/usr/sbin/parted --script --align optimal --machine --"
 ROOT_MNT="/mnt/root"
 
 if [ -n "${HOSTNAME}" ]; then
-	if [ -r /root/gen-hostname ]; then
-		HOSTNAME="$(cat /root/gen-hostname)"
-	elif [ -x "./name_generator.py" ]; then
-		HOSTNAME="$(./name_generator.py)"
-		echo "${HOSTNAME}" >/root/gen-hostname
-	else
-		echo 'Hostname needs to be provided'
-		exit 127
-	fi
+  if [ -r /root/gen-hostname ]; then
+    HOSTNAME="$(cat /root/gen-hostname)"
+  elif [ -x "./name_generator.py" ]; then
+    HOSTNAME="$(./name_generator.py)"
+    echo "${HOSTNAME}" >/root/gen-hostname
+  else
+    echo 'Hostname needs to be provided'
+    exit 127
+  fi
 fi
 
 FULL_HOSTNAME="${HOSTNAME}.${DOMAIN}"
@@ -71,31 +71,31 @@ HASHED_USER_PASSWORD=
 HASHED_ROOT_PASSWORD=
 
 if [ -r /root/user-pw-hash -a -r /root/root-pw-hash ]; then
-	HASHED_USER_PASSWORD="$(cat /root/user-pw-hash)"
-	HASHED_ROOT_PASSWORD="$(cat /root/root-pw-hash)"
+  HASHED_USER_PASSWORD="$(cat /root/user-pw-hash)"
+  HASHED_ROOT_PASSWORD="$(cat /root/root-pw-hash)"
 else
-	# We'll use this both for the installer's root account as well as the
-	# administrative and root user of the installed system.
-	read -e -p "User/Root account password: " -s -r USER_PASSWORD
+  # We'll use this both for the installer's root account as well as the
+  # administrative and root user of the installed system.
+  read -e -p "User/Root account password: " -s -r USER_PASSWORD
 
-	# Generate unique hashes for both accounts, but use the same initial password
-	# until it can be changed
-	HASHED_USER_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
-	HASHED_ROOT_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
-	unset USER_PASSWORD
+  # Generate unique hashes for both accounts, but use the same initial password
+  # until it can be changed
+  HASHED_USER_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
+  HASHED_ROOT_PASSWORD=$(echo $USER_PASSWORD | openssl passwd -6 -stdin)
+  unset USER_PASSWORD
 
-	echo "${HASHED_USER_PASSWORD}" >/root/user-pw-hash
-	echo "${HASHED_ROOT_PASSWORD}" >/root/root-pw-hash
+  echo "${HASHED_USER_PASSWORD}" >/root/user-pw-hash
+  echo "${HASHED_ROOT_PASSWORD}" >/root/root-pw-hash
 fi
 
 DISK_PASSPHRASE=
 if [ -r /root/disk-pw ]; then
-	DISK_PASSPHRASE="$(cat /root/disk-pw)"
+  DISK_PASSPHRASE="$(cat /root/disk-pw)"
 else
-	read -e -p "Encryption Passphrase: " -s -r DISK_PASSPHRASE
-	echo
+  read -e -p "Encryption Passphrase: " -s -r DISK_PASSPHRASE
+  echo
 
-	echo "${DISK_PASSPHRASE}" >/root/disk-pw
+  echo "${DISK_PASSPHRASE}" >/root/disk-pw
 fi
 
 usermod --password ${HASHED_ROOT_PASSWORD} root
@@ -116,7 +116,7 @@ timedatectl
 # Find some fast mirrors we can use for the install (will also become the
 # default mirrors)
 reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https \
-	--latest 10 --sort rate --age 12 --fastest 10
+  --latest 10 --sort rate --age 12 --fastest 10
 
 ### DISK PARTITIONING
 
@@ -135,7 +135,7 @@ dd if=/dev/zero bs=1M count=16 of=${DISK}2 >/dev/null
 mkfs.vfat -F 32 -n EFI ${DISK}1 >/dev/null
 
 echo ${DISK_PASSPHRASE} | cryptsetup --batch-mode --verbose --iter-time 2500 \
-	--use-urandom --force-password luksFormat ${DISK}2
+  --use-urandom --force-password luksFormat ${DISK}2
 sleep 2
 
 echo ${DISK_PASSPHRASE} | cryptsetup luksOpen --allow-discards ${DISK}2 system-root
@@ -166,9 +166,9 @@ swapon ${ROOT_MNT}/swapfile
 ### BASE INSTALLATION
 
 pacstrap -K ${ROOT_MNT} base dbus-broker-units efibootmgr libfido2 \
-	linux-firmware linux-hardened man-db man-pages mkinitcpio networkmanager \
-	nftables openssh sbctl sudo tmux vim wireguard-tools xfsprogs \
-	zram-generator
+  linux-firmware linux-hardened man-db man-pages mkinitcpio networkmanager \
+  nftables openssh sbctl sudo tmux vim wireguard-tools xfsprogs \
+  zram-generator
 
 # Other packages that I may want to include in my base: git lvm mdadm neovim tpm2-tools
 
@@ -178,7 +178,7 @@ arch-chroot ${ROOT_MNT} hwclock --systohc
 genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
 
 if grep -qi intel /proc/cpuinfo 2>/dev/null; then
-	arch-chroot ${ROOT_MNT} pacman -Sy --needed --noconfirm intel-ucode
+  arch-chroot ${ROOT_MNT} pacman -Sy --needed --noconfirm intel-ucode
 fi
 
 ### LOCALE & KEYMAP
@@ -283,7 +283,7 @@ arch-chroot ${ROOT_MNT} systemctl enable systemd-zram-setup@zram0.service
 
 arch-chroot ${ROOT_MNT} sbctl create-keys
 if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine &>/dev/null; then
-	echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
+  echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
 fi
 
 arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
@@ -342,7 +342,7 @@ title Hardened Linux
 linux /vmlinuz-linux-hardened
 initrd /intel-ucode.img
 initrd /initramfs-linux-hardened.img
-options rd.luks.options=discard root=/dev/mapper/system-root zswap.enabled=0 rw rootfstype=xfs
+options rd.luks.options=discard root=/dev/mapper/system-root rw rootfstype=xfs
 EOF
 
 # resume options were for the swapfile and I need to update them for
@@ -352,7 +352,7 @@ cat <<EOF >${ROOT_MNT}/boot/loader/entries/linux-hardened-fallback.conf
 title Hardened Linux (fallback)
 linux /vmlinuz-linux-hardened
 initrd /initramfs-linux-hardened.img
-options root=/dev/mapper/system-root zswap.enabled=0 rw rootfstype=xfs
+options root=/dev/mapper/system-root rw rootfstype=xfs
 EOF
 
 # Handles updating the bootloader when necessary, with secure boot enabled we
