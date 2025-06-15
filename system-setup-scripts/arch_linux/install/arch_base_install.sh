@@ -10,6 +10,8 @@ PRIMARY_USERNAME="sstelfox"
 HOSTNAME="$(./name_generator.py)"
 FULL_HOSTNAME="${HOSTNAME}.${DOMAIN}"
 
+CRYPT_PART="/dev/nvme0n1p2"
+
 if [ ${EUID} != 0 ]; then
   echo "This installation script must be as root from an Arch install medium"
   exit 1
@@ -42,11 +44,10 @@ reflector --save /etc/pacman.d/mirrorlist --country "US" --protocol https --late
 # terminus-font is only needed for HiDPI displays
 pacstrap -K ${ROOT_MNT} base amd-ucode efibootmgr git libfido2 linux-firmware \
   linux-hardened lvm2 man-db man-pages neovim networkmanager nftables \
-  openssh sbctl sudo terminus-font tmux wireguard-tools xfsprogs zram-generator
+  openssh sbctl sudo terminus-font tmux which wireguard-tools xfsprogs zram-generator
 
 genfstab -pU ${ROOT_MNT} >>${ROOT_MNT}/etc/fstab
 
-CRYPT_PART="/dev/nvme0n1p2"
 CRYPT_UUID=$(blkid -s UUID -o value ${CRYPT_PART})
 cat <<EOF >${ROOT_MNT}/etc/crypttab.initramfs
 system-crypt   UUID=${CRYPT_UUID}  none  discard,no-read-workqueue,no-write-workqueue
@@ -102,7 +103,7 @@ PermitRootLogin prohibit-password
 
 AllowGroups sshers
 AuthorizedKeysFile .ssh/authorized_keys
-PreferredAuthentications publickey,keyboard-interactive,password
+AuthenticationMethods publickey,keyboard-interactive,password
 
 AllowTcpForwarding no
 
@@ -110,15 +111,19 @@ Subsystem sftp /usr/lib/ssh/sftp-server
 EOF
 
 cat <<EOF >${ROOT_MNT}/etc/sudoers
-Cmnd_Alias BLACKLIST = /sbin/su
+Cmnd_Alias BLACKLIST = /usr/bin/su
+Cmnd_Alias SHELLS = /sbin/sh, /sbin/bash
 Cmnd_Alias USER_WRITEABLE = /home/*, /tmp/*, /var/tmp/*
 
-Defaults env_reset, ignore_dot, requiretty, use_pty, noexec
+Defaults env_reset, ignore_dot, requiretty, use_pty
 Defaults !path_info, !use_netgroups, !visiblepw
 
 Defaults env_keep += "TZ"
+Defaults iolog_dir = /var/log/sudo-io/%{user}
 Defaults passwd_timeout = 2
 Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin
+
+Defaults!SHELLS log_output
 
 root       ALL=(ALL)   ALL
 %sudoers   ALL=(ALL)   ALL,!BLACKLIST,!USER_WRITEABLE
@@ -180,7 +185,7 @@ FILES=()
 # * keyboard is intentionally placed early to always include all keyboard drivers early on before
 #   autodetect trims them down.
 # * some of my hosts may need lvm2 which should be loaded between sd-encrypt and filesystems
-HOOKS=(base systemd keyboard autodetect microcode modconf sd-vconsole block sd-encrypt lvm2 filesystems fsck)
+HOOKS=(base systemd sd-vconsole keyboard autodetect microcode modconf block sd-encrypt lvm2 filesystems fsck)
 EOF
 
 mkdir -p ${ROOT_MNT}/boot/loader/entries
