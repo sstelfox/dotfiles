@@ -19,6 +19,7 @@ trace_init
 . "${__LIBRARY_PATH}/environment/access.sh.inc"
 . "${__LIBRARY_PATH}/environment/fonts.sh.inc"
 . "${__LIBRARY_PATH}/environment/git.sh.inc"
+. "${__LIBRARY_PATH}/environment/network.sh.inc"
 . "${__LIBRARY_PATH}/environment/operating_system.sh.inc"
 . "${__LIBRARY_PATH}/environment/shell.sh.inc"
 
