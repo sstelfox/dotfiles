@@ -69,7 +69,7 @@ EOF
 cat <<EOF >${ROOT_MNT}/etc/vconsole.conf
 KEYMAP=us
 # For HiDPI/4K displays
-FONT=ter-v32n
+FONT=ter-v24n
 EOF
 
 arch-chroot ${ROOT_MNT} groupadd -r sudoers
@@ -171,9 +171,12 @@ RESUME_OFFSET="$(filefrag -v ${ROOT_MNT}/swapfile | awk '$1=="0:" {print substr(
 
 arch-chroot ${ROOT_MNT} sbctl create-keys
 
-if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine &>/dev/null; then
-  echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
-fi
+# This may need the --microsoft flag (my desktop definitely does, I believe due to the graphics
+# cards :-/, VMs don't need the --microsoft flag and neither due my laptops). It's a sufficiently
+# large PiTA to deal with this when it goes wrong that I'm going to avoid it.
+#if ! arch-chroot ${ROOT_MNT} sbctl enroll-keys --yes-this-might-brick-my-machine &>/dev/null; then
+#  echo "Failed to enroll boot signature keys in system, maybe setup mode isn't enabled?"
+#fi
 
 arch-chroot ${ROOT_MNT} sbctl sign -s /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
