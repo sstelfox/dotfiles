@@ -7,4 +7,4 @@ if [ ${EUID} != 0 ]; then
   exit 1
 fi
 
-pacman -Sy --needed --noconfirm iotop zopfli strace clang rsync fuse2
+pacman -Sy --needed --noconfirm dnsutils iotop zopfli strace clang rsync fuse2 patch

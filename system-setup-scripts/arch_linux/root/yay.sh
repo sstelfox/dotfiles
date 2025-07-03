@@ -30,8 +30,11 @@ setpriv --reuid=nobody --regid=nobody --init-groups /bin/bash -c '(
   cd /tmp/yay-build/yay
   export GOCACHE=$(pwd)/go-cache
   makepkg -c
-
-  pacman -U --noconfirm yay-*-x86_64.pkg.tar.zst
 )'
+
+(
+  cd /tmp/yay-build/yay
+  pacman -U --noconfirm yay-*-x86_64.pkg.tar.zst
+)
 
 rm -rf /tmp/yay-build
