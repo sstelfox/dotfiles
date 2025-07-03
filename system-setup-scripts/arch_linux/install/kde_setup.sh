@@ -23,7 +23,9 @@ fi
 #pacstrap -C /etc/pacman.conf -K /mnt/root plasma-meta konsole kwrite dolphin ark plasma-wayland-session egl-wayland --noconfirm
 
 arch-chroot ${ROOT_MNT} pacman -Sy --needed --noconfirm mesa xf86-video-amdgpu libva-mesa-driver \
-  vulkan-radeon sddm plasma-meta kde-applications-meta networkmanager-qt powerdevil firefox
+  vulkan-radeon sddm plasma-meta kde-applications-meta networkmanager-qt powerdevil firefox \
+  wl-clipboard alacritty
+
 arch-chroot ${ROOT_MNT} systemctl enable sddm.service
 
 # Disable the system wide suspension on a timer (in graphical environments)
