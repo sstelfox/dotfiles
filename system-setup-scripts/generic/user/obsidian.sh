@@ -3,18 +3,18 @@
 set -o errexit
 
 if [ ${EUID} = 0 ]; then
-	echo "This setup script is expecting to run as a regular user."
-	exit 1
+  echo "This setup script is expecting to run as a regular user."
+  exit 1
 fi
 
-PINNED_OBSIDIAN_VERSION="${PINNED_OBSIDIAN_VERSION:-1.5.12}"
+PINNED_OBSIDIAN_VERSION="${PINNED_OBSIDIAN_VERSION:-1.8.10}"
 
 if ! which fusermount &>/dev/null; then
-	echo 'AppImages like obsidian require fuse to run'
-	exit 1
+  echo 'AppImages like obsidian require fuse to run'
+  exit 1
 fi
 
-wget -O ~/.dotfiles/in_path/bin/obsidian https://github.com/obsidianmd/obsidian-releases/releases/download/v${PINNED_OBSIDIAN_VERSION}/Obsidian-${PINNED_OBSIDIAN_VERSION}.AppImage
+curl -sS -o ~/.dotfiles/in_path/bin/obsidian https://github.com/obsidianmd/obsidian-releases/releases/download/v${PINNED_OBSIDIAN_VERSION}/Obsidian-${PINNED_OBSIDIAN_VERSION}.AppImage
 chmod +x ~/.dotfiles/in_path/bin/obsidian
 
 mkdir -p ~/.local/share/applications
