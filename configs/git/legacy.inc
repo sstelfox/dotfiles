@@ -18,7 +18,7 @@
 [core]
   autocrlf = input
   safecrlf = false
-  editor   = vim
+  editor   = nvim
   filemode = true
   #pager = delta
 
