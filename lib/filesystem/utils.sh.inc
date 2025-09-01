@@ -51,6 +51,31 @@ safe_symlink_when_available() {
   fi
 }
 
+trim_dir() {
+  local ext="${1:-}"
+  local path="${2:-.}"
+
+  if [ -z "$ext" ]; then
+    echo "error: missing required extension argument" >&2
+    echo "usage: trim_dir <extension> [path]" >&2
+    return 1
+  fi
+
+  ext="${ext#.}"
+
+  find "$path" -type f -name "*.$ext" -print0 | while IFS= read -r -d '' file; do
+    # Remove trailing whitespace from each line
+    sed -i 's/[[:space:]]*$//' "$file"
+
+    # Remove trailing newlines: truncate file after last non-empty line using printf to rebuild
+    # the file up to the last line with content. Probably a better way to do this...
+    content=$(sed -e :a -e '/^\s*$/d;N;ba' < "$file")
+    if [[ -n "$content" ]]; then
+      printf '%s\n' "$content" > "$file"
+    fi
+  done
+}
+
 trim_whitespace() {
   local file_path="${1:-}"
 
