@@ -16,5 +16,5 @@ fi
 
 echo "Serving $(pwd)..."
 podman run -d --rm -p 4250:80 --name simple_dir_server \
-  -v $(pwd):/usr/share/nginx/html:roz \
+  -v $(pwd):/usr/share/nginx/html:ro \
   docker.io/library/nginx:alpine
