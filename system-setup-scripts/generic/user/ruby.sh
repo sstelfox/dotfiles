@@ -3,7 +3,7 @@
 set -o errexit
 
 if [ ${EUID} = 0 ]; then
-  echo "This setup script is expecting to run as a regular user."
+  echo "this setup script is expecting to run as a regular user." >&2
   exit 1
 fi
 
