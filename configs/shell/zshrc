@@ -16,6 +16,7 @@ __SHELL_CFG_ROOT="${__DOTFILE_ROOT}/configs/shell"
 source "${__SHELL_CFG_ROOT}/common.sh.inc"
 
 source "${__SHELL_CFG_ROOT}/zsh/shell_prompt.sh.inc"
+source "${__SHELL_CFG_ROOT}/zsh/shell_history.sh.inc"
 source "${__SHELL_CFG_ROOT}/zsh/disable_aggressive_autocomplete.sh.inc"
 
 if _plc posix_which rbenv >/dev/null 2>&1; then
