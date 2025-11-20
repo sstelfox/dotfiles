@@ -13,3 +13,5 @@ if ! which npm &>/dev/null;
 fi
 
 npm install -g --prefix=~/.local @google/gemini-cli@latest
+
+echo "run 'gemini' if you need to login and use the OAuth variation" >&2

@@ -62,17 +62,15 @@ trim_dir() {
   fi
 
   ext="${ext#.}"
-
   find "$path" -type f -name "*.$ext" -print0 | while IFS= read -r -d '' file; do
+    # Convert tabs to spaces first to avoid mixed whitespace issues
+    sed -i 's/\t/  /g' "$file"
+
     # Remove trailing whitespace from each line
     sed -i 's/[[:space:]]*$//' "$file"
 
-    # Remove trailing newlines: truncate file after last non-empty line using printf to rebuild
-    # the file up to the last line with content. Probably a better way to do this...
-    content=$(sed -e :a -e '/^\s*$/d;N;ba' < "$file")
-    if [[ -n "$content" ]]; then
-      printf '%s\n' "$content" > "$file"
-    fi
+    # Remove trailing blank lines only: loops backward from EOF deleting blank lines until content found
+    sed -i -e :a -e '/^\s*$/{$d;N;ba' -e '}' "$file"
   done
 }
 
