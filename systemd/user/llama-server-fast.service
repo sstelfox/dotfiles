@@ -1,0 +1,33 @@
+[Unit]
+Description=llama.cpp API Server (phi-4 Q3_K_M - Faster)
+After=network.target
+Conflicts=llama-server.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/sstelfox/workspace/scratch/llama.cpp
+ExecStart=/home/sstelfox/workspace/scratch/llama.cpp/build/bin/llama-server \
+  -hfr unsloth/phi-4-GGUF \
+  -hff phi-4-Q3_K_M.gguf \
+  --port 17200 \
+  --host 127.0.0.1 \
+  -ngl 0 \
+  --sleep-idle-seconds 300 \
+  -t 20 \
+  -tb 20 \
+  -c 4096 \
+  -b 4096 \
+  -ub 2048 \
+  -np 2 \
+  --mlock \
+  --cont-batching \
+  -fa on \
+  --prio 2 \
+  --poll 100
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
