@@ -32,17 +32,11 @@ This is a **pure context building** skill. It does NOT:
 
 It exists solely to build deep understanding before the vulnerability-hunting phase.
 
-## Installation
-
-```
-/plugin install trailofbits/skills/plugins/audit-context-building
-```
-
 ## Phases
 
-1. **Initial Orientation** - Map modules, entrypoints, actors, and storage
-2. **Ultra-Granular Function Analysis** - Line-by-line semantic analysis with cross-function flow tracking
-3. **Global System Understanding** - State/invariant reconstruction, workflow mapping, trust boundaries
+1. **Initial Orientation**: Map modules, entrypoints, actors, and storage
+2. **Ultra-Granular Function Analysis**: Line-by-line semantic analysis with cross-function flow tracking
+3. **Global System Understanding**: State/invariant reconstruction, workflow mapping, trust boundaries
 
 ## Anti-Hallucination Rules
 
