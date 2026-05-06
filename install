@@ -46,6 +46,27 @@ fi
 # If I don't have neovim around, I can also skip configuring it
 safe_symlink_when_available nvim ${__DOTFILE_ROOT}/configs/nvim ${HOME}/.config/nvim
 
+# Claude Code: link config piece-by-piece so runtime state (sessions/, history.jsonl, cache/,
+# plans/, projects/, plugins/known_marketplaces.json, plugins/marketplaces/) stays untracked.
+# On first install ~/.claude/settings.json may exist as a real file; back it up manually with
+# `mv ~/.claude/settings.json ~/.claude/settings.json.bak` before running.
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/settings.json ${HOME}/.claude/settings.json
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/CLAUDE.md     ${HOME}/.claude/CLAUDE.md
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/skills        ${HOME}/.claude/skills
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/commands      ${HOME}/.claude/commands
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/agents        ${HOME}/.claude/agents
+
+# Register the personal marketplace if claude is installed and it isn't already known.
+# Local-directory marketplaces declared in settings.json don't auto-register at session start
+# (only github/url sources do), so we run the add once. State lives in
+# ~/.claude/plugins/known_marketplaces.json which is untracked.
+if posix_which claude >/dev/null 2>&1 && posix_which jq >/dev/null 2>&1; then
+  known_marketplaces="${HOME}/.claude/plugins/known_marketplaces.json"
+  if [ ! -f "${known_marketplaces}" ] || ! jq -e '.["stelfox-curated"]' "${known_marketplaces}" >/dev/null 2>&1; then
+    claude plugin marketplace add "${__DOTFILE_ROOT}/configs/claude/marketplace"
+  fi
+fi
+
 # Handle variations between different OS/environment specific setup scripts
 case "$(detect_os)" in
 macos)

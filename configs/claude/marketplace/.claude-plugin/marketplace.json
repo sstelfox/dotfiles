@@ -1,0 +1,46 @@
+{
+  "name": "stelfox-curated",
+  "owner": {
+    "name": "Sam Stelfox",
+    "email": "sam@stelfox.net"
+  },
+  "description": "Personally curated Claude Code skills, vendored from upstream sources after review",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    { "name": "agentic-actions-auditor",        "source": "./plugins/agentic-actions-auditor" },
+    { "name": "ask-questions-if-underspecified", "source": "./plugins/ask-questions-if-underspecified" },
+    { "name": "audit-context-building",         "source": "./plugins/audit-context-building" },
+    { "name": "c-review",                       "source": "./plugins/c-review" },
+    { "name": "claude-in-chrome-troubleshooting", "source": "./plugins/claude-in-chrome-troubleshooting" },
+    { "name": "constant-time-analysis",         "source": "./plugins/constant-time-analysis" },
+    { "name": "culture-index",                  "source": "./plugins/culture-index" },
+    { "name": "debug-buttercup",                "source": "./plugins/debug-buttercup" },
+    { "name": "devcontainer-setup",             "source": "./plugins/devcontainer-setup" },
+    { "name": "differential-review",            "source": "./plugins/differential-review" },
+    { "name": "dimensional-analysis",           "source": "./plugins/dimensional-analysis" },
+    { "name": "fp-check",                       "source": "./plugins/fp-check" },
+    { "name": "gh-cli",                         "source": "./plugins/gh-cli" },
+    { "name": "git-cleanup",                    "source": "./plugins/git-cleanup" },
+    { "name": "insecure-defaults",              "source": "./plugins/insecure-defaults" },
+    { "name": "let-fate-decide",                "source": "./plugins/let-fate-decide" },
+    { "name": "modern-python",                  "source": "./plugins/modern-python" },
+    { "name": "mutation-testing",               "source": "./plugins/mutation-testing" },
+    { "name": "property-based-testing",         "source": "./plugins/property-based-testing" },
+    { "name": "seatbelt-sandboxer",             "source": "./plugins/seatbelt-sandboxer" },
+    { "name": "second-opinion",                 "source": "./plugins/second-opinion" },
+    { "name": "semgrep-rule-creator",           "source": "./plugins/semgrep-rule-creator" },
+    { "name": "semgrep-rule-variant-creator",   "source": "./plugins/semgrep-rule-variant-creator" },
+    { "name": "sharp-edges",                    "source": "./plugins/sharp-edges" },
+    { "name": "skill-improver",                 "source": "./plugins/skill-improver" },
+    { "name": "spec-to-code-compliance",        "source": "./plugins/spec-to-code-compliance" },
+    { "name": "static-analysis",                "source": "./plugins/static-analysis" },
+    { "name": "supply-chain-risk-auditor",      "source": "./plugins/supply-chain-risk-auditor" },
+    { "name": "testing-handbook-skills",        "source": "./plugins/testing-handbook-skills" },
+    { "name": "trailmark",                      "source": "./plugins/trailmark" },
+    { "name": "variant-analysis",               "source": "./plugins/variant-analysis" },
+    { "name": "workflow-skill-design",          "source": "./plugins/workflow-skill-design" },
+    { "name": "zeroize-audit",                  "source": "./plugins/zeroize-audit" }
+  ]
+}

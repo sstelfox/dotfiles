@@ -17,3 +17,9 @@
 # Still being held over from a legacy way I managed fonts, kind of half-transitioned for now but
 # make sure I don't check these in.
 /fonts/.uuid
+
+# Claude Code MCP launchers may end up sourcing local secret env files during development. Belt
+# and suspenders so a slipped credential file never lands in the tree.
+/configs/claude/mcp-launchers/*.env
+/configs/claude/mcp-launchers/.secrets
+/configs/claude/**/credentials*

@@ -1,0 +1,10 @@
+{
+  "enabledPlugins": {
+    "audit-context-building@stelfox-curated": true
+  },
+  "alwaysThinkingEnabled": false,
+  "effortLevel": "medium",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark-daltonized",
+  "model": "sonnet"
+}
