@@ -48,24 +48,26 @@ safe_symlink_when_available nvim ${__DOTFILE_ROOT}/configs/nvim ${HOME}/.config/
 
 # Claude Code: link config piece-by-piece so runtime state (sessions/, history.jsonl, cache/,
 # plans/, projects/, plugins/known_marketplaces.json, plugins/marketplaces/) stays untracked.
-# On first install ~/.claude/settings.json may exist as a real file; back it up manually with
-# `mv ~/.claude/settings.json ~/.claude/settings.json.bak` before running.
-safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/settings.json ${HOME}/.claude/settings.json
-safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/CLAUDE.md     ${HOME}/.claude/CLAUDE.md
-safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/skills        ${HOME}/.claude/skills
-safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/commands      ${HOME}/.claude/commands
-safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/agents        ${HOME}/.claude/agents
-
-# Register the personal marketplace if claude is installed and it isn't already known.
-# Local-directory marketplaces declared in settings.json don't auto-register at session start
-# (only github/url sources do), so we run the add once. State lives in
-# ~/.claude/plugins/known_marketplaces.json which is untracked.
+# settings.json is generated (not symlinked) so we can inject the absolute marketplace path at
+# install time — extraKnownMarketplaces does not support ~ or $HOME expansion in JSON values.
 if posix_which claude >/dev/null 2>&1 && posix_which jq >/dev/null 2>&1; then
+  mkdir -p "${HOME}/.claude"
+  jq --arg mp "${__DOTFILE_ROOT}/configs/claude/marketplace/.claude-plugin/marketplace.json" \
+    '. + {extraKnownMarketplaces: {"stelfox-curated": {source: {source: "file", path: $mp}}}}' \
+    "${__DOTFILE_ROOT}/configs/claude/settings.template.json" \
+    > "${HOME}/.claude/settings.json"
+
+  # Remove stale 'local' marketplace entry with relative path (left over from old Claude Code versions)
   known_marketplaces="${HOME}/.claude/plugins/known_marketplaces.json"
-  if [ ! -f "${known_marketplaces}" ] || ! jq -e '.["stelfox-curated"]' "${known_marketplaces}" >/dev/null 2>&1; then
-    claude plugin marketplace add "${__DOTFILE_ROOT}/configs/claude/marketplace"
+  if [ -f "${known_marketplaces}" ] && jq -e '.local.source.path | startswith(".")' "${known_marketplaces}" >/dev/null 2>&1; then
+    claude plugin marketplace remove local || warn "Failed to remove stale 'local' marketplace"
   fi
 fi
+
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/CLAUDE.md ${HOME}/.claude/CLAUDE.md
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/skills    ${HOME}/.claude/skills
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/commands  ${HOME}/.claude/commands
+safe_symlink_when_available claude ${__DOTFILE_ROOT}/configs/claude/agents    ${HOME}/.claude/agents
 
 # Handle variations between different OS/environment specific setup scripts
 case "$(detect_os)" in

@@ -1,4 +1,9 @@
 {
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "includeCoAuthoredBy": false,
   "enabledPlugins": {
     "audit-context-building@stelfox-curated": true
   },

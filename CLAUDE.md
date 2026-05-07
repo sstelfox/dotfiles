@@ -59,18 +59,13 @@ Library layout:
 
 ## Claude Code config
 
-`configs/claude/` holds the tracked pieces of `~/.claude/`. Each top-level entry is symlinked **individually** by `install` (gated on `claude` being on `$PATH`) so Claude Code's runtime state — `sessions/`, `history.jsonl`, `cache/`, `plans/`, `projects/`, `plugins/known_marketplaces.json`, `plugins/marketplaces/` — stays untracked. Tracked: `settings.json`, `CLAUDE.md`, `skills/`, `commands/`, `agents/`.
+`configs/claude/` holds the tracked pieces of `~/.claude/`. Most entries are symlinked individually by `install` (gated on `claude` being on `$PATH`) so Claude Code's runtime state — `sessions/`, `history.jsonl`, `cache/`, `plans/`, `projects/`, `plugins/known_marketplaces.json`, `plugins/marketplaces/` — stays untracked. Tracked: `settings.template.json`, `CLAUDE.md`, `skills/`, `commands/`, `agents/`.
 
-**First-time install**: `~/.claude/settings.json` may already exist as a real file, which `safe_symlink` refuses to overwrite. Back it up before running `./install`:
-```sh
-mv ~/.claude/settings.json ~/.claude/settings.json.bak
-```
+**`settings.json` is generated, not symlinked.** `install` merges `settings.template.json` with a machine-specific `extraKnownMarketplaces` entry (absolute path resolved from `$HOME` at install time) and writes the result to `~/.claude/settings.json` as a real file. This is necessary because Claude Code does not expand `~` or `$HOME` in JSON values. Re-running `./install` regenerates the file. Claude Code may write back user preferences (theme, model, etc.) — those live in the untracked `~/.claude/settings.json` and will be overwritten on next install; keep canonical preferences in `settings.template.json`.
 
-**Marketplace registration**: handled idempotently by `install` — it checks `~/.claude/plugins/known_marketplaces.json` (via `jq`) and runs `claude plugin marketplace add` only when `stelfox-curated` is missing. Registration state is per-machine (untracked) and persists across sessions.
+**Marketplace registration**: `extraKnownMarketplaces` in the generated `settings.json` auto-registers `stelfox-curated` at every session start across all projects. The install script also removes stale `local` marketplace entries (relative-path artifacts from older Claude Code versions). Install plugins per-machine with `/plugin install <name>@stelfox-curated`.
 
-Tracked `settings.json` deliberately does **not** declare the marketplace via `extraKnownMarketplaces`. That key only auto-registers `github`/`url` sources at session start; a local-directory source there has no effect, and `claude plugin marketplace add` rewrites the file in place with an absolute home path (non-portable). The install-script registration is the single source of truth.
-
-`configs/claude/marketplace/` is the personal plugin marketplace — vendored skills (currently from `trailofbits/skills`) curated for review-before-install. Each plugin's `VENDORED.md` records the upstream URL, commit SHA, and license. Re-vendoring is manual: sparse-clone upstream, copy the plugin dir, bump `VENDORED.md`. **No plugin is auto-enabled** — tracked `settings.json` registers the marketplace via `extraKnownMarketplaces` but leaves `enabledPlugins` empty. Install per-machine with `/plugin install <name>@stelfox-curated`.
+`configs/claude/marketplace/` is the personal plugin marketplace — vendored skills (currently from `trailofbits/skills`) curated for review-before-install. Each plugin's `VENDORED.md` records the upstream URL, commit SHA, and license. Re-vendoring is manual: sparse-clone upstream, copy the plugin dir, bump `VENDORED.md`.
 
 `configs/claude/mcp-launchers/` is the home for `pass`-backed wrappers that fetch MCP server credentials at spawn time. Pattern: each launcher reads secrets via `pass show ...` and exec's the server. Definitions tracked, secrets never on disk in tracked files. Gitignored: `*.env`, `.secrets`, `**/credentials*` under `configs/claude/`.
 
