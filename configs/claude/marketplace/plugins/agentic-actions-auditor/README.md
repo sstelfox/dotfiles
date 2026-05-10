@@ -1,6 +1,6 @@
 # agentic-actions-auditor
 
-Audits GitHub Actions workflows for security vulnerabilities in AI agent integrations. Detects misconfigurations and attack vectors specific to Claude Code Action, Gemini CLI, OpenAI Codex, and GitHub AI Inference when used in CI/CD pipelines.
+Audits GitHub Actions workflows for security vulnerabilities in AI agent integrations. Detects misconfigurations and attack vectors specific to common AI inference workflows when used in CI/CD pipelines.
 
 ## What It Does
 
@@ -10,25 +10,24 @@ This plugin provides a security audit skill that analyzes GitHub Actions workflo
 
 The skill checks for nine categories of security issues:
 
-- **A. Env Var Intermediary** -- Attacker data flows through `env:` blocks to AI prompt fields with no visible `${{ }}` expressions
-- **B. Direct Expression Injection** -- `${{ github.event.* }}` expressions embedded directly in AI prompt fields
-- **C. CLI Data Fetch** -- `gh` CLI commands in prompts fetch attacker-controlled content at runtime
-- **D. PR Target + Checkout** -- `pull_request_target` trigger combined with checkout of PR head code
-- **E. Error Log Injection** -- CI error output or build logs fed to AI prompts carry attacker payloads
-- **F. Subshell Expansion** -- Restricted tools like `echo` allow subshell expansion (`echo $(env)`) bypass
-- **G. Eval of AI Output** -- AI response flows to `eval`, `exec`, or unquoted `$()` in subsequent steps
-- **H. Dangerous Sandbox Configs** -- `danger-full-access`, `Bash(*)`, `--yolo` disable safety protections
-- **I. Wildcard Allowlists** -- `allowed_non_write_users: "*"` or `allow-users: "*"` permit any user to trigger
+- **A. Env Var Intermediary**: Attacker data flows through `env:` blocks to AI prompt fields with no visible `${{ }}` expressions
+- **B. Direct Expression Injection**: `${{ github.event.* }}` expressions embedded directly in AI prompt fields
+- **C. CLI Data Fetch**: `gh` CLI commands in prompts fetch attacker-controlled content at runtime
+- **D. PR Target + Checkout**: `pull_request_target` trigger combined with checkout of PR head code
+- **E. Error Log Injection**: CI error output or build logs fed to AI prompts carry attacker payloads
+- **F. Subshell Expansion**: Restricted tools like `echo` allow subshell expansion (`echo $(env)`) bypass
+- **G. Eval of AI Output**: AI response flows to `eval`, `exec`, or unquoted `$()` in subsequent steps
+- **H. Dangerous Sandbox Configs**: `danger-full-access`, `Bash(*)`, `--yolo` disable safety protections
+- **I. Wildcard Allowlists**: `allowed_non_write_users: "*"` or `allow-users: "*"` permit any user to trigger
 
 ## Supported AI Actions
 
-| Action | Repository | Notes |
-|--------|------------|-------|
-| Claude Code Action | anthropics/claude-code-action | |
-| Gemini CLI | google-github-actions/run-gemini-cli | Primary |
-| Gemini CLI (legacy) | google-gemini/gemini-cli-action | Archived |
-| OpenAI Codex | openai/codex-action | |
-| GitHub AI Inference | actions/ai-inference | |
+| Action | Repository |
+|--------|------------|
+| Claude Code Action | anthropics/claude-code-action |
+| Gemini CLI | google-github-actions/run-gemini-cli |
+| OpenAI Codex | openai/codex-action |
+| GitHub AI Inference | actions/ai-inference |
 
 ## Installation
 
@@ -65,3 +64,11 @@ The skill produces a structured findings report covering each applicable attack 
 ## License
 
 [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/)
+
+## Original Source
+
+- [Upstream](https://github.com/trailofbits/skills/tree/a56045e9ae00b3506cacefea0f672aab0a1a6e3c/plugins/agentic-actions-auditor)
+- Commit: a56045e9ae00b3506cacefea0f672aab0a1a6e3c
+- Vendored: 2026-05-06
+- Original License: CC BY-SA 4.0 (Trail of Bits)
+- Original Authors: Emilio López & Will Vandevanter
