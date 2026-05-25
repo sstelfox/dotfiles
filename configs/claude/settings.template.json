@@ -9,8 +9,10 @@
     "ste-writing@stelfox-curated": true
   },
   "alwaysThinkingEnabled": false,
-  "effortLevel": "medium",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark-daltonized",
-  "model": "sonnet"
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }
