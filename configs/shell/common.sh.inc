@@ -15,6 +15,7 @@ fi
 
 ## Environment & path setup
 
+. "${__SHELL_CFG_ROOT}/common/claude_code.sh.inc"
 . "${__SHELL_CFG_ROOT}/common/telemetry_opt_out.sh.inc"
 . "${__SHELL_CFG_ROOT}/common/python_uv_environment.sh.inc"
 . "${__SHELL_CFG_ROOT}/common/rust_cargo_environment.sh.inc"
