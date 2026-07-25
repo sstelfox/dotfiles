@@ -1,0 +1,299 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "trafilatura>=2.0,<3",
+# ]
+# ///
+"""Capture a web page as markdown in the knowledge base raw/ directory, then hand it to claude for filing."""
+
+import argparse
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import unicodedata
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlparse
+
+import trafilatura
+from trafilatura.metadata import extract_metadata
+
+ROOT = Path.home() / "documentation"
+PROMPT_FILE = ROOT / "ai-ingestion-prompt.md"
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+ALLOWED_TOOLS = "Read,Write,Edit,Glob,Grep,Bash(ls *),Bash(mkdir *),Bash(mv *),Bash(rg *),Bash(wc *)"
+
+HORIZONTAL_RULE = re.compile(r"^\s{0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$")
+EXCESS_BLANKS = re.compile(r"\n{3,}")
+HTML_TAG = re.compile(r"</?(?!(?:dl|dt|dd)\b)[a-zA-Z][^>\n]*>")
+
+TYPOGRAPHY = {
+    "\u00a0": " ", "\u2009": " ", "\u202f": " ", "\u200b": "", "\ufeff": "",
+    "\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201c": '"', "\u201d": '"',
+    "\u2032": "'", "\u2033": '"', "\u2026": "...",
+}
+
+TASK_TEMPLATE = """A new raw capture is ready for filing into the knowledge base.
+
+file: {relpath}
+source_url: {url}
+title: {title}
+word_count: {word_count}
+
+Work only inside {root}. Follow the ingestion rules appended to your system prompt.
+
+Before you write anything:
+1. List the existing topical directories under knowledge_base/ and reuse one if it fits. Only create a new topic when nothing existing is a reasonable home.
+2. Grep the knowledge base for the main subjects of this capture. If a page already covers this material, extend and cross-link that page instead of creating a near-duplicate.
+
+When you are done, update the raw file's front matter as the rules require and print a plain list of every path you created, modified, or deleted, with one line of justification each."""
+
+
+def log(message: str, level: str = "info", **fields: object) -> None:
+    parts = [f"level={level}", f'msg="{message}"']
+    for key, value in fields.items():
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            parts.append(f"{key}={value}")
+        else:
+            parts.append(f'{key}="{value}"')
+    print(" ".join(parts), file=sys.stderr)
+
+
+def die(message: str, **fields: object) -> None:
+    log(message, level="error", **fields)
+    sys.exit(1)
+
+
+def slugify(text: str, max_length: int = 60) -> str:
+    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-z0-9]+", "_", folded.lower()).strip("_")
+    if len(slug) > max_length:
+        slug = slug[:max_length].rsplit("_", 1)[0] or slug[:max_length]
+    return slug or "untitled"
+
+
+def unique_path(directory: Path, stem: str) -> Path:
+    candidate = directory / f"{stem}.md"
+    counter = 2
+    while candidate.exists():
+        candidate = directory / f"{stem}_{counter}.md"
+        counter += 1
+    return candidate
+
+
+def yaml_scalar(value: object) -> str:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    return '"{}"'.format(str(value).replace("\\", "\\\\").replace('"', '\\"'))
+
+
+def download(url: str) -> bytes:
+    """curl first because it honours proxies and site-specific options; trafilatura's fetcher is the fallback."""
+    if shutil.which("curl"):
+        command = ["curl", "-sSL", "--compressed", "--max-time", "60", "-A", USER_AGENT]
+        command += shlex.split(os.environ.get("INGEST_CURL_OPTS", ""))
+        completed = subprocess.run([*command, url], capture_output=True)
+        if completed.returncode == 0 and completed.stdout:
+            return completed.stdout
+        log("curl download failed", level="warn", url=url, exit_code=completed.returncode)
+
+    fetched = trafilatura.fetch_url(url)
+    if not fetched:
+        die("download failed", url=url, hint="site may block scripted clients, save the page and use --html-file")
+    return fetched.encode("utf-8")
+
+
+def extract_document(html: bytes, url: str | None) -> tuple[str, dict[str, object]]:
+    body = trafilatura.extract(
+        html,
+        url=url,
+        output_format="markdown",
+        include_tables=True,
+        include_links=True,
+        include_comments=False,
+        include_images=False,
+        favor_precision=True,
+        deduplicate=True,
+    )
+    if not body or not body.strip():
+        die("extraction produced no content", url=url or "", hint="page is probably javascript rendered")
+
+    meta: dict[str, object] = {}
+    try:
+        document = extract_metadata(html, default_url=url)
+    except Exception as error:  # provenance is a nice-to-have, never worth failing the capture over
+        log("metadata extraction failed", level="warn", error=type(error).__name__)
+        document = None
+    if document is not None:
+        for field in ("title", "author", "date", "sitename", "hostname"):
+            value = getattr(document, field, None)
+            if value:
+                meta[field] = value
+
+    return body, meta
+
+
+def clean(body: str) -> str:
+    """Rule removal and tag stripping are skipped inside fenced blocks so code samples survive intact."""
+    text = body.replace("\r\n", "\n")
+    for source, target in TYPOGRAPHY.items():
+        text = text.replace(source, target)
+
+    kept: list[str] = []
+    fenced = False
+    for line in text.split("\n"):
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            kept.append(line.rstrip())
+        elif fenced:
+            kept.append(line)
+        elif HORIZONTAL_RULE.match(line):
+            continue
+        else:
+            kept.append(HTML_TAG.sub("", line).rstrip())
+
+    return EXCESS_BLANKS.sub("\n\n", "\n".join(kept)).strip() + "\n"
+
+
+def build_capture(body: str, meta: dict[str, object], url: str | None) -> tuple[str, str, int]:
+    title = str(meta.get("title") or "").strip()
+    if not title:
+        heading = re.search(r"^#\s+(.+)$", body, re.MULTILINE)
+        title = heading.group(1).strip() if heading else Path(urlparse(url or "").path).stem or "untitled"
+
+    word_count = len(re.findall(r"\S+", body))
+    front_matter = {
+        "title": title,
+        "source_url": url or "",
+        "author": meta.get("author", ""),
+        "published": meta.get("date", ""),
+        "site": meta.get("sitename") or meta.get("hostname", ""),
+        "captured": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "word_count": word_count,
+        "em_dash_count": body.count("\u2014"),
+        "status": "raw",
+    }
+
+    lines = ["---"]
+    lines += [f"{key}: {yaml_scalar(value)}" for key, value in front_matter.items() if value != ""]
+    lines += ["---", ""]
+    if not re.match(r"^#\s", body):
+        lines += [f"# {title}", ""]
+    return "\n".join(lines) + "\n" + body, title, word_count
+
+
+def run_agent(capture: Path, url: str | None, title: str, word_count: int, args: argparse.Namespace) -> int:
+    if not PROMPT_FILE.is_file():
+        die("ingestion prompt not found", path=str(PROMPT_FILE))
+    if shutil.which("claude") is None:
+        die("claude executable not found on path")
+    try:
+        relpath = capture.relative_to(ROOT)
+    except ValueError:
+        die("capture lives outside the documentation root", path=str(capture), root=str(ROOT))
+
+    command = [
+        "claude", "-p", TASK_TEMPLATE.format(
+            relpath=relpath, url=url or "not available", title=title, word_count=word_count, root=ROOT
+        ),
+        "--append-system-prompt-file", str(PROMPT_FILE),
+        "--permission-mode", "acceptEdits",
+        "--allowedTools", ALLOWED_TOOLS,
+        "--max-turns", str(args.max_turns),
+    ]
+    if args.model:
+        command += ["--model", args.model]
+
+    log("agent starting", file=str(relpath), max_turns=args.max_turns)
+    completed = subprocess.run(command, cwd=ROOT)
+    log("agent finished", level="info" if completed.returncode == 0 else "error", exit_code=completed.returncode)
+    return completed.returncode
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="ingest-page",
+        description=f"Capture a page as markdown in {ROOT}/raw and file it into the knowledge base with claude.",
+    )
+    parser.add_argument("url", nargs="?", help="page to capture, or the source url to record when --html-file is used")
+    parser.add_argument("--html-file", type=Path, help="use a saved html file instead of downloading")
+    parser.add_argument("--file", type=Path, help="skip capture and file an existing markdown file in raw/")
+    parser.add_argument("--name", help="override the output file stem")
+    parser.add_argument("--min-words", type=int, default=120, help="refuse to file captures shorter than this (default 120)")
+    parser.add_argument("-n", "--no-agent", action="store_true", help="capture only, do not invoke claude")
+    parser.add_argument("--model", help="claude model alias, for example sonnet or opus")
+    parser.add_argument("--max-turns", type=int, default=60, help="agent turn ceiling (default 60)")
+    args = parser.parse_args(argv)
+
+    if args.file and (args.url or args.html_file):
+        parser.error("--file cannot be combined with a url or --html-file")
+    if not args.file and not args.url and not args.html_file:
+        parser.error("a url is required unless --file or --html-file is given")
+    return args
+
+
+def file_existing(path: Path, args: argparse.Namespace) -> int:
+    candidate = path.expanduser()
+    if not candidate.is_absolute() and not candidate.exists():
+        candidate = ROOT / candidate
+    capture = candidate.resolve()
+    if not capture.is_file():
+        die("file not found", path=str(path))
+
+    text = capture.read_text(encoding="utf-8")
+    title = re.search(r'^title:\s*"?(.+?)"?\s*$', text, re.MULTILINE)
+    url = re.search(r'^source_url:\s*"?(.+?)"?\s*$', text, re.MULTILINE)
+    return run_agent(
+        capture,
+        url.group(1) if url else None,
+        title.group(1) if title else capture.stem,
+        len(re.findall(r"\S+", text)),
+        args,
+    )
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    if not ROOT.is_dir():
+        die("documentation root not found", path=str(ROOT))
+    if args.file:
+        return file_existing(args.file, args)
+
+    raw_dir = ROOT / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    html = args.html_file.read_bytes() if args.html_file else download(args.url or "")
+    log("source loaded", origin=str(args.html_file or args.url), bytes=len(html))
+
+    body, meta = extract_document(html, args.url)
+    document, title, word_count = build_capture(clean(body), meta, args.url)
+    capture = unique_path(raw_dir, args.name or slugify(title))
+    capture.write_text(document, encoding="utf-8")
+    log("capture written", path=str(capture.relative_to(ROOT)), words=word_count, em_dashes=document.count("\u2014"))
+
+    if word_count < args.min_words:
+        log(
+            "capture below threshold, agent skipped",
+            level="warn",
+            path=str(capture.relative_to(ROOT)),
+            words=word_count,
+            min_words=args.min_words,
+            hint="usually a paywall or bot challenge, file it manually with --file if the page is genuinely short",
+        )
+        return 3
+
+    if args.no_agent:
+        print(capture)
+        return 0
+    return run_agent(capture, args.url, title, word_count, args)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        log("interrupted", level="warn")
+        sys.exit(130)
