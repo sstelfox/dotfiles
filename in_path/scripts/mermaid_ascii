@@ -1,0 +1,3784 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.9"
+# dependencies = []
+# ///
+"""mermaid-ascii: generate ASCII/Unicode diagrams from mermaid code.
+
+A single-file Python port of https://github.com/AlexanderGrooff/mermaid-ascii
+(originally written in Go). Supports flowchart/graph, sequence, and
+entity-relationship (erDiagram) diagrams.
+
+Usage:
+    mermaid_ascii.py -f diagram.mmd
+    cat diagram.mmd | mermaid_ascii.py
+    mermaid_ascii.py -a -f diagram.mmd     # ASCII-only character set
+"""
+
+import argparse
+import heapq
+import re
+import sys
+from typing import List
+
+# ---------------------------------------------------------------------------
+# Display-width (exact port of github.com/mattn/go-runewidth@v0.0.19,
+# EastAsianWidth=false). The tables below are copied verbatim from
+# runewidth_table.go / runewidth.go so widths match byte-for-byte.
+# ---------------------------------------------------------------------------
+
+_RW_COMBINING = (
+    (0x300, 0x36F), (0x483, 0x489), (0x7EB, 0x7F3), (0xC00, 0xC00), (0xC04, 0xC04),
+    (0xCF3, 0xCF3), (0xD00, 0xD01), (0x135D, 0x135F), (0x1A7F, 0x1A7F), (0x1AB0, 0x1ACE),
+    (0x1B6B, 0x1B73), (0x1DC0, 0x1DFF), (0x20D0, 0x20F0), (0x2CEF, 0x2CF1), (0x2DE0, 0x2DFF),
+    (0x3099, 0x309A), (0xA66F, 0xA672), (0xA674, 0xA67D), (0xA69E, 0xA69F), (0xA6F0, 0xA6F1),
+    (0xA8E0, 0xA8F1), (0xFE20, 0xFE2F), (0x101FD, 0x101FD), (0x10376, 0x1037A),
+    (0x10EAB, 0x10EAC), (0x10F46, 0x10F50), (0x10F82, 0x10F85), (0x11300, 0x11301),
+    (0x1133B, 0x1133C), (0x11366, 0x1136C), (0x11370, 0x11374), (0x16AF0, 0x16AF4),
+    (0x1CF00, 0x1CF2D), (0x1CF30, 0x1CF46), (0x1D165, 0x1D169), (0x1D16D, 0x1D172),
+    (0x1D17B, 0x1D182), (0x1D185, 0x1D18B), (0x1D1AA, 0x1D1AD), (0x1D242, 0x1D244),
+    (0x1E000, 0x1E006), (0x1E008, 0x1E018), (0x1E01B, 0x1E021), (0x1E023, 0x1E024),
+    (0x1E026, 0x1E02A), (0x1E08F, 0x1E08F), (0x1E8D0, 0x1E8D6),
+)
+
+_RW_DOUBLEWIDTH = (
+    (0x1100, 0x115F), (0x231A, 0x231B), (0x2329, 0x232A), (0x23E9, 0x23EC), (0x23F0, 0x23F0),
+    (0x23F3, 0x23F3), (0x25FD, 0x25FE), (0x2614, 0x2615), (0x2648, 0x2653), (0x267F, 0x267F),
+    (0x2693, 0x2693), (0x26A1, 0x26A1), (0x26AA, 0x26AB), (0x26BD, 0x26BE), (0x26C4, 0x26C5),
+    (0x26CE, 0x26CE), (0x26D4, 0x26D4), (0x26EA, 0x26EA), (0x26F2, 0x26F3), (0x26F5, 0x26F5),
+    (0x26FA, 0x26FA), (0x26FD, 0x26FD), (0x2705, 0x2705), (0x270A, 0x270B), (0x2728, 0x2728),
+    (0x274C, 0x274C), (0x274E, 0x274E), (0x2753, 0x2755), (0x2757, 0x2757), (0x2795, 0x2797),
+    (0x27B0, 0x27B0), (0x27BF, 0x27BF), (0x2B1B, 0x2B1C), (0x2B50, 0x2B50), (0x2B55, 0x2B55),
+    (0x2E80, 0x2E99), (0x2E9B, 0x2EF3), (0x2F00, 0x2FD5), (0x2FF0, 0x303E), (0x3041, 0x3096),
+    (0x3099, 0x30FF), (0x3105, 0x312F), (0x3131, 0x318E), (0x3190, 0x31E3), (0x31EF, 0x321E),
+    (0x3220, 0x3247), (0x3250, 0x4DBF), (0x4E00, 0xA48C), (0xA490, 0xA4C6), (0xA960, 0xA97C),
+    (0xAC00, 0xD7A3), (0xF900, 0xFAFF), (0xFE10, 0xFE19), (0xFE30, 0xFE52), (0xFE54, 0xFE66),
+    (0xFE68, 0xFE6B), (0xFF01, 0xFF60), (0xFFE0, 0xFFE6), (0x16FE0, 0x16FE4),
+    (0x16FF0, 0x16FF1), (0x17000, 0x187F7), (0x18800, 0x18CD5), (0x18D00, 0x18D08),
+    (0x1AFF0, 0x1AFF3), (0x1AFF5, 0x1AFFB), (0x1AFFD, 0x1AFFE), (0x1B000, 0x1B122),
+    (0x1B132, 0x1B132), (0x1B150, 0x1B152), (0x1B155, 0x1B155), (0x1B164, 0x1B167),
+    (0x1B170, 0x1B2FB), (0x1F004, 0x1F004), (0x1F0CF, 0x1F0CF), (0x1F18E, 0x1F18E),
+    (0x1F191, 0x1F19A), (0x1F200, 0x1F202), (0x1F210, 0x1F23B), (0x1F240, 0x1F248),
+    (0x1F250, 0x1F251), (0x1F260, 0x1F265), (0x1F300, 0x1F320), (0x1F32D, 0x1F335),
+    (0x1F337, 0x1F37C), (0x1F37E, 0x1F393), (0x1F3A0, 0x1F3CA), (0x1F3CF, 0x1F3D3),
+    (0x1F3E0, 0x1F3F0), (0x1F3F4, 0x1F3F4), (0x1F3F8, 0x1F43E), (0x1F440, 0x1F440),
+    (0x1F442, 0x1F4FC), (0x1F4FF, 0x1F53D), (0x1F54B, 0x1F54E), (0x1F550, 0x1F567),
+    (0x1F57A, 0x1F57A), (0x1F595, 0x1F596), (0x1F5A4, 0x1F5A4), (0x1F5FB, 0x1F64F),
+    (0x1F680, 0x1F6C5), (0x1F6CC, 0x1F6CC), (0x1F6D0, 0x1F6D2), (0x1F6D5, 0x1F6D7),
+    (0x1F6DC, 0x1F6DF), (0x1F6EB, 0x1F6EC), (0x1F6F4, 0x1F6FC), (0x1F7E0, 0x1F7EB),
+    (0x1F7F0, 0x1F7F0), (0x1F90C, 0x1F93A), (0x1F93C, 0x1F945), (0x1F947, 0x1F9FF),
+    (0x1FA70, 0x1FA7C), (0x1FA80, 0x1FA88), (0x1FA90, 0x1FABD), (0x1FABF, 0x1FAC5),
+    (0x1FACE, 0x1FADB), (0x1FAE0, 0x1FAE8), (0x1FAF0, 0x1FAF8), (0x20000, 0x2FFFD),
+    (0x30000, 0x3FFFD),
+)
+
+_RW_NARROW = (
+    (0x20, 0x7E), (0xA2, 0xA3), (0xA5, 0xA6), (0xAC, 0xAC), (0xAF, 0xAF), (0x27E6, 0x27ED),
+    (0x2985, 0x2986),
+)
+
+_RW_NONPRINT = (
+    (0x0, 0x1F), (0x7F, 0x9F), (0xAD, 0xAD), (0x70F, 0x70F), (0x180B, 0x180E),
+    (0x200B, 0x200F), (0x2028, 0x202E), (0x206A, 0x206F), (0xD800, 0xDFFF), (0xFEFF, 0xFEFF),
+    (0xFFF9, 0xFFFB), (0xFFFE, 0xFFFF),
+)
+
+
+def _in_table(r, table):
+    lo, hi = 0, len(table) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        a, b = table[mid]
+        if r < a:
+            hi = mid - 1
+        elif r > b:
+            lo = mid + 1
+        else:
+            return True
+    return False
+
+
+def rune_width(ch):
+    """Return the terminal display width of a single character (0, 1 or 2)."""
+    if ch == "":
+        return 0
+    r = ord(ch)
+    if r < 0 or r > 0x10FFFF:
+        return 0
+    if r < 0x20:
+        return 0
+    if (0x7F <= r <= 0x9F) or r == 0xAD:
+        return 0
+    if r < 0x300:
+        return 1
+    if _in_table(r, _RW_NARROW):
+        return 1
+    if _in_table(r, _RW_NONPRINT) or _in_table(r, _RW_COMBINING):
+        return 0
+    if _in_table(r, _RW_DOUBLEWIDTH):
+        return 2
+    return 1
+
+
+def string_width(s):
+    return sum(rune_width(c) for c in s)
+
+
+# ---------------------------------------------------------------------------
+# Small math helpers (cmd/math.go)
+# ---------------------------------------------------------------------------
+
+
+def _min(x: int, y: int) -> int:
+    return x if x < y else y
+
+
+def _max(x: int, y: int) -> int:
+    return x if x > y else y
+
+
+def _abs(x: int) -> int:
+    return -x if x < 0 else x
+
+
+def ceil_div(x: int, y: int) -> int:
+    if x % y == 0:
+        return x // y
+    return x // y + 1
+
+
+# ---------------------------------------------------------------------------
+# Config (pkg/diagram/config.go)
+# ---------------------------------------------------------------------------
+
+
+class ConfigError(Exception):
+    def __init__(self, field, value, message):
+        super().__init__("invalid config: %s = %s (%s)" % (field, value, message))
+
+
+class Config:
+    def __init__(
+        self,
+        use_ascii=False,
+        show_coords=False,
+        verbose=False,
+        box_border_padding=1,
+        padding_between_x=5,
+        padding_between_y=5,
+        graph_direction="LR",
+        style_type="cli",
+        seq_participant_spacing=5,
+        seq_message_spacing=1,
+        seq_self_message_width=4,
+    ):
+        self.use_ascii = use_ascii
+        self.show_coords = show_coords
+        self.verbose = verbose
+        self.box_border_padding = box_border_padding
+        self.padding_between_x = padding_between_x
+        self.padding_between_y = padding_between_y
+        self.graph_direction = graph_direction
+        self.style_type = style_type
+        self.seq_participant_spacing = seq_participant_spacing
+        self.seq_message_spacing = seq_message_spacing
+        self.seq_self_message_width = seq_self_message_width
+
+    def validate(self):
+        for name, val in (
+            ("BoxBorderPadding", self.box_border_padding),
+            ("PaddingBetweenX", self.padding_between_x),
+            ("PaddingBetweenY", self.padding_between_y),
+            ("SequenceParticipantSpacing", self.seq_participant_spacing),
+            ("SequenceMessageSpacing", self.seq_message_spacing),
+        ):
+            if val < 0:
+                raise ConfigError(name, val, "must be non-negative")
+        if self.graph_direction not in ("LR", "TD"):
+            raise ConfigError("GraphDirection", self.graph_direction, 'must be "LR" or "TD"')
+        if self.style_type not in ("cli", "html"):
+            raise ConfigError("StyleType", self.style_type, 'must be "cli" or "html"')
+        if self.seq_self_message_width < 2:
+            raise ConfigError("SequenceSelfMessageWidth", self.seq_self_message_width, "must be at least 2")
+        return self
+
+
+def default_config() -> Config:
+    return Config()
+
+
+# ---------------------------------------------------------------------------
+# Shared parsing helpers (pkg/diagram/utils.go)
+# ---------------------------------------------------------------------------
+
+_NEWLINE_SPLIT = re.compile(r"\n|\\n")
+
+
+def split_lines(text: str) -> List[str]:
+    return _NEWLINE_SPLIT.split(text)
+
+
+def remove_comments(lines: List[str]) -> List[str]:
+    cleaned = []
+    for line in lines:
+        if line.strip().startswith("%%"):
+            continue
+        idx = line.find("%%")
+        if idx != -1:
+            line = line[:idx].strip()
+        if len(line.strip()) > 0:
+            cleaned.append(line)
+    return cleaned
+
+
+# ===========================================================================
+# SEQUENCE DIAGRAMS (pkg/sequence)
+# ===========================================================================
+
+
+class BoxChars:
+    __slots__ = (
+        "top_left", "top_right", "bottom_left", "bottom_right",
+        "horizontal", "vertical", "tee_down", "tee_right", "tee_left",
+        "cross", "arrow_right", "arrow_left", "cross_head", "point_right",
+        "point_left", "circle", "solid_line", "dotted_line",
+        "self_top_right", "self_bottom",
+    )
+
+    def __init__(self, **kw):
+        for k in self.__slots__:
+            setattr(self, k, kw[k])
+
+
+SEQ_ASCII = BoxChars(
+    top_left="+", top_right="+", bottom_left="+", bottom_right="+",
+    horizontal="-", vertical="|", tee_down="+", tee_right="+", tee_left="+",
+    cross="+", arrow_right=">", arrow_left="<", cross_head="x", point_right=")",
+    point_left="(", circle="o", solid_line="-", dotted_line=".",
+    self_top_right="+", self_bottom="+",
+)
+
+SEQ_UNICODE = BoxChars(
+    top_left="┌", top_right="┐", bottom_left="└", bottom_right="┘",
+    horizontal="─", vertical="│", tee_down="┬", tee_right="├", tee_left="┤",
+    cross="┼", arrow_right="►", arrow_left="◄", cross_head="×", point_right=")",
+    point_left="(", circle="o", solid_line="─", dotted_line="┈",
+    self_top_right="┐", self_bottom="┘",
+)
+
+SEQUENCE_KEYWORD = "sequenceDiagram"
+
+# ArrowType constants
+(SOLID_ARROW, DOTTED_ARROW, SOLID_OPEN, DOTTED_OPEN, SOLID_CROSS, DOTTED_CROSS,
+ SOLID_POINT, DOTTED_POINT, BIDIR_SOLID, BIDIR_DOTTED) = range(10)
+
+_DOTTED_ARROWS = {DOTTED_ARROW, DOTTED_OPEN, DOTTED_CROSS, DOTTED_POINT, BIDIR_DOTTED}
+
+
+def _arrow_is_dotted(a):
+    return a in _DOTTED_ARROWS
+
+
+def _arrow_is_bidirectional(a):
+    return a in (BIDIR_SOLID, BIDIR_DOTTED)
+
+
+def _arrow_head(a, chars, rightward):
+    """Return (glyph, has_head)."""
+    if a in (SOLID_ARROW, DOTTED_ARROW, BIDIR_SOLID, BIDIR_DOTTED):
+        return (chars.arrow_right if rightward else chars.arrow_left), True
+    if a in (SOLID_CROSS, DOTTED_CROSS):
+        return chars.cross_head, True
+    if a in (SOLID_POINT, DOTTED_POINT):
+        return (chars.point_right if rightward else chars.point_left), True
+    return "", False
+
+
+# FragmentType
+(FRAG_LOOP, FRAG_OPT, FRAG_ALT, FRAG_PAR, FRAG_CRITICAL, FRAG_BREAK, FRAG_RECT) = range(7)
+_FRAG_NAMES = {
+    FRAG_LOOP: "loop", FRAG_OPT: "opt", FRAG_ALT: "alt", FRAG_PAR: "par",
+    FRAG_CRITICAL: "critical", FRAG_BREAK: "break", FRAG_RECT: "rect",
+}
+_FRAG_KEYWORDS = {
+    "loop": FRAG_LOOP, "opt": FRAG_OPT, "alt": FRAG_ALT, "par": FRAG_PAR,
+    "critical": FRAG_CRITICAL, "break": FRAG_BREAK, "rect": FRAG_RECT,
+}
+_DIVIDER_KEYWORDS = {"else": FRAG_ALT, "and": FRAG_PAR, "option": FRAG_CRITICAL}
+
+# EventKind
+(EV_MESSAGE, EV_FRAG_START, EV_FRAG_DIVIDER, EV_FRAG_END, EV_NOTE) = range(5)
+
+# NotePlacement
+(NOTE_OVER, NOTE_LEFT_OF, NOTE_RIGHT_OF) = range(3)
+
+
+class Participant:
+    def __init__(self, id_, label, index):
+        self.id = id_
+        self.label = label
+        self.index = index
+
+
+class Message:
+    def __init__(self, from_, to, label, arrow_type, central_from=False,
+                 central_to=False, number=0):
+        self.from_ = from_
+        self.to = to
+        self.label = label
+        self.arrow_type = arrow_type
+        self.central_from = central_from
+        self.central_to = central_to
+        self.number = number
+
+
+class Fragment:
+    def __init__(self, type_, label):
+        self.type = type_
+        self.label = label
+
+
+class Note:
+    def __init__(self, placement, participants, text):
+        self.placement = placement
+        self.participants = participants
+        self.text = text
+
+
+class Event:
+    def __init__(self, kind, message=None, fragment=None, note=None):
+        self.kind = kind
+        self.message = message
+        self.fragment = fragment
+        self.note = note
+
+
+class SequenceDiagram:
+    def __init__(self):
+        self.participants = []
+        self.messages = []
+        self.events = []
+        self.autonumber = False
+
+
+_participant_re = re.compile(r'(?i)^\s*participant\s+(?:"([^"]+)"|(\S+))(?:\s+as\s+(.+))?$')
+_message_re = re.compile(
+    r'^\s*(?:"([^"]+)"|([^\s<>(-]+))\s*(\(\))?\s*'
+    r'(<<-->>|<<->>|-->>|--[x)]|-->|->>|-[x)]|->)\s*(\(\))?\s*'
+    r'(?:"([^"]+)"|([^\s<>(-]+))\s*:\s*(.*)$'
+)
+_autonumber_re = re.compile(r'(?i)^\s*autonumber\s*$')
+_fragment_start_re = re.compile(r'(?i)^\s*(loop|opt|alt|par|critical|break|rect)\b\s*(.*)$')
+_fragment_divider_re = re.compile(r'(?i)^\s*(else|and|option)\b\s*(.*)$')
+_rect_color_re = re.compile(r'(?i)^\s*rgba?\([^)]*\)\s*')
+_fragment_end_re = re.compile(r'(?i)^\s*end\s*$')
+_note_re = re.compile(r'(?i)^\s*note\s+(right of|left of|over)\s+([^:]+?)\s*:\s*(.*)$')
+
+
+def is_sequence_diagram(text: str) -> bool:
+    for line in text.split("\n"):
+        t = line.strip()
+        if t == "" or t.startswith("%%"):
+            continue
+        return _has_sequence_keyword(t)
+    return False
+
+
+def _has_sequence_keyword(line: str) -> bool:
+    lower = line.strip().lower()
+    kw = SEQUENCE_KEYWORD.lower()
+    if not lower.startswith(kw):
+        return False
+    rest = lower[len(kw):]
+    return rest == "" or rest[0] in (" ", "\t")
+
+
+def _seq_get_participant(sd, id_, participants):
+    if id_ in participants:
+        return participants[id_]
+    p = Participant(id_, id_, len(sd.participants))
+    sd.participants.append(p)
+    participants[id_] = p
+    return p
+
+
+def _seq_parse_participant(sd, line, participants):
+    m = _participant_re.match(line)
+    if m is None:
+        return False, None
+    id_ = m.group(1) if m.group(1) else m.group(2)
+    label = m.group(3) if m.group(3) else id_
+    label = label.strip('"')
+    if id_ in participants:
+        return True, "duplicate participant %r" % id_
+    p = Participant(id_, label, len(sd.participants))
+    sd.participants.append(p)
+    participants[id_] = p
+    return True, None
+
+
+_ARROW_MAP = {
+    "->>": SOLID_ARROW, "-->>": DOTTED_ARROW, "->": SOLID_OPEN, "-->": DOTTED_OPEN,
+    "-x": SOLID_CROSS, "--x": DOTTED_CROSS, "-)": SOLID_POINT, "--)": DOTTED_POINT,
+    "<<->>": BIDIR_SOLID, "<<-->>": BIDIR_DOTTED,
+}
+
+
+def _seq_parse_message(sd, line, participants):
+    m = _message_re.match(line)
+    if m is None:
+        return False, None
+    from_id = m.group(1) if m.group(1) else m.group(2)
+    central_from = m.group(3) is not None and m.group(3) != ""
+    arrow = m.group(4)
+    central_to = m.group(5) is not None and m.group(5) != ""
+    to_id = m.group(6) if m.group(6) else m.group(7)
+    label = (m.group(8) or "").strip()
+    from_ = _seq_get_participant(sd, from_id, participants)
+    to = _seq_get_participant(sd, to_id, participants)
+    a_type = _ARROW_MAP[arrow]
+    msg_number = 0
+    if sd.autonumber:
+        msg_number = len(sd.messages) + 1
+    msg = Message(from_, to, label, a_type, central_from, central_to, msg_number)
+    sd.messages.append(msg)
+    sd.events.append(Event(EV_MESSAGE, message=msg))
+    return True, None
+
+
+class ParseError(Exception):
+    pass
+
+
+def sequence_parse(text: str) -> SequenceDiagram:
+    text = text.strip()
+    if text == "":
+        raise ParseError("empty input")
+    raw_lines = split_lines(text)
+    lines = remove_comments(raw_lines)
+    if len(lines) == 0:
+        raise ParseError("no content found")
+    if not _has_sequence_keyword(lines[0].strip()):
+        raise ParseError('expected %r keyword' % SEQUENCE_KEYWORD)
+    lines = lines[1:]
+
+    sd = SequenceDiagram()
+    participant_map = {}
+    open_fragments = []
+
+    for i, line in enumerate(lines):
+        trimmed = line.strip()
+        if trimmed == "":
+            continue
+
+        if _autonumber_re.match(trimmed):
+            sd.autonumber = True
+            continue
+
+        m = _note_re.match(trimmed)
+        if m is not None:
+            placement = NOTE_OVER
+            kw = m.group(1).lower()
+            if kw == "left of":
+                placement = NOTE_LEFT_OF
+            elif kw == "right of":
+                placement = NOTE_RIGHT_OF
+            parts = []
+            for pid in m.group(2).split(","):
+                pid = pid.strip().strip('"')
+                if pid != "":
+                    parts.append(_seq_get_participant(sd, pid, participant_map))
+            if len(parts) == 0:
+                raise ParseError("line %d: note without a participant" % (i + 2))
+            note_text = m.group(3).strip()
+            low = note_text.lower()
+            for pre in ("nowrap:", "wrap:"):
+                if low.startswith(pre):
+                    note_text = note_text[len(pre):].strip()
+                    break
+            sd.events.append(Event(EV_NOTE, note=Note(placement, parts, note_text)))
+            continue
+
+        matched, err = _seq_parse_participant(sd, trimmed, participant_map)
+        if err is not None:
+            raise ParseError("line %d: %s" % (i + 2, err))
+        if matched:
+            continue
+
+        matched, err = _seq_parse_message(sd, trimmed, participant_map)
+        if err is not None:
+            raise ParseError("line %d: %s" % (i + 2, err))
+        if matched:
+            continue
+
+        m = _fragment_start_re.match(trimmed)
+        if m is not None:
+            f_type = _FRAG_KEYWORDS[m.group(1).lower()]
+            label = m.group(2).strip()
+            if f_type == FRAG_RECT:
+                label = _rect_color_re.sub("", label).strip()
+            sd.events.append(Event(EV_FRAG_START, fragment=Fragment(f_type, label)))
+            open_fragments.append(f_type)
+            continue
+
+        m = _fragment_divider_re.match(trimmed)
+        if m is not None:
+            want = _DIVIDER_KEYWORDS[m.group(1).lower()]
+            if len(open_fragments) == 0 or open_fragments[-1] != want:
+                raise ParseError('line %d: %r outside a matching %s block'
+                                 % (i + 2, trimmed, _FRAG_NAMES[want]))
+            sd.events.append(Event(EV_FRAG_DIVIDER, fragment=Fragment(want, m.group(2).strip())))
+            continue
+
+        if _fragment_end_re.match(trimmed):
+            if len(open_fragments) == 0:
+                raise ParseError('line %d: %r without a matching fragment opener'
+                                 % (i + 2, trimmed))
+            sd.events.append(Event(EV_FRAG_END))
+            open_fragments.pop()
+            continue
+
+        raise ParseError('line %d: invalid syntax: %r' % (i + 2, trimmed))
+
+    if len(open_fragments) > 0:
+        raise ParseError('unclosed fragment: missing %d "end"' % len(open_fragments))
+    if len(sd.participants) == 0:
+        raise ParseError("no participants found")
+    return sd
+
+
+# --- sequence renderer (pkg/sequence/renderer.go) --------------------------
+
+_SEQ_BOX_PAD_LR = 2
+_SEQ_MIN_BOX_WIDTH = 3
+_SEQ_BOX_BORDER_WIDTH = 2
+_SEQ_LABEL_LEFT_MARGIN = 2
+_SEQ_LABEL_BUFFER_SPACE = 10
+_SEQ_FRAME_INDENT = 2
+_SEQ_FRAME_LABEL_INSET = 2
+_SEQ_DEF_SELF_WIDTH = 4
+_SEQ_DEF_MSG_SPACING = 1
+_SEQ_DEF_PART_SPACING = 5
+
+
+class SeqLayout:
+    def __init__(self):
+        self.participant_widths = []
+        self.participant_centers = []
+        self.total_width = 0
+        self.message_spacing = 0
+        self.self_message_width = 0
+
+
+def _seq_calculate_layout(sd, config):
+    participant_spacing = config.seq_participant_spacing
+    if participant_spacing <= 0:
+        participant_spacing = _SEQ_DEF_PART_SPACING
+
+    widths = []
+    for p in sd.participants:
+        w = string_width(p.label) + _SEQ_BOX_PAD_LR
+        if w < _SEQ_MIN_BOX_WIDTH:
+            w = _SEQ_MIN_BOX_WIDTH
+        widths.append(w)
+
+    centers = [0] * len(sd.participants)
+    current_x = 0
+    for i in range(len(sd.participants)):
+        box_width = widths[i] + _SEQ_BOX_BORDER_WIDTH
+        if i == 0:
+            centers[i] = box_width // 2
+            current_x = box_width
+        else:
+            current_x += participant_spacing
+            centers[i] = current_x + box_width // 2
+            current_x += box_width
+
+    last = len(sd.participants) - 1
+    total_width = centers[last] + (widths[last] + _SEQ_BOX_BORDER_WIDTH) // 2
+
+    msg_spacing = config.seq_message_spacing
+    if msg_spacing <= 0:
+        msg_spacing = _SEQ_DEF_MSG_SPACING
+    self_width = config.seq_self_message_width
+    if self_width <= 0:
+        self_width = _SEQ_DEF_SELF_WIDTH
+
+    lay = SeqLayout()
+    lay.participant_widths = widths
+    lay.participant_centers = centers
+    lay.total_width = total_width
+    lay.message_spacing = msg_spacing
+    lay.self_message_width = self_width
+    return lay
+
+
+def _pad_runes(s, width):
+    r = list(s)
+    while len(r) < width:
+        r.append(" ")
+    return r
+
+
+def _seq_build_line(participants, layout, draw):
+    sb = []
+    cur_len = 0
+    for i in range(len(participants)):
+        box_width = layout.participant_widths[i] + _SEQ_BOX_BORDER_WIDTH
+        left = layout.participant_centers[i] - box_width // 2
+        needed = left - cur_len
+        if needed > 0:
+            sb.append(" " * needed)
+            cur_len += needed
+        piece = draw(i)
+        sb.append(piece)
+        cur_len += len(piece)
+    return "".join(sb)
+
+
+def _seq_build_lifeline(layout, chars):
+    line = [" "] * (layout.total_width + 1)
+    for c in layout.participant_centers:
+        if c < len(line):
+            line[c] = chars.vertical
+    return "".join(line).rstrip(" ")
+
+
+def _seq_fragment_depth(events):
+    max_depth = 0
+    cur = 0
+    for ev in events:
+        if ev.kind == EV_FRAG_START:
+            cur += 1
+            if cur > max_depth:
+                max_depth = cur
+        elif ev.kind == EV_FRAG_END:
+            cur -= 1
+    return max_depth
+
+
+def _seq_matching_fragment_end(events, start):
+    depth = 0
+    for i in range(start, len(events)):
+        if events[i].kind == EV_FRAG_START:
+            depth += 1
+        elif events[i].kind == EV_FRAG_END:
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(events)
+
+
+def _seq_shift_layout_right(layout, n):
+    for i in range(len(layout.participant_centers)):
+        layout.participant_centers[i] += n
+    layout.total_width += n
+
+
+def _seq_note_runes(note):
+    text = note.text
+    for br in ("<br/>", "<br />", "<br>"):
+        text = text.replace(br, " ")
+    return list(text)
+
+
+def _seq_note_box_columns(note, layout):
+    box_w = len(_seq_note_runes(note)) + 4
+    centers = layout.participant_centers
+    first = centers[note.participants[0].index]
+    last = centers[note.participants[-1].index]
+
+    if note.placement == NOTE_RIGHT_OF:
+        left = first + 2
+        return left, left + box_w - 1
+    if note.placement == NOTE_LEFT_OF:
+        right = first - 2
+        return right - box_w + 1, right
+    # NOTE_OVER
+    lo, hi = first, last
+    if hi < lo:
+        lo, hi = hi, lo
+    left, right = lo - 1, hi + 1
+    extra = box_w - (right - left + 1)
+    if extra > 0:
+        left -= extra // 2
+        right += extra - extra // 2
+    return left, right
+
+
+def _seq_note_left_gutter(events, layout):
+    gutter = 0
+    depth = 0
+    for ev in events:
+        if ev.kind == EV_FRAG_START:
+            depth += 1
+        elif ev.kind == EV_FRAG_END:
+            depth -= 1
+        elif ev.kind == EV_NOTE:
+            left, _ = _seq_note_box_columns(ev.note, layout)
+            extra = 0
+            if depth > 0:
+                extra = 1 + (depth - 1) * _SEQ_FRAME_INDENT
+            need = -left + extra
+            if need > gutter:
+                gutter = need
+    return gutter
+
+
+def _seq_render_note(note, layout, chars):
+    runes = _seq_note_runes(note)
+    left, right = _seq_note_box_columns(note, layout)
+    if left < 0:
+        left = 0
+
+    def border(l, r):
+        line = _pad_runes(_seq_build_lifeline(layout, chars), right + 1)
+        line[left] = l
+        for c in range(left + 1, right):
+            line[c] = chars.horizontal
+        line[right] = r
+        return "".join(line).rstrip(" ")
+
+    mid = _pad_runes(_seq_build_lifeline(layout, chars), right + 1)
+    for c in range(left, right + 1):
+        mid[c] = " "
+    mid[left] = chars.vertical
+    mid[right] = chars.vertical
+    inner = right - left - 1
+    col = left + 1 + (inner - len(runes)) // 2
+    for ch in runes:
+        if left < col < right:
+            mid[col] = ch
+        col += 1
+
+    return [
+        border(chars.top_left, chars.top_right),
+        "".join(mid).rstrip(" "),
+        border(chars.bottom_left, chars.bottom_right),
+    ]
+
+
+def _seq_involved_participants(events, layout):
+    min_idx = -1
+    max_idx = -1
+
+    def note(idx):
+        nonlocal min_idx, max_idx
+        if min_idx == -1 or idx < min_idx:
+            min_idx = idx
+        if max_idx == -1 or idx > max_idx:
+            max_idx = idx
+
+    for ev in events:
+        if ev.kind == EV_MESSAGE:
+            note(ev.message.from_.index)
+            note(ev.message.to.index)
+    if min_idx == -1:
+        return 0, len(layout.participant_centers) - 1
+    return min_idx, max_idx
+
+
+def _seq_split_sections(inner):
+    sections = []
+    labels = []
+    cur = []
+    depth = 0
+    for ev in inner:
+        if ev.kind == EV_FRAG_START:
+            depth += 1
+        elif ev.kind == EV_FRAG_END:
+            depth -= 1
+        elif ev.kind == EV_FRAG_DIVIDER:
+            if depth == 0:
+                sections.append(cur)
+                labels.append(ev.fragment.label)
+                cur = []
+                continue
+        cur.append(ev)
+    sections.append(cur)
+    return sections, labels
+
+
+def _seq_fragment_border(layout, chars, left_col, right_col, label, top):
+    corners = (chars.top_left, chars.top_right) if top \
+        else (chars.bottom_left, chars.bottom_right)
+    return _seq_frame_rule(layout, chars, left_col, right_col, label,
+                           corners, chars.horizontal)
+
+
+def _seq_frame_rule(layout, chars, left_col, right_col, label, corners, fill):
+    line = _pad_runes(_seq_build_lifeline(layout, chars), right_col + 1)
+    line[left_col] = corners[0]
+    for c in range(left_col + 1, right_col):
+        line[c] = fill
+    line[right_col] = corners[1]
+    if label != "":
+        col = left_col + _SEQ_FRAME_LABEL_INSET
+        for r in "[" + label + "]":
+            if col < right_col:
+                line[col] = r
+                col += 1
+    return "".join(line).rstrip(" ")
+
+
+def _seq_fragment_divider(layout, chars, left_col, right_col, label):
+    return _seq_frame_rule(layout, chars, left_col, right_col, label,
+                           (chars.tee_right, chars.tee_left), chars.dotted_line)
+
+
+def _seq_overlay_frame_sides(line, chars, left_col, right_col):
+    r = _pad_runes(line, right_col + 1)
+    r[left_col] = chars.vertical
+    r[right_col] = chars.vertical
+    return "".join(r).rstrip(" ")
+
+
+def _seq_wrap_fragment(frag, inner, layout, chars):
+    sections, divider_labels = _seq_split_sections(inner)
+    body = []
+    divider_at = {}
+    for i, sec in enumerate(sections):
+        if i > 0:
+            divider_at[len(body)] = divider_labels[i - 1]
+            body.append("")
+        body.extend(_seq_render_events(sec, layout, chars))
+    body.append(_seq_build_lifeline(layout, chars))
+
+    left_idx, right_idx = _seq_involved_participants(inner, layout)
+    left_col = layout.participant_centers[left_idx] - _SEQ_FRAME_INDENT * (_seq_fragment_depth(inner) + 1)
+    right_col = layout.participant_centers[right_idx] + _SEQ_FRAME_INDENT
+
+    rd = 0
+    for ev in inner:
+        if ev.kind == EV_FRAG_START:
+            rd += 1
+        elif ev.kind == EV_FRAG_END:
+            rd -= 1
+        elif ev.kind == EV_NOTE:
+            nl, nr = _seq_note_box_columns(ev.note, layout)
+            x = nl - 1 - rd * _SEQ_FRAME_INDENT
+            if x < left_col:
+                left_col = x
+            x = nr + 1 + rd * _SEQ_FRAME_INDENT
+            if x > right_col:
+                right_col = x
+    if left_col < 0:
+        left_col = 0
+
+    for l in body:
+        w = len(l) + 1
+        if w > right_col:
+            right_col = w
+
+    label = _FRAG_NAMES[frag.type]
+    if frag.label != "":
+        label += " " + frag.label
+
+    def widen(text):
+        nonlocal right_col
+        end = left_col + _SEQ_FRAME_LABEL_INSET + len("[" + text + "]") + 1
+        if end > right_col:
+            right_col = end
+
+    widen(label)
+    for l in divider_labels:
+        if l != "":
+            widen(l)
+
+    out = [_seq_fragment_border(layout, chars, left_col, right_col, label, True)]
+    for idx, l in enumerate(body):
+        if idx in divider_at:
+            out.append(_seq_fragment_divider(layout, chars, left_col, right_col, divider_at[idx]))
+        else:
+            out.append(_seq_overlay_frame_sides(l, chars, left_col, right_col))
+    out.append(_seq_fragment_border(layout, chars, left_col, right_col, "", False))
+    return out
+
+
+def _seq_render_message(msg, layout, chars):
+    lines = []
+    from_ = layout.participant_centers[msg.from_.index]
+    to = layout.participant_centers[msg.to.index]
+
+    label = msg.label
+    if msg.number > 0:
+        label = "%d. %s" % (msg.number, msg.label)
+
+    if label != "":
+        start = _min(from_, to) + _SEQ_LABEL_LEFT_MARGIN
+        label_width = string_width(label)
+        w = _max(layout.total_width, start + label_width) + _SEQ_LABEL_BUFFER_SPACE
+        line = list(_seq_build_lifeline(layout, chars))
+        if len(line) < w:
+            line.extend([" "] * (w - len(line)))
+        col = start
+        for r in label:
+            if col < len(line):
+                line[col] = r
+                col += 1
+        lines.append("".join(line).rstrip(" "))
+
+    line = list(_seq_build_lifeline(layout, chars))
+    style = chars.dotted_line if _arrow_is_dotted(msg.arrow_type) else chars.solid_line
+
+    if from_ < to:
+        line[from_] = chars.tee_right
+        for i in range(from_ + 1, to):
+            line[i] = style
+        head, ok = _arrow_head(msg.arrow_type, chars, True)
+        if ok:
+            line[to - 1] = head
+        if _arrow_is_bidirectional(msg.arrow_type):
+            line[from_ + 1] = chars.arrow_left
+        line[to] = chars.vertical
+    else:
+        line[to] = chars.vertical
+        line[to + 1] = style
+        head, ok = _arrow_head(msg.arrow_type, chars, False)
+        if ok:
+            line[to + 1] = head
+        for i in range(to + 2, from_):
+            line[i] = style
+        if _arrow_is_bidirectional(msg.arrow_type):
+            line[from_ - 1] = chars.arrow_right
+        line[from_] = chars.tee_left
+    if msg.central_from:
+        line[from_] = chars.circle
+    if msg.central_to:
+        line[to] = chars.circle
+    lines.append("".join(line).rstrip(" "))
+    return lines
+
+
+def _seq_render_self_message(msg, layout, chars):
+    lines = []
+    center = layout.participant_centers[msg.from_.index]
+    width = layout.self_message_width
+
+    def ensure_width(l):
+        target = layout.total_width + width + 1
+        r = list(l)
+        if len(r) < target:
+            r.extend([" "] * (target - len(r)))
+        return r
+
+    label = msg.label
+    if msg.number > 0:
+        label = "%d. %s" % (msg.number, msg.label)
+
+    if label != "":
+        line = ensure_width(_seq_build_lifeline(layout, chars))
+        start = center + _SEQ_LABEL_LEFT_MARGIN
+        label_width = string_width(label)
+        needed = start + label_width + _SEQ_LABEL_BUFFER_SPACE
+        if len(line) < needed:
+            line.extend([" "] * (needed - len(line)))
+        col = start
+        for c in label:
+            if col < len(line):
+                line[col] = c
+                col += 1
+        lines.append("".join(line).rstrip(" "))
+
+    style = chars.dotted_line if _arrow_is_dotted(msg.arrow_type) else chars.horizontal
+
+    l1 = ensure_width(_seq_build_lifeline(layout, chars))
+    l1[center] = chars.tee_right
+    if msg.central_from:
+        l1[center] = chars.circle
+    for i in range(1, width):
+        l1[center + i] = style
+    l1[center + width - 1] = chars.self_top_right
+    lines.append("".join(l1).rstrip(" "))
+
+    l2 = ensure_width(_seq_build_lifeline(layout, chars))
+    l2[center + width - 1] = chars.vertical
+    lines.append("".join(l2).rstrip(" "))
+
+    l3 = ensure_width(_seq_build_lifeline(layout, chars))
+    l3[center] = chars.vertical
+    if msg.central_to:
+        l3[center] = chars.circle
+    l3[center + 1] = style
+    head, ok = _arrow_head(msg.arrow_type, chars, False)
+    if ok:
+        l3[center + 1] = head
+    for i in range(2, width - 1):
+        l3[center + i] = style
+    l3[center + width - 1] = chars.self_bottom
+    lines.append("".join(l3).rstrip(" "))
+
+    return lines
+
+
+def _seq_render_events(events, layout, chars):
+    lines = []
+    i = 0
+    while i < len(events):
+        ev = events[i]
+        if ev.kind == EV_FRAG_START:
+            end = _seq_matching_fragment_end(events, i)
+            lines.extend(_seq_wrap_fragment(ev.fragment, events[i + 1:end], layout, chars))
+            i = end + 1
+            continue
+        if ev.kind in (EV_FRAG_END, EV_FRAG_DIVIDER):
+            i += 1
+            continue
+        if ev.kind == EV_NOTE:
+            for _ in range(layout.message_spacing):
+                lines.append(_seq_build_lifeline(layout, chars))
+            lines.extend(_seq_render_note(ev.note, layout, chars))
+            i += 1
+            continue
+        # EV_MESSAGE
+        msg = ev.message
+        for _ in range(layout.message_spacing):
+            lines.append(_seq_build_lifeline(layout, chars))
+        if msg.from_ is msg.to:
+            lines.extend(_seq_render_self_message(msg, layout, chars))
+        else:
+            lines.extend(_seq_render_message(msg, layout, chars))
+        i += 1
+    return lines
+
+
+def sequence_render(sd, config):
+    if sd is None or len(sd.participants) == 0:
+        raise ParseError("no participants")
+    if config is None:
+        config = default_config()
+    chars = SEQ_ASCII if config.use_ascii else SEQ_UNICODE
+    layout = _seq_calculate_layout(sd, config)
+
+    events = sd.events
+    if len(events) == 0:
+        events = [Event(EV_MESSAGE, message=m) for m in sd.messages]
+
+    gutter = (_seq_fragment_depth(events) - 1) * _SEQ_FRAME_INDENT
+    if gutter > 0:
+        _seq_shift_layout_right(layout, gutter)
+    gutter = _seq_note_left_gutter(events, layout)
+    if gutter > 0:
+        _seq_shift_layout_right(layout, gutter)
+
+    lines = []
+    lines.append(_seq_build_line(sd.participants, layout, lambda i:
+        chars.top_left + chars.horizontal * layout.participant_widths[i] + chars.top_right))
+
+    def _name_line(i):
+        return _center_in(sd.participants[i].label, layout.participant_widths[i],
+                          chars.vertical, chars.vertical)
+
+    lines.append(_seq_build_line(sd.participants, layout, _name_line))
+
+    def _bottom_line(i):
+        w = layout.participant_widths[i]
+        return (chars.bottom_left + chars.horizontal * (w // 2) + chars.tee_down +
+                chars.horizontal * (w - w // 2 - 1) + chars.bottom_right)
+
+    lines.append(_seq_build_line(sd.participants, layout, _bottom_line))
+
+    lines.extend(_seq_render_events(events, layout, chars))
+    lines.append(_seq_build_lifeline(layout, chars))
+    return "\n".join(lines) + "\n"
+
+
+# ===========================================================================
+# ENTITY-RELATIONSHIP DIAGRAMS (pkg/er)
+# ===========================================================================
+
+ER_KEYWORD = "erDiagram"
+
+# Cardinality
+(ER_ONLY_ONE, ER_ZERO_OR_ONE, ER_ZERO_OR_MORE, ER_ONE_OR_MORE) = range(4)
+
+_CARD_ANY = {
+    "||": ER_ONLY_ONE,
+    "|o": ER_ZERO_OR_ONE, "o|": ER_ZERO_OR_ONE,
+    "}o": ER_ZERO_OR_MORE, "o{": ER_ZERO_OR_MORE,
+    "}|": ER_ONE_OR_MORE, "|{": ER_ONE_OR_MORE,
+    "1": ER_ONLY_ONE, "only one": ER_ONLY_ONE, "one": ER_ONLY_ONE,
+    "zero or one": ER_ZERO_OR_ONE, "one or zero": ER_ZERO_OR_ONE,
+    "0+": ER_ZERO_OR_MORE, "zero or more": ER_ZERO_OR_MORE, "zero or many": ER_ZERO_OR_MORE,
+    "many": ER_ZERO_OR_MORE, "many(0)": ER_ZERO_OR_MORE,
+    "1+": ER_ONE_OR_MORE, "one or more": ER_ONE_OR_MORE, "one or many": ER_ONE_OR_MORE,
+    "many(1)": ER_ONE_OR_MORE,
+}
+
+_er_line_op_re = re.compile(r'[-.]{2}')
+_er_direction_re = re.compile(r'(?i)^\s*direction\s+\S+\s*$')
+_er_style_line_re = re.compile(r'(?i)^\s*(classDef|class|style)\b')
+_er_acc_line_re = re.compile(r'(?i)^\s*(accTitle|accDescr)\s*[:{]')
+_er_entity_header_re = re.compile(r'^\s*(?:"([^"]+)"|([^\s{}["]+))(?:\s*\[\s*"?([^"\]]+?)"?\s*\]|\s+(\S+))?\s*\{\s*$')
+_er_lone_entity_re = re.compile(r'^\s*(?:"([^"]+)"|([^\s{}:|"\[]+))(?:\s*\[\s*"?([^"\]]+?)"?\s*\]|\s+(\S+))?\s*$')
+_er_attr_key_re = re.compile(r'^(?:PK|FK|UK)(?:\s*,\s*(?:PK|FK|UK))*$')
+_er_empty_block_re = re.compile(r'\s*\{\s*\}\s*$')
+_er_class_shorthand_re = re.compile(r':::[\w,-]+')
+_er_subgraph_re = re.compile(r'^subgraph\b')
+
+
+class Attribute:
+    def __init__(self, type_="", name="", keys=None, comment=""):
+        self.type = type_
+        self.name = name
+        self.keys = keys if keys is not None else []
+        self.comment = comment
+
+
+class Entity:
+    def __init__(self, name, display):
+        self.name = name
+        self.display = display
+        self.attributes = []
+
+
+class Relationship:
+    def __init__(self, left, right, left_card, right_card, identifying, label):
+        self.left = left
+        self.right = right
+        self.left_card = left_card
+        self.right_card = right_card
+        self.identifying = identifying
+        self.label = label
+
+
+class ErDiagram:
+    def __init__(self):
+        self.entities = []
+        self.relationships = []
+        self.by_name = {}
+
+    def entity(self, name):
+        if name in self.by_name:
+            return self.by_name[name]
+        e = Entity(name, name)
+        self.by_name[name] = e
+        self.entities.append(e)
+        return e
+
+
+def is_er_diagram(text):
+    for line in text.split("\n"):
+        t = line.strip()
+        if t == "" or t.startswith("%%"):
+            continue
+        low = t.lower()
+        return low == ER_KEYWORD.lower() or low.startswith(ER_KEYWORD.lower() + " ")
+    return False
+
+
+def _first_non_empty(a, b):
+    return a if a else b
+
+
+def _er_strip_comment(line):
+    in_quote = False
+    i = 0
+    n = len(line)
+    while i < n:
+        c = line[i]
+        if c == '"':
+            in_quote = not in_quote
+        elif (not in_quote) and c == '%' and i + 1 < n and line[i + 1] == '%':
+            return line[:i].rstrip(" \t")
+        i += 1
+    return line
+
+
+def _er_strip_class_shorthand(line):
+    parts = line.split('"')
+    for i in range(0, len(parts), 2):
+        parts[i] = _er_class_shorthand_re.sub("", parts[i])
+    return '"'.join(parts)
+
+
+def _er_split_attr_tokens(s):
+    toks = []
+    cur = []
+    depth = 0
+    in_tick = False
+    for r in s:
+        if r == '`':
+            in_tick = not in_tick
+            cur.append(r)
+        elif r == '(' and not in_tick:
+            depth += 1
+            cur.append(r)
+        elif r == ')' and not in_tick:
+            if depth > 0:
+                depth -= 1
+            cur.append(r)
+        elif (r == ' ' or r == '\t') and depth == 0 and not in_tick:
+            if cur:
+                toks.append("".join(cur))
+                cur = []
+        else:
+            cur.append(r)
+    if cur:
+        toks.append("".join(cur))
+    return toks
+
+
+def _er_parse_attribute(line):
+    comment = ""
+    idx = line.find('"')
+    if idx != -1:
+        end = line.rfind('"')
+        if end > idx:
+            comment = line[idx + 1:end]
+        else:
+            comment = line[idx + 1:]
+        line = line[:idx].strip()
+    fields = _er_split_attr_tokens(line)
+    if len(fields) < 2:
+        raise ParseError("attribute needs a type and name: %r" % line)
+    attr = Attribute(
+        type_=fields[0].strip("`"),
+        name=fields[1].strip("`"),
+        comment=comment,
+    )
+    rest = " ".join(fields[2:]).strip()
+    if rest != "":
+        if not _er_attr_key_re.match(rest):
+            raise ParseError("unexpected attribute tokens %r" % rest)
+        for k in rest.split(","):
+            attr.keys.append(k.strip())
+    return attr
+
+
+def _er_parse_attribute_block(lines, start):
+    attrs = []
+    for i in range(start, len(lines)):
+        line = lines[i].strip()
+        if line == "" or line.startswith("//"):
+            continue
+        closes = line.endswith("}")
+        if closes:
+            line = line[:-1].strip()
+        if line != "":
+            try:
+                attr = _er_parse_attribute(line)
+            except ParseError as e:
+                raise ParseError("line %d: %s" % (i + 1, str(e)))
+            attrs.append(attr)
+        if closes:
+            return attrs, i
+    raise ParseError("unclosed attribute block (missing '}')")
+
+
+def _er_find_word_op(s):
+    for w in (" optionally to ", " to "):
+        i = s.find(w)
+        if i >= 0:
+            return i, w
+    return -1, ""
+
+
+def _er_split_entity_card(part, entity_first):
+    part = part.strip()
+    if entity_first:
+        if part.startswith('"'):
+            end = part[1:].find('"')
+            if end >= 0:
+                return part[1:end + 1], part[end + 2:].strip()
+        toks = part.split()
+        if len(toks) == 0:
+            return "", ""
+        return toks[0].strip('"'), " ".join(toks[1:])
+    if part.endswith('"'):
+        start = part[:len(part) - 1].rfind('"')
+        if start >= 0:
+            return part[start + 1:len(part) - 1], part[:start].strip()
+    toks = part.split()
+    if len(toks) == 0:
+        return "", ""
+    return toks[-1].strip('"'), " ".join(toks[:-1])
+
+
+def _er_parse_relationship(d, line):
+    colon = line.find(":")
+    if colon < 0:
+        return False
+    main = line[:colon].strip()
+    label = " ".join(line[colon + 1:].strip().strip('"').split())
+
+    m = _er_line_op_re.search(main)
+    if m is not None:
+        left = main[:m.start()].strip()
+        right = main[m.end():].strip()
+        identifying = main[m.start():m.end()] == "--"
+    else:
+        i, w = _er_find_word_op(main)
+        if i >= 0:
+            left = main[:i].strip()
+            right = main[i + len(w):].strip()
+            identifying = w == " to "
+        else:
+            return False
+
+    e1, lcard = _er_split_entity_card(left, True)
+    e2, rcard = _er_split_entity_card(right, False)
+    lc = _CARD_ANY.get(lcard.lower())
+    rc = _CARD_ANY.get(rcard.lower())
+    if e1 == "" or e2 == "" or lc is None or rc is None:
+        return False
+    d.entity(e1)
+    d.entity(e2)
+    d.relationships.append(Relationship(e1, e2, lc, rc, identifying, label))
+    return True
+
+
+def er_parse(text):
+    if not is_er_diagram(text):
+        raise ParseError('expected %r keyword' % ER_KEYWORD)
+    lines = split_lines(text.strip())
+    lines = [_er_strip_comment(l) for l in lines]
+
+    d = ErDiagram()
+    seen_keyword = False
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line == "":
+            i += 1
+            continue
+        if not seen_keyword:
+            seen_keyword = True
+            i += 1
+            continue
+
+        if _er_acc_line_re.match(line):
+            if line.endswith("{"):
+                i += 1
+                while i < len(lines) and "}" not in lines[i]:
+                    i += 1
+            i += 1
+            continue
+        if _er_direction_re.match(line):
+            i += 1
+            continue
+
+        if _er_subgraph_re.match(line) or line == "end":
+            raise ParseError("line %d: er subgraphs are not supported" % (i + 1))
+
+        if ":::" in line:
+            line = _er_strip_class_shorthand(line)
+
+        if _er_empty_block_re.search(line):
+            line = _er_empty_block_re.sub("", line).strip()
+
+        m = _er_entity_header_re.match(line)
+        if m is not None:
+            name = _first_non_empty(m.group(1), m.group(2))
+            e = d.entity(name)
+            alias = _first_non_empty(m.group(3), m.group(4))
+            if alias:
+                e.display = alias
+            try:
+                attrs, nxt = _er_parse_attribute_block(lines, i + 1)
+            except ParseError as ex:
+                raise ParseError("entity %r: %s" % (name, str(ex)))
+            e.attributes.extend(attrs)
+            i = nxt
+            i += 1
+            continue
+
+        if _er_parse_relationship(d, line):
+            i += 1
+            continue
+
+        if _er_style_line_re.match(line):
+            i += 1
+            continue
+
+        m = _er_lone_entity_re.match(line)
+        if m is not None:
+            e = d.entity(_first_non_empty(m.group(1), m.group(2)))
+            alias = _first_non_empty(m.group(3), m.group(4))
+            if alias:
+                e.display = alias
+            i += 1
+            continue
+
+        raise ParseError("line %d: invalid syntax: %r" % (i + 1, line))
+
+    return d
+
+
+# --- ER renderer glyphs & entity rendering (pkg/er/renderer.go) ------------
+
+class Glyphs:
+    __slots__ = ("h", "v", "tl", "tr", "bl", "br", "tee_d", "tee_u",
+                 "tee_l", "tee_r", "cross", "hd", "vd")
+
+    def __init__(self, *values):
+        for name, val in zip(self.__slots__, values):
+            setattr(self, name, val)
+
+
+ER_UNICODE_GLYPHS = Glyphs('─', '│', '┌', '┐', '└', '┘', '┬', '┴', '┤', '├', '┼', '┈', '┊')
+ER_ASCII_GLYPHS = Glyphs('-', '|', '+', '+', '+', '+', '+', '+', '+', '+', '+', '.', ':')
+
+
+def _er_block_width(lines):
+    w = 0
+    for l in lines:
+        lw = string_width(l)
+        if lw > w:
+            w = lw
+    return w
+
+
+def _center_in(text, inner, left, right):
+    """Wrap `text` centered within `inner` columns, framed by left/right."""
+    pad = inner - string_width(text)
+    return left + " " * (pad // 2) + text + " " * (pad - pad // 2) + right
+
+
+def _er_render_entity(e, g, min_inner):
+    if len(e.attributes) == 0:
+        inner = _max(string_width(e.display) + 2, min_inner)
+        return [
+            g.tl + g.h * inner + g.tr,
+            _center_in(e.display, inner, g.v, g.v),
+            g.bl + g.h * inner + g.br,
+        ]
+
+    rows = []
+    has = [True, True, False, False]
+    for a in e.attributes:
+        row = [a.type, a.name, ",".join(a.keys), a.comment]
+        rows.append(row)
+        if row[2] != "":
+            has[2] = True
+        if row[3] != "":
+            has[3] = True
+
+    cols = [c for c in range(4) if has[c]]
+    width = {}
+    for c in cols:
+        width[c] = 0
+        for r in rows:
+            w = string_width(r[c])
+            if w > width[c]:
+                width[c] = w
+
+    inner = 0
+    for i, c in enumerate(cols):
+        inner += width[c] + 2
+        if i > 0:
+            inner += 1
+
+    need = _max(string_width(e.display) + 2, min_inner)
+    if need > inner and len(cols) > 0:
+        width[cols[-1]] += need - inner
+        inner = need
+
+    def pad(s, w):
+        return " " + s + " " * (w - string_width(s)) + " "
+
+    def rule(left, mid, right):
+        b = [left]
+        for i, c in enumerate(cols):
+            if i > 0:
+                b.append(mid)
+            b.append(g.h * (width[c] + 2))
+        b.append(right)
+        return "".join(b)
+
+    out = []
+    out.append(g.tl + g.h * inner + g.tr)
+    out.append(_center_in(e.display, inner, g.v, g.v))
+    out.append(rule(g.tee_r, g.tee_d, g.tee_l))
+    for r in rows:
+        b = [g.v]
+        for i, c in enumerate(cols):
+            if i > 0:
+                b.append(g.v)
+            b.append(pad(r[c], width[c]))
+        b.append(g.v)
+        out.append("".join(b))
+    out.append(rule(g.bl, g.tee_u, g.br))
+    return out
+
+
+# --- ER canvas & layout (pkg/er/layout.go) ---------------------------------
+
+def _er_sign(n):
+    if n > 0:
+        return 1
+    if n < 0:
+        return -1
+    return 0
+
+
+class Canvas:
+    def __init__(self):
+        self.rows = []
+
+    def ensure(self, x, y):
+        while len(self.rows) <= y:
+            self.rows.append([])
+        while len(self.rows[y]) <= x:
+            self.rows[y].append(" ")
+
+    def set(self, x, y, r):
+        if x < 0 or y < 0:
+            return
+        self.ensure(x, y)
+        self.rows[y][x] = r
+
+    def at(self, x, y):
+        if y < 0 or y >= len(self.rows) or x < 0 or x >= len(self.rows[y]):
+            return " "
+        return self.rows[y][x]
+
+    def stamp(self, x0, y0, block):
+        for dy, line in enumerate(block):
+            x = x0
+            for r in line:
+                self.set(x, y0 + dy, r)
+                w = rune_width(r)
+                if w == 2:
+                    self.set(x + 1, y0 + dy, "\x00")
+                x += w
+
+    def to_string(self):
+        b = []
+        for row in self.rows:
+            line = [r for r in row if r != "\x00"]
+            b.append("".join(line).rstrip(" "))
+            b.append("\n")
+        return "".join(b)
+
+
+# side
+(ER_SIDE_T, ER_SIDE_B) = range(2)
+
+# direction bits
+_dN = 1
+_dS = 2
+_dE = 4
+_dW = 8
+
+
+class PlacedEntity:
+    def __init__(self, entity, lines, row, col):
+        self.entity = entity
+        self.lines = lines
+        self.x = 0
+        self.y = 0
+        self.w = _er_block_width(lines)
+        self.h = len(lines)
+        self.row = row
+        self.col = col
+
+
+class ErLayout:
+    def __init__(self):
+        self.by_name = {}
+        self.placed = []
+        self.lanes = 0
+        self.gut_w = 0
+        self.v_gut_x = []
+        self.h_gut_y = []
+
+    def gutter_y(self, e, lane):
+        if e.s == ER_SIDE_B:
+            return self.h_gut_y[e.p.row + 1] + lane
+        return self.h_gut_y[e.p.row] + lane
+
+    def trunk_x(self, a, b, lane):
+        return self.v_gut_x[_min(a.col, b.col) + 1] + self.gut_w - self.lanes + lane
+
+
+def _er_place_entities(d, g):
+    import math
+    n = len(d.entities)
+    cols = int(math.ceil(math.sqrt(float(n)))) if n > 0 else 0
+    if cols < 1:
+        cols = 1
+    rows = (n + cols - 1) // cols
+
+    lanes = len(d.relationships)
+    if lanes < 1:
+        lanes = 1
+
+    max_label = 0
+    for r in d.relationships:
+        w = string_width(r.label)
+        if w > max_label:
+            max_label = w
+    gut_w = lanes + max_label + 5
+
+    deg = {}
+    self_loop = {}
+    for r in d.relationships:
+        deg[r.left] = deg.get(r.left, 0) + 1
+        deg[r.right] = deg.get(r.right, 0) + 1
+        if r.left == r.right:
+            self_loop[r.left] = True
+
+    placed = [None] * n
+    for i, e in enumerate(d.entities):
+        min_w = 4 * deg.get(e.name, 0) + 1
+        if self_loop.get(e.name):
+            min_w = 11
+            if deg.get(e.name, 0) > 2:
+                min_w = 4 * deg.get(e.name, 0) + 9
+        lines = _er_render_entity(e, g, min_w - 2)
+        placed[i] = PlacedEntity(e, lines, i // cols, i % cols)
+
+    col_w = [0] * cols
+    row_h = [0] * rows
+    for p in placed:
+        if p.w > col_w[p.col]:
+            col_w[p.col] = p.w
+        if p.h > row_h[p.row]:
+            row_h[p.row] = p.h
+
+    v_gut_x = [0] * (cols + 1)
+    col_x = [0] * cols
+    x = 0
+    for c in range(cols):
+        v_gut_x[c] = x
+        if c > 0:
+            x += gut_w
+            col_x[c] = x
+        else:
+            col_x[0] = 0
+        x += col_w[c]
+    v_gut_x[cols] = x
+
+    h_gut_y = [0] * (rows + 1)
+    row_y = [0] * rows
+    y = 0
+    for r in range(rows):
+        h_gut_y[r] = y
+        if r > 0:
+            y += lanes
+            row_y[r] = y
+        else:
+            row_y[0] = 0
+        y += row_h[r]
+    h_gut_y[rows] = y
+
+    lay = ErLayout()
+    lay.lanes = lanes
+    lay.gut_w = gut_w
+    lay.v_gut_x = v_gut_x
+    lay.h_gut_y = h_gut_y
+    lay.placed = placed
+    for p in placed:
+        p.x, p.y = col_x[p.col], row_y[p.row]
+        lay.by_name[p.entity.name] = p
+    return lay
+
+
+class Overlay:
+    def __init__(self):
+        self.solid = {}
+        self.dash = {}
+        self.label = {}
+        self.token = {}
+
+    def bits(self, x, y):
+        return self.solid.get((x, y), 0) | self.dash.get((x, y), 0)
+
+    def polyline(self, pts, solid):
+        m = self.solid if solid else self.dash
+
+        def mark(x, y, bit):
+            m[(x, y)] = m.get((x, y), 0) | bit
+
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+            dx, dy = _er_sign(b[0] - a[0]), _er_sign(b[1] - a[1])
+            # bit leaving the current cell, then bit entering the next cell
+            out_h, in_h = (_dE, _dW) if dx > 0 else (_dW, _dE)
+            out_v, in_v = (_dS, _dN) if dy > 0 else (_dN, _dS)
+            x, y = a[0], a[1]
+            while x != b[0] or y != b[1]:
+                if dx:
+                    mark(x, y, out_h)
+                if dy:
+                    mark(x, y, out_v)
+                x += dx
+                y += dy
+                if dx:
+                    mark(x, y, in_h)
+                if dy:
+                    mark(x, y, in_v)
+
+
+class Endpoint:
+    def __init__(self, p, s, card, x=0, y=0):
+        self.p = p
+        self.s = s
+        self.card = card
+        self.x = x
+        self.y = y
+
+
+def _er_attach(p, s, idx, total):
+    lo, hi = p.x + 1, p.x + p.w - 2
+    x = lo + (hi - lo - 4 * (total - 1)) // 2 + 4 * idx
+    if (s == ER_SIDE_B) == (x % 2 != 0):
+        x += 1
+    x = _max(lo, _min(x, hi))
+    y = p.y + p.h - 1
+    if s == ER_SIDE_T:
+        y = p.y
+    return x, y
+
+
+def _er_sides_for(a, b):
+    same_col_adjacent = a.col == b.col and _abs(a.row - b.row) == 1
+    if a.row < b.row:
+        if same_col_adjacent:
+            return ER_SIDE_B, ER_SIDE_B
+        return ER_SIDE_B, ER_SIDE_T
+    if a.row > b.row:
+        if same_col_adjacent:
+            return ER_SIDE_B, ER_SIDE_B
+        return ER_SIDE_T, ER_SIDE_B
+    return ER_SIDE_B, ER_SIDE_B
+
+
+_ER_LEFT_TOKENS = {ER_ONLY_ONE: "||", ER_ZERO_OR_ONE: "|o", ER_ZERO_OR_MORE: "}o"}
+_ER_RIGHT_TOKENS = {ER_ONLY_ONE: "||", ER_ZERO_OR_ONE: "o|", ER_ZERO_OR_MORE: "o{"}
+
+
+def _er_left_token(c):
+    return _ER_LEFT_TOKENS.get(c, "}|")
+
+
+def _er_right_token(c):
+    return _ER_RIGHT_TOKENS.get(c, "|{")
+
+
+def _er_put_token(o, ep, target_x, y):
+    if ep.x < target_x:
+        for i, r in enumerate(_er_left_token(ep.card)):
+            o.token[(ep.x + 1 + i, y)] = r
+        return
+    tok = _er_right_token(ep.card)
+    ln = len(tok)
+    for i, r in enumerate(tok):
+        o.token[(ep.x - ln + i, y)] = r
+
+
+def _er_v_crossings(o, x0, x1, y):
+    n = 0
+    for x in range(x0, x1 + 1):
+        if o.bits(x, y) & (_dN | _dS):
+            n += 1
+    return n
+
+
+def _er_label_start(o, lo, hi, lw, y):
+    centre = _max(lo, lo + (hi - lo + 1 - lw) // 2)
+    start = centre
+    cost = _er_v_crossings(o, centre, _min(centre + lw - 1, hi), y)
+    d = 1
+    while d <= hi - lo and cost > 0:
+        for c in (centre - d, centre + d):
+            if c < lo or c + lw - 1 > hi:
+                continue
+            n = _er_v_crossings(o, c, c + lw - 1, y)
+            if n < cost:
+                start, cost = c, n
+        d += 1
+    return start, cost
+
+
+def _er_write_label(o, s, x, y, limit):
+    for c in s:
+        w = rune_width(c)
+        if limit >= 0 and x + w - 1 > limit:
+            return
+        if c != " " or o.bits(x, y) & (_dN | _dS) == 0:
+            o.label[(x, y)] = c
+            if w == 2:
+                o.label[(x + 1, y)] = "\x00"
+        x += w
+
+
+def _er_put_label(o, s, runs):
+    if s == "":
+        return
+    lw = string_width(s)
+    best = None  # (start, cost, y, hi)
+    for r in runs:
+        lo, hi, y = r[0] + 3, r[1] - 3, r[2]
+        if hi - lo + 1 < lw:
+            continue
+        start, cost = _er_label_start(o, lo, hi, lw, y)
+        if best is None or cost < best[1]:
+            best = (start, cost, y, hi)
+        if cost == 0:
+            break
+    if best is None:
+        lo, hi, y = runs[0][0] + 3, runs[0][1] - 3, runs[0][2]
+        if lo > hi:
+            return
+        start, _ = _er_label_start(o, lo, hi, lw, y)
+        best = (start, 0, y, hi)
+    _er_write_label(o, s, best[0], best[2], best[3])
+
+
+class RoutePlan:
+    def __init__(self, lay, a, b, r, lane):
+        self.rel = r
+        self.a = a
+        self.b = b
+        self.ya = lay.gutter_y(a, lane)
+        self.yb = lay.gutter_y(b, lane)
+        self.merged = self.ya == self.yb
+        self.tx = 0
+        if not self.merged:
+            self.tx = lay.trunk_x(a.p, b.p, lane)
+
+    def draw_line(self, o):
+        if self.merged:
+            o.polyline([
+                (self.a.x, self.a.y), (self.a.x, self.ya),
+                (self.b.x, self.ya), (self.b.x, self.b.y),
+            ], self.rel.identifying)
+            return
+        o.polyline([
+            (self.a.x, self.a.y), (self.a.x, self.ya), (self.tx, self.ya),
+            (self.tx, self.yb), (self.b.x, self.yb), (self.b.x, self.b.y),
+        ], self.rel.identifying)
+
+    def decorate(self, o):
+        if self.merged:
+            _er_put_token(o, self.a, self.b.x, self.ya)
+            _er_put_token(o, self.b, self.a.x, self.ya)
+            if self.a.p is self.b.p:
+                _er_write_label(o, self.rel.label, _max(self.a.x, self.b.x) + 2, self.ya, -1)
+            else:
+                _er_put_label(o, self.rel.label,
+                              [(_min(self.a.x, self.b.x), _max(self.a.x, self.b.x), self.ya)])
+            return
+        _er_put_token(o, self.a, self.tx, self.ya)
+        _er_put_token(o, self.b, self.tx, self.yb)
+        runs = [
+            (_min(self.a.x, self.tx), _max(self.a.x, self.tx), self.ya),
+            (_min(self.b.x, self.tx), _max(self.b.x, self.tx), self.yb),
+        ]
+        if runs[1][1] - runs[1][0] > runs[0][1] - runs[0][0]:
+            runs[0], runs[1] = runs[1], runs[0]
+        _er_put_label(o, self.rel.label, runs)
+
+
+def _er_glyph_for(bits, solid, g):
+    if bits == (_dN | _dS):
+        return g.v if solid else g.vd
+    if bits == (_dE | _dW):
+        return g.h if solid else g.hd
+    corner = {
+        _dN | _dE: g.bl, _dN | _dW: g.br, _dS | _dE: g.tl, _dS | _dW: g.tr,
+        _dN | _dS | _dE: g.tee_r, _dN | _dS | _dW: g.tee_l,
+        _dN | _dE | _dW: g.tee_u, _dS | _dE | _dW: g.tee_d,
+        _dN | _dS | _dE | _dW: g.cross,
+    }.get(bits)
+    if corner is not None:
+        return corner
+    if bits in (_dN, _dS):
+        return g.v if solid else g.vd
+    return g.h if solid else g.hd
+
+
+def _er_composite(c, o, g):
+    seen = set()
+
+    def mark(x, y):
+        p = (x, y)
+        if p in seen:
+            return
+        seen.add(p)
+        bits = o.bits(x, y)
+        if bits == 0:
+            return
+        if c.at(x, y) != " ":
+            return
+        c.set(x, y, _er_glyph_for(bits, o.solid.get(p, 0) != 0, g))
+
+    for p in list(o.solid.keys()):
+        mark(p[0], p[1])
+    for p in list(o.dash.keys()):
+        mark(p[0], p[1])
+    for p, r in o.label.items():
+        c.set(p[0], p[1], r)
+    for p, r in o.token.items():
+        c.set(p[0], p[1], r)
+
+
+def _er_set_attach_tee(c, ep, g):
+    tee, opposite = g.tee_d, g.tee_u
+    if ep.s == ER_SIDE_T:
+        tee, opposite = g.tee_u, g.tee_d
+    if c.at(ep.x, ep.y) == opposite:
+        tee = g.cross
+    c.set(ep.x, ep.y, tee)
+
+
+def _er_draw_connectors(c, lay, d, g):
+    o = Overlay()
+
+    ent_idx = {}
+    for i, p in enumerate(lay.placed):
+        ent_idx[id(p)] = i
+
+    n_rel = len(d.relationships)
+    all_ends = [None] * n_rel  # each: [a_endpoint, b_endpoint]
+    slot_count = {}
+    for i, r in enumerate(d.relationships):
+        a = lay.by_name.get(r.left)
+        b = lay.by_name.get(r.right)
+        if a is None or b is None:
+            all_ends[i] = None
+            continue
+        sa, sb = _er_sides_for(a, b)
+        all_ends[i] = [Endpoint(a, sa, r.left_card), Endpoint(b, sb, r.right_card)]
+        slot_count[(ent_idx[id(a)], sa)] = slot_count.get((ent_idx[id(a)], sa), 0) + 1
+        slot_count[(ent_idx[id(b)], sb)] = slot_count.get((ent_idx[id(b)], sb), 0) + 1
+
+    slot_used = {}
+    self_seen = {}
+    for i in range(n_rel):
+        if all_ends[i] is None:
+            continue
+        for ep in all_ends[i]:
+            key = (ent_idx[id(ep.p)], ep.s)
+            ep.x, ep.y = _er_attach(ep.p, ep.s, slot_used.get(key, 0), slot_count[key])
+            slot_used[key] = slot_used.get(key, 0) + 1
+        a_ep, b_ep = all_ends[i]
+        if a_ep.p is b_ep.p:
+            p = a_ep.p
+            in_ = 4 * self_seen.get(id(p), 0)
+            self_seen[id(p)] = self_seen.get(id(p), 0) + 1
+            x1, x2 = p.x + 1 + in_, p.x + p.w - 2 - in_
+            if x1 % 2 != 0:
+                x1 += 1
+            if x2 % 2 != 0:
+                x2 -= 1
+            a_ep.x, b_ep.x = x1, x2
+
+    plans = []
+    for i, r in enumerate(d.relationships):
+        if all_ends[i] is None:
+            continue
+        plans.append(RoutePlan(lay, all_ends[i][0], all_ends[i][1], r, i))
+
+    for p in plans:
+        p.draw_line(o)
+    for p in plans:
+        p.decorate(o)
+
+    _er_composite(c, o, g)
+
+    for p in plans:
+        _er_set_attach_tee(c, p.a, g)
+        _er_set_attach_tee(c, p.b, g)
+
+
+def er_render(d, use_ascii):
+    g = ER_ASCII_GLYPHS if use_ascii else ER_UNICODE_GLYPHS
+    lay = _er_place_entities(d, g)
+    c = Canvas()
+    for p in lay.placed:
+        c.stamp(p.x, p.y, p.lines)
+    _er_draw_connectors(c, lay, d, g)
+    return c.to_string()
+
+
+# ===========================================================================
+# FLOWCHART / GRAPH DIAGRAMS (cmd/)
+# ===========================================================================
+
+# --- color (gookit/color HEX truecolor for cli, html span for html) --------
+
+def _wrap_text_in_color(text, c, style_type):
+    if c == "":
+        return text
+    if style_type == "html":
+        return "<span style='color: %s'>%s</span>" % (c, text)
+    if style_type == "cli":
+        hexstr = c.lstrip("#")
+        if len(hexstr) == 3:
+            hexstr = "".join(ch * 2 for ch in hexstr)
+        try:
+            r = int(hexstr[0:2], 16)
+            gg = int(hexstr[2:4], 16)
+            bb = int(hexstr[4:6], 16)
+        except (ValueError, IndexError):
+            return text
+        return "\x1b[38;2;%d;%d;%dm%s\x1b[0m" % (r, gg, bb, text)
+    return text
+
+
+# --- graph label (cmd/label.go) --------------------------------------------
+
+_html_break_re = re.compile(r'(?i)<br\s*/?>')
+GRAPH_LABEL_LINE_GAP = 1
+
+
+class GraphLabel:
+    def __init__(self, lines, width):
+        self.lines = lines
+        self.width = width
+
+    def height(self):
+        return len(self.lines)
+
+    def content_height(self):
+        if len(self.lines) == 0:
+            return 0
+        return len(self.lines) + (len(self.lines) - 1) * GRAPH_LABEL_LINE_GAP
+
+
+def new_graph_label(raw):
+    normalized = _html_break_re.sub("\n", raw)
+    normalized = normalized.replace("\\n", "\n")
+    lines = normalized.split("\n")
+    if len(lines) == 0:
+        lines = [""]
+    width = 0
+    for line in lines:
+        width = _max(width, string_width(line))
+    return GraphLabel(lines, width)
+
+
+# --- coords & directions (cmd/graph.go, cmd/direction.go) ------------------
+
+class Coord:
+    __slots__ = ("x", "y")
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        return hash((self.x, self.y))
+
+
+# Directions are 2D offsets on a 3x3 grid cell (matching Go's direction consts).
+Up = (1, 0)
+Down = (1, 2)
+Left = (0, 1)
+Right = (2, 1)
+UpperRight = (2, 0)
+UpperLeft = (0, 0)
+LowerRight = (2, 2)
+LowerLeft = (0, 2)
+Middle = (1, 1)
+
+
+_DIR_OPPOSITE = {
+    Up: Down, Down: Up, Left: Right, Right: Left,
+    UpperRight: LowerLeft, UpperLeft: LowerRight,
+    LowerRight: UpperLeft, LowerLeft: UpperRight, Middle: Middle,
+}
+
+
+def _dir_opposite(d):
+    return _DIR_OPPOSITE[d]
+
+
+def _coord_direction(c, dir_):
+    return Coord(c.x + dir_[0], c.y + dir_[1])
+
+
+def _determine_direction(from_, to):
+    if from_.x == to.x:
+        if from_.y < to.y:
+            return Down
+        return Up
+    elif from_.y == to.y:
+        if from_.x < to.x:
+            return Right
+        return Left
+    elif from_.x < to.x:
+        if from_.y < to.y:
+            return LowerRight
+        return UpperRight
+    else:
+        if from_.y < to.y:
+            return LowerLeft
+        return UpperLeft
+
+
+# --- text-level parse structures (cmd/parse.go) ----------------------------
+
+class TextNode:
+    def __init__(self, name, label, has_label=False, style_class=""):
+        self.name = name
+        self.label = label
+        self.has_label = has_label
+        self.style_class = style_class
+
+
+class GraphNodeSpec:
+    def __init__(self):
+        # Mirror Go's zero-value graphLabel: lines is empty (nil), width 0.
+        self.label = GraphLabel([], 0)
+        self.label_is_explicit = False
+        self.style_class = ""
+
+
+class TextEdge:
+    def __init__(self, parent, child, label, is_bidirectional):
+        self.parent = parent
+        self.child = child
+        self.label = label
+        self.is_bidirectional = is_bidirectional
+
+
+class TextSubgraph:
+    def __init__(self, id_="", name="", label=None):
+        self.id = id_
+        self.name = name
+        self.label = label if label is not None else new_graph_label("")
+        self.nodes = []
+        self.parent = None
+        self.children = []
+
+
+class StyleClassDef:
+    def __init__(self, name, styles):
+        self.name = name
+        self.styles = styles
+
+
+class GraphProperties:
+    def __init__(self):
+        self.data = {}   # name -> list[TextEdge]  (insertion-ordered)
+        self.node_specs = {}  # name -> GraphNodeSpec
+        self.style_classes = {}  # name -> StyleClassDef
+        self.box_border_padding = 1
+        self.graph_direction = ""
+        self.style_type = "cli"
+        self.padding_x = 5
+        self.padding_y = 5
+        self.subgraphs = []
+        self.use_ascii = False
+
+
+def _parse_subgraph_header(header):
+    trimmed = header.strip()
+    label_text = trimmed
+    id_ = ""
+    m = re.match(r'^(\S+)\s*\[(.+)\]$', trimmed)
+    if m is not None:
+        id_ = m.group(1).strip()
+        label_text = m.group(2).strip().strip('"')
+    return TextSubgraph(id_=id_, name=label_text, label=new_graph_label(label_text))
+
+
+def _split_graph_lines(mermaid):
+    lines = []
+    current = []
+    bracket_depth = 0
+    in_quotes = False
+    i = 0
+    n = len(mermaid)
+    while i < n:
+        ch = mermaid[i]
+        if ch == '"':
+            in_quotes = not in_quotes
+        elif ch == '[':
+            if not in_quotes:
+                bracket_depth += 1
+        elif ch == ']':
+            if not in_quotes and bracket_depth > 0:
+                bracket_depth -= 1
+        elif ch == '\n':
+            if bracket_depth == 0:
+                lines.append("".join(current))
+                current = []
+                i += 1
+                continue
+        elif ch == '\\':
+            if i + 1 < n and mermaid[i + 1] == 'n' and bracket_depth == 0:
+                lines.append("".join(current))
+                current = []
+                i += 2
+                continue
+        current.append(ch)
+        i += 1
+    lines.append("".join(current))
+    return lines
+
+
+def _parse_node(line):
+    trimmed_line = line.strip()
+    style_class = ""
+    idx = trimmed_line.rfind(":::")
+    if idx != -1:
+        style_class = trimmed_line[idx + 3:].strip()
+        trimmed_line = trimmed_line[:idx].strip()
+    name = trimmed_line
+    label_text = trimmed_line
+    open_ = trimmed_line.find("[")
+    if open_ > 0 and trimmed_line.endswith("]"):
+        name = trimmed_line[:open_].strip()
+        label_text = trimmed_line[open_ + 1:len(trimmed_line) - 1].strip()
+        label_text = label_text.strip('"')
+        return TextNode(name, new_graph_label(label_text), True, style_class)
+    return TextNode(name, new_graph_label(label_text), False, style_class)
+
+
+def _parse_style_class(matched):
+    class_name = matched[0]
+    styles = matched[1]
+    style_map = {}
+    for style in styles.split(","):
+        kv = style.split(":")
+        style_map[kv[0]] = kv[1]
+    return StyleClassDef(class_name, style_map)
+
+
+def _remember_node(node, node_specs):
+    spec = node_specs.get(node.name)
+    if spec is None:
+        spec = GraphNodeSpec()
+    if node.has_label or len(spec.label.lines) == 0:
+        spec.label = node.label
+        spec.label_is_explicit = node.has_label
+    if node.style_class != "":
+        spec.style_class = node.style_class
+    node_specs[node.name] = spec
+
+
+def _add_node(node, data, node_specs):
+    _remember_node(node, node_specs)
+    if node.name not in data:
+        data[node.name] = []
+
+
+def _set_data(parent, edge, data, node_specs):
+    _remember_node(parent, node_specs)
+    _remember_node(edge.child, node_specs)
+    if parent.name in data:
+        data[parent.name].append(edge)
+    else:
+        data[parent.name] = [edge]
+    if edge.child.name not in data:
+        data[edge.child.name] = []
+
+
+def _set_arrow_with_label(lhs, rhs, label, is_bidirectional, gp):
+    for l in lhs:
+        for r in rhs:
+            _set_data(l, TextEdge(l, r, label, is_bidirectional), gp.data, gp.node_specs)
+    return rhs
+
+
+# Precompiled patterns for parseString, matched in order (cmd/parse.go).
+_gp_empty_re = re.compile(r'^\s*$')
+_gp_bidir_label_re = re.compile(r'(?s)^(.+)\s*<-->\s*\|(.+)\|\s*(.+)$')
+_gp_bidir_re = re.compile(r'(?s)^(.+)\s*<-->\s*(.+)$')
+_gp_arrow_label_re = re.compile(r'(?s)^(.+)\s*-->\s*\|(.+)\|\s*(.+)$')
+_gp_arrow_re = re.compile(r'(?s)^(.+)\s*-->\s*(.+)$')
+_gp_classdef_re = re.compile(r'^classDef\s+(.+)\s+(.+)$')
+_gp_amp_re = re.compile(r'(?s)^(.+) & (.+)$')
+
+
+class _ParseLineError(Exception):
+    pass
+
+
+def _gp_parse_string(gp, line):
+    """Port of graphProperties.parseString. Returns list[TextNode] or raises."""
+
+    def side(text):
+        try:
+            return _gp_parse_string(gp, text)
+        except _ParseLineError:
+            return [_parse_node(text)]
+
+    if _gp_empty_re.match(line):
+        return []
+
+    # Binary patterns matched in order. Each tuple: (regex, lhs_grp, rhs_grp,
+    # label_grp | None, is_bidir). Matching a regex splits the line and recurses
+    # on each side, falling back to a bare node when the side won't parse.
+    for regex, li, ri, lab, bidir in (
+        (_gp_bidir_label_re, 0, 2, 1, True),
+        (_gp_bidir_re, 0, 1, None, True),
+        (_gp_arrow_label_re, 0, 2, 1, False),
+        (_gp_arrow_re, 0, 1, None, False),
+    ):
+        m = regex.match(line)
+        if m is not None:
+            g = m.groups()
+            label = g[lab] if lab is not None else ""
+            return _set_arrow_with_label(side(g[li]), side(g[ri]), label, bidir, gp)
+
+    m = _gp_classdef_re.match(line)
+    if m is not None:
+        s = _parse_style_class([m.group(1), m.group(2)])
+        gp.style_classes[s.name] = s
+        return []
+
+    m = _gp_amp_re.match(line)
+    if m is not None:
+        g = m.groups()
+        return list(side(g[0])) + list(side(g[1]))
+
+    raise _ParseLineError("Could not parse line: " + line)
+
+
+_padding_re = re.compile(r'(?i)^padding([xy])\s*=\s*(\d+)$')
+_subgraph_re = re.compile(r'^\s*subgraph\s+(.+)$')
+_end_re = re.compile(r'^\s*end\s*$')
+
+
+def mermaid_file_to_map(mermaid, style_type):
+    raw_lines = _split_graph_lines(mermaid)
+
+    lines = []
+    for line in raw_lines:
+        if line == "---":
+            break
+        if line.strip().startswith("%%"):
+            continue
+        idx = line.find("%%")
+        if idx != -1:
+            line = line[:idx].strip()
+        if len(line.strip()) > 0:
+            lines.append(line)
+
+    properties = GraphProperties()
+    properties.style_type = style_type
+
+    # Optional padding directives before the graph definition.
+    while len(lines) > 0:
+        trimmed = lines[0].strip()
+        if trimmed == "":
+            lines = lines[1:]
+            continue
+        m = _padding_re.match(trimmed)
+        if m is not None:
+            padding_value = int(m.group(2))
+            if m.group(1).lower() == "x":
+                properties.padding_x = padding_value
+            else:
+                properties.padding_y = padding_value
+            lines = lines[1:]
+            continue
+        break
+
+    if len(lines) == 0:
+        raise ParseError("missing graph definition")
+
+    fields = lines[0].rstrip("; \t\r").split()
+    if len(fields) == 0 or (fields[0] != "graph" and fields[0] != "flowchart"):
+        raise ParseError(
+            "unsupported graph type '%s'. Supported types: 'graph' or 'flowchart' "
+            "with an optional direction (TD, TB, BT, LR, RL)" % lines[0].strip())
+    if len(fields) > 2:
+        raise ParseError("unexpected tokens after graph direction: %r" % " ".join(fields[2:]))
+
+    properties.graph_direction = "TD"
+    if len(fields) == 2:
+        d = fields[1]
+        if d in ("LR", "RL"):
+            properties.graph_direction = "LR"
+        elif d in ("TD", "TB", "BT"):
+            properties.graph_direction = "TD"
+        else:
+            raise ParseError(
+                "unsupported graph direction '%s'. Supported directions: TD, TB, BT, LR, RL" % d)
+    lines = lines[1:]
+
+    subgraph_stack = []
+    data = properties.data
+
+    for line in lines:
+        trimmed_line = line.strip()
+
+        m = _subgraph_re.match(trimmed_line)
+        if m is not None:
+            header = _parse_subgraph_header(m.group(1))
+            new_sg = TextSubgraph(id_=header.id, name=header.name, label=header.label)
+            if len(subgraph_stack) > 0:
+                parent = subgraph_stack[-1]
+                new_sg.parent = parent
+                parent.children.append(new_sg)
+            subgraph_stack.append(new_sg)
+            properties.subgraphs.append(new_sg)
+            continue
+
+        if _end_re.match(trimmed_line):
+            if len(subgraph_stack) > 0:
+                subgraph_stack.pop()
+            continue
+
+        existing_nodes = set(data.keys())
+
+        try:
+            nodes = _gp_parse_string(properties, line)
+            for node in nodes:
+                _add_node(node, properties.data, properties.node_specs)
+        except _ParseLineError:
+            node = _parse_node(line)
+            _add_node(node, properties.data, properties.node_specs)
+
+        if len(subgraph_stack) > 0:
+            for node_name in list(data.keys()):
+                if node_name not in existing_nodes:
+                    for sg in subgraph_stack:
+                        if node_name not in sg.nodes:
+                            sg.nodes.append(node_name)
+
+    return properties
+
+
+# --- graph structures (cmd/graph.go, mapping_node.go, mapping_edge.go) ------
+
+class Node:
+    def __init__(self, name, label, index, style_class_name=""):
+        self.name = name
+        self.label = label
+        self.drawing = None       # Drawing
+        self.drawing_coord = None  # Coord
+        self.grid_coord = None     # Coord
+        self.drawn = False
+        self.index = index
+        self.style_class_name = style_class_name
+        self.style_class = None    # StyleClassDef or None
+
+
+class Edge:
+    def __init__(self, from_, to, text, is_bidirectional):
+        self.from_ = from_
+        self.to = to
+        self.text = text
+        self.is_bidirectional = is_bidirectional
+        self.path = []
+        self.label_line = []
+        self.start_dir = None
+        self.end_dir = None
+
+
+class Subgraph:
+    def __init__(self, name, label):
+        self.name = name
+        self.label = label
+        self.nodes = []
+        self.parent = None
+        self.children = []
+        self.min_x = 0
+        self.min_y = 0
+        self.max_x = 0
+        self.max_y = 0
+
+
+def _edge_pair(from_, to):
+    if from_ < to:
+        return (from_, to)
+    return (to, from_)
+
+
+# --- drawing primitives (cmd/draw.go) --------------------------------------
+
+_JUNCTION_CHARS = {
+    "─", "│", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼",
+    "╴", "╵", "╶", "╷",
+}
+
+_JUNCTION_MAP = {
+    "─": {"│": "┼", "┌": "┬", "┐": "┬", "└": "┴", "┘": "┴", "├": "┼", "┤": "┼", "┬": "┬", "┴": "┴"},
+    "│": {"─": "┼", "┌": "├", "┐": "┤", "└": "├", "┘": "┤", "├": "├", "┤": "┤", "┬": "┼", "┴": "┼"},
+    "┌": {"─": "┬", "│": "├", "┐": "┬", "└": "├", "┘": "┼", "├": "├", "┤": "┼", "┬": "┬", "┴": "┼"},
+    "┐": {"─": "┬", "│": "┤", "┌": "┬", "└": "┼", "┘": "┤", "├": "┼", "┤": "┤", "┬": "┬", "┴": "┼"},
+    "└": {"─": "┴", "│": "├", "┌": "├", "┐": "┼", "┘": "┴", "├": "├", "┤": "┼", "┬": "┼", "┴": "┴"},
+    "┘": {"─": "┴", "│": "┤", "┌": "┼", "┐": "┤", "└": "┴", "├": "┼", "┤": "┤", "┬": "┼", "┴": "┴"},
+    "├": {"─": "┼", "│": "├", "┌": "├", "┐": "┼", "└": "├", "┘": "┼", "┤": "┼", "┬": "┼", "┴": "┼"},
+    "┤": {"─": "┼", "│": "┤", "┌": "┼", "┐": "┤", "└": "┼", "┘": "┤", "├": "┼", "┬": "┼", "┴": "┼"},
+    "┬": {"─": "┬", "│": "┼", "┌": "┬", "┐": "┬", "└": "┼", "┘": "┼", "├": "┼", "┤": "┼", "┴": "┼"},
+    "┴": {"─": "┴", "│": "┼", "┌": "┼", "┐": "┼", "└": "┴", "┘": "┴", "├": "┼", "┤": "┼", "┬": "┼"},
+}
+
+
+def _is_junction_char(c):
+    return c in _JUNCTION_CHARS
+
+
+def _merge_junctions(c1, c2):
+    row = _JUNCTION_MAP.get(c1)
+    if row is not None and c2 in row:
+        return row[c2]
+    return c1
+
+
+class Drawing:
+    """A [x][y] grid of single-cell strings, columns-major like the Go code."""
+
+    def __init__(self, x, y):
+        # dimensions: (x+1) columns by (y+1) rows
+        self.cols = [[" "] * (y + 1) for _ in range(x + 1)]
+
+    @property
+    def size_x(self):
+        return len(self.cols) - 1
+
+    @property
+    def size_y(self):
+        return len(self.cols[0]) - 1
+
+
+def mk_drawing(x, y):
+    return Drawing(x, y)
+
+
+def _get_drawing_size(d):
+    return len(d.cols) - 1, len(d.cols[0]) - 1
+
+
+def _copy_canvas(to_be_copied):
+    x, y = _get_drawing_size(to_be_copied)
+    return mk_drawing(x, y)
+
+
+def _drawing_to_string(d):
+    max_x, max_y = _get_drawing_size(d)
+    parts = []
+    for y in range(max_y + 1):
+        for x in range(max_x + 1):
+            parts.append(d.cols[x][y])
+        if y != max_y:
+            parts.append("\n")
+    return "".join(parts)
+
+
+def _increase_size(d, x, y):
+    curr_x, curr_y = _get_drawing_size(d)
+    new = mk_drawing(_max(x, curr_x), _max(y, curr_y))
+    for xx in range(len(new.cols)):
+        for yy in range(len(new.cols[0])):
+            if xx < len(d.cols) and yy < len(d.cols[0]):
+                new.cols[xx][yy] = d.cols[xx][yy]
+    d.cols = new.cols
+
+
+def _draw_text_on_drawing(d, start, text):
+    text_width = string_width(text)
+    _increase_size(d, start.x + text_width, start.y)
+    text_x = start.x
+    for r in text:
+        rw = _max(rune_width(r), 1)
+        d.cols[text_x][start.y] = r
+        for offset in range(1, rw):
+            d.cols[text_x + offset][start.y] = ""
+        text_x += rw
+
+
+class Graph:
+    def __init__(self):
+        self.nodes = []
+        self.edges = []
+        self.drawing = mk_drawing(0, 0)
+        self.grid = {}          # Coord -> Node
+        self.edge_counts = {}   # edge_pair -> int
+        self.column_width = {}  # int -> int
+        self.row_height = {}    # int -> int
+        self.style_classes = {}
+        self.style_type = ""
+        self.box_border_padding = 0
+        self.graph_direction = ""
+        self.padding_x = 0
+        self.padding_y = 0
+        self.subgraphs = []
+        self.offset_x = 0
+        self.offset_y = 0
+        self.use_ascii = False
+
+    # ---- construction -----------------------------------------------------
+
+    def get_node(self, name):
+        for n in self.nodes:
+            if n.name == name:
+                return n
+        return None
+
+    def append_node(self, n):
+        self.nodes.append(n)
+
+    def get_edges_from_node(self, n):
+        return [e for e in self.edges if e.from_.name == n.name]
+
+    def get_children(self, n):
+        children = []
+        for e in self.get_edges_from_node(n):
+            if e.from_.name == n.name:
+                children.append(e.to)
+        return children
+
+    # ---- coordinate conversion --------------------------------------------
+
+    def grid_to_drawing_coord(self, c, dir_):
+        x = 0
+        y = 0
+        if dir_ is None:
+            target = c
+        else:
+            target = Coord(c.x + dir_[0], c.y + dir_[1])
+        for column in range(target.x):
+            x += self.column_width.get(column, 0)
+        for row in range(target.y):
+            y += self.row_height.get(row, 0)
+        return Coord(
+            x + self.column_width.get(target.x, 0) // 2 + self.offset_x,
+            y + self.row_height.get(target.y, 0) // 2 + self.offset_y,
+        )
+
+    def line_to_drawing(self, line):
+        return [self.grid_to_drawing_coord(c, None) for c in line]
+
+    # ---- style / subgraph setup -------------------------------------------
+
+    def set_style_classes(self, properties):
+        self.style_classes = properties.style_classes
+        self.style_type = properties.style_type
+        self.box_border_padding = properties.box_border_padding
+        self.graph_direction = properties.graph_direction
+        self.padding_x = properties.padding_x
+        self.padding_y = properties.padding_y
+        for n in self.nodes:
+            if n.style_class_name != "":
+                n.style_class = self.style_classes.get(n.style_class_name)
+
+    def set_subgraphs(self, text_subgraphs):
+        self.subgraphs = []
+        for tsg in text_subgraphs:
+            sg = Subgraph(tsg.name, tsg.label)
+            for node_name in tsg.nodes:
+                node = self.get_node(node_name)
+                if node is not None:
+                    sg.nodes.append(node)
+            self.subgraphs.append(sg)
+        for i, tsg in enumerate(text_subgraphs):
+            sg = self.subgraphs[i]
+            if tsg.parent is not None:
+                for j, parent_tsg in enumerate(text_subgraphs):
+                    if parent_tsg is tsg.parent:
+                        sg.parent = self.subgraphs[j]
+                        break
+            for child_tsg in tsg.children:
+                for j, check_tsg in enumerate(text_subgraphs):
+                    if check_tsg is child_tsg:
+                        sg.children.append(self.subgraphs[j])
+                        break
+
+    def is_node_in_any_subgraph(self, n):
+        for sg in self.subgraphs:
+            for sg_node in sg.nodes:
+                if sg_node is n:
+                    return True
+        return False
+
+    def get_node_subgraph(self, n):
+        for sg in self.subgraphs:
+            for sg_node in sg.nodes:
+                if sg_node is n:
+                    return sg
+        return None
+
+    def has_incoming_edge_from_outside_subgraph(self, n):
+        node_subgraph = self.get_node_subgraph(n)
+        if node_subgraph is None:
+            return False
+        has_external_edge = False
+        for edge in self.edges:
+            if edge.to is n:
+                source_subgraph = self.get_node_subgraph(edge.from_)
+                if source_subgraph is not node_subgraph:
+                    has_external_edge = True
+                    break
+        if not has_external_edge:
+            return False
+        for other_node in node_subgraph.nodes:
+            if other_node is n or other_node.grid_coord is None:
+                continue
+            other_has_external = False
+            for edge in self.edges:
+                if edge.to is other_node:
+                    source_subgraph = self.get_node_subgraph(edge.from_)
+                    if source_subgraph is not node_subgraph:
+                        other_has_external = True
+                        break
+            if other_has_external and other_node.grid_coord.y < n.grid_coord.y:
+                return False
+        return True
+
+    # ---- grid reservation / sizing ----------------------------------------
+
+    def reserve_spot_in_grid(self, n, requested):
+        if self.grid.get(requested) is not None:
+            if self.graph_direction == "LR":
+                return self.reserve_spot_in_grid(n, Coord(requested.x, requested.y + 4))
+            return self.reserve_spot_in_grid(n, Coord(requested.x + 4, requested.y))
+        for x in range(3):
+            for y in range(3):
+                self.grid[Coord(requested.x + x, requested.y + y)] = n
+        n.grid_coord = requested
+        return requested
+
+    def set_column_width(self, n):
+        col1 = 1
+        col2 = 2 * self.box_border_padding + n.label.width
+        col3 = 1
+        cols_to_place = [col1, col2, col3]
+        rows_to_place = [1, n.label.content_height() + 2 * self.box_border_padding, 1]
+        for idx, col in enumerate(cols_to_place):
+            x_coord = n.grid_coord.x + idx
+            self.column_width[x_coord] = _max(self.column_width.get(x_coord, 0), col)
+        for idx, row in enumerate(rows_to_place):
+            y_coord = n.grid_coord.y + idx
+            self.row_height[y_coord] = _max(self.row_height.get(y_coord, 0), row)
+        if n.grid_coord.x > 0:
+            self.column_width[n.grid_coord.x - 1] = self.padding_x
+        if n.grid_coord.y > 0:
+            base_padding = self.padding_y
+            if self.has_incoming_edge_from_outside_subgraph(n):
+                base_padding += 4
+            self.row_height[n.grid_coord.y - 1] = _max(
+                self.row_height.get(n.grid_coord.y - 1, 0), base_padding)
+
+    def increase_grid_size_for_path(self, path):
+        for c in path:
+            if c.x not in self.column_width:
+                self.column_width[c.x] = self.padding_x // 2
+            if c.y not in self.row_height:
+                self.row_height[c.y] = self.padding_y // 2
+
+    def set_drawing_size_to_grid_constraints(self):
+        max_x = sum(self.column_width.values())
+        max_y = sum(self.row_height.values())
+        _increase_size(self.drawing, max_x - 1, max_y - 1)
+
+    # ---- A* pathfinding (cmd/arrow.go) ------------------------------------
+
+    def is_free_in_grid(self, c):
+        if c.x < 0 or c.y < 0:
+            return False
+        return self.grid.get(c) is None
+
+    def get_path(self, from_, to):
+        # A* over the free grid. Queue entries are (priority, seq, coord); the
+        # monotonic seq breaks ties in FIFO order and keeps heapq from ever
+        # comparing Coord objects. (Equal-cost paths may route differently than
+        # the original Go tool, which relied on container/heap's sift order for
+        # tie-breaking — both are valid shortest paths.)
+        pq = [(0, 0, from_)]
+        seq = 1
+        cost_so_far = {from_: 0}
+        came_from = {from_: None}
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
+        while pq:
+            _, _, current = heapq.heappop(pq)
+            if current == to:
+                path = []
+                c = current
+                while c is not None:
+                    path.insert(0, c)
+                    c = came_from[c]
+                return path
+            for dx, dy in directions:
+                nxt = Coord(current.x + dx, current.y + dy)
+                if not self.is_free_in_grid(nxt) and not (nxt == to):
+                    continue
+                new_cost = cost_so_far[current] + 1
+                existing = cost_so_far.get(nxt)
+                if existing is None or new_cost < existing:
+                    cost_so_far[nxt] = new_cost
+                    priority = new_cost + _heuristic(nxt, to)
+                    heapq.heappush(pq, (priority, seq, nxt))
+                    seq += 1
+                    came_from[nxt] = current
+        return None
+
+
+def _heuristic(a, b):
+    abs_x = _abs(a.x - b.x)
+    abs_y = _abs(a.y - b.y)
+    if abs_x == 0 or abs_y == 0:
+        return abs_x + abs_y
+    return abs_x + abs_y + 1
+
+
+def _merge_path(path):
+    if len(path) <= 2:
+        return path
+    index_to_remove = []
+    step0 = path[0]
+    step1 = path[1]
+    for idx, step2 in enumerate(path[2:]):
+        prev_dir = _determine_direction(step0, step1)
+        d = _determine_direction(step1, step2)
+        if prev_dir == d:
+            index_to_remove.append(idx + 1)
+        step0 = step1
+        step1 = step2
+    new_path = [step for idx, step in enumerate(path) if idx not in index_to_remove]
+    return new_path
+
+
+# --- Graph: direction determination (cmd/direction.go) ---------------------
+
+def _self_reference_direction(g):
+    if g.graph_direction == "LR":
+        return Right, Down, Down, Right
+    return Down, Right, Right, Down
+
+
+def _determine_start_and_end_dir(g, e):
+    if e.from_ is e.to:
+        return _self_reference_direction(g)
+    d = _determine_direction(e.from_.grid_coord, e.to.grid_coord)
+
+    is_backwards = False
+    if g.graph_direction == "LR":
+        is_backwards = d in (Left, UpperLeft, LowerLeft)
+    else:
+        is_backwards = d in (Up, UpperLeft, UpperRight)
+
+    if d == LowerRight:
+        if g.graph_direction == "LR":
+            return Down, Left, Right, Up
+        return Right, Up, Down, Left
+    elif d == UpperRight:
+        if g.graph_direction == "LR":
+            return Up, Left, Right, Down
+        return Right, Down, Up, Left
+    elif d == LowerLeft:
+        if g.graph_direction == "LR":
+            return Down, Down, Left, Up
+        return Left, Up, Down, Right
+    elif d == UpperLeft:
+        if g.graph_direction == "LR":
+            return Down, Down, Left, Down
+        return Right, Right, Up, Right
+    else:
+        if is_backwards:
+            if g.graph_direction == "LR" and d == Left:
+                return Down, Down, Left, Right
+            elif g.graph_direction == "TD" and d == Up:
+                return Right, Right, Up, Down
+            else:
+                preferred = d
+                return preferred, _dir_opposite(preferred), d, _dir_opposite(preferred)
+        else:
+            preferred = d
+            opp = _dir_opposite(preferred)
+            return preferred, opp, d, opp
+
+
+# --- Graph: path determination (cmd/mapping_edge.go) -----------------------
+
+def _parallel_directions(g, e, duplicate_index):
+    if duplicate_index == 0:
+        return Middle, Middle, False
+    d = _determine_direction(e.from_.grid_coord, e.to.grid_coord)
+    if g.graph_direction == "LR" and d in (Right, Left):
+        options = [(Down, Down), (Up, Up)]
+        if duplicate_index - 1 < len(options):
+            o = options[duplicate_index - 1]
+            return o[0], o[1], True
+    elif g.graph_direction == "TD" and d in (Down, Up):
+        options = [(Right, Right), (Left, Left)]
+        if duplicate_index - 1 < len(options):
+            o = options[duplicate_index - 1]
+            return o[0], o[1], True
+    return Middle, Middle, False
+
+
+def _determine_path(g, e):
+    key = _edge_pair(e.from_.index, e.to.index)
+    duplicate_index = g.edge_counts.get(key, 0)
+
+    start_dir, end_dir, ok = _parallel_directions(g, e, duplicate_index)
+    if ok:
+        from_ = _coord_direction(e.from_.grid_coord, start_dir)
+        to = _coord_direction(e.to.grid_coord, end_dir)
+        path = g.get_path(from_, to)
+        if path is not None:
+            e.start_dir = start_dir
+            e.end_dir = end_dir
+            e.path = _merge_path(path)
+            g.edge_counts[key] = g.edge_counts.get(key, 0) + 1
+            return
+
+    preferred_path = None
+    alternative_path = None
+    (preferred_dir, preferred_opposite_dir,
+     alternative_dir, alternative_opposite_dir) = _determine_start_and_end_dir(g, e)
+
+    from_ = _coord_direction(e.from_.grid_coord, preferred_dir)
+    to = _coord_direction(e.to.grid_coord, preferred_opposite_dir)
+    preferred_path = g.get_path(from_, to)
+    if preferred_path is None:
+        sys.stdout.write("Error getting path from %s to %s: no path found" % (
+            (from_.x, from_.y), (to.x, to.y)))
+        e.start_dir = alternative_dir
+        e.end_dir = alternative_opposite_dir
+        e.path = alternative_path if alternative_path is not None else []
+        return
+    preferred_path = _merge_path(preferred_path)
+
+    from_ = _coord_direction(e.from_.grid_coord, alternative_dir)
+    to = _coord_direction(e.to.grid_coord, alternative_opposite_dir)
+    alternative_path = g.get_path(from_, to)
+    if alternative_path is None:
+        sys.stdout.write("Error getting path from %s to %s: no path found" % (
+            (from_.x, from_.y), (to.x, to.y)))
+        e.start_dir = preferred_dir
+        e.end_dir = preferred_opposite_dir
+        e.path = preferred_path
+    alternative_path = _merge_path(alternative_path) if alternative_path is not None else []
+
+    nr_pref = len(preferred_path)
+    nr_alt = len(alternative_path)
+    if nr_pref <= nr_alt:
+        e.start_dir = preferred_dir
+        e.end_dir = preferred_opposite_dir
+        e.path = preferred_path
+    else:
+        e.start_dir = alternative_dir
+        e.end_dir = alternative_opposite_dir
+        e.path = alternative_path
+    g.edge_counts[key] = g.edge_counts.get(key, 0) + 1
+
+
+def _label_middle_x(line):
+    min_x, max_x = line[0].x, line[1].x
+    if min_x > max_x:
+        min_x, max_x = max_x, min_x
+    return min_x + (max_x - min_x) // 2
+
+
+def _is_node_column(g, x):
+    for n in g.nodes:
+        if n.grid_coord is None:
+            continue
+        if n.grid_coord.x <= x <= n.grid_coord.x + 2:
+            return True
+    return False
+
+
+def _calculate_line_width(g, line):
+    total = 0
+    for c in line:
+        total += g.column_width.get(c.x, 0)
+    return total
+
+
+def _determine_label_line(g, e):
+    len_label = len(e.text)
+    if len_label == 0:
+        return
+    # A failed route leaves a degenerate path (fewer than two points); there is
+    # no segment to hang a label on, so leave it unplaced. (The upstream Go tool
+    # indexed path[0]/path[1] unconditionally and panicked here.)
+    if len(e.path) < 2:
+        return
+    prev_step = e.path[0]
+    largest_line = None
+    largest_line_size = 0
+    fallback_line = None
+    fallback_line_size = 0
+    for step in e.path[1:]:
+        line = [prev_step, step]
+        prev_step = step
+        line_width = _calculate_line_width(g, line)
+        if _is_node_column(g, _label_middle_x(line)):
+            if line_width > fallback_line_size:
+                fallback_line_size = line_width
+                fallback_line = line
+            continue
+        if line_width >= len_label:
+            largest_line = line
+            break
+        if line_width > largest_line_size:
+            largest_line_size = line_width
+            largest_line = line
+    if largest_line is None:
+        largest_line = fallback_line
+    if largest_line is None:
+        largest_line = [e.path[0], e.path[1]]
+
+    middle_x = _label_middle_x(largest_line)
+    label_padding = 3
+    if e.is_bidirectional:
+        label_padding = 4
+    g.column_width[middle_x] = _max(g.column_width.get(middle_x, 0), len_label + label_padding)
+    e.label_line = largest_line
+
+
+# --- Graph: createMapping and subgraph geometry (cmd/graph.go) -------------
+
+def _create_mapping(g):
+    highest_position_per_level = {}
+
+    nodes_found = {}
+    root_nodes = []
+    for n in g.nodes:
+        if n.name not in nodes_found:
+            root_nodes.append(n)
+        nodes_found[n.name] = True
+        for child in g.get_children(n):
+            nodes_found[child.name] = True
+
+    has_external_roots = False
+    has_subgraph_roots_with_edges = False
+    for n in root_nodes:
+        if g.is_node_in_any_subgraph(n):
+            if len(g.get_children(n)) > 0:
+                has_subgraph_roots_with_edges = True
+        else:
+            has_external_roots = True
+
+    should_separate = (g.graph_direction == "LR" and has_external_roots
+                       and has_subgraph_roots_with_edges)
+
+    external_root_nodes = []
+    subgraph_root_nodes = []
+    if should_separate:
+        for n in root_nodes:
+            if g.is_node_in_any_subgraph(n):
+                subgraph_root_nodes.append(n)
+            else:
+                external_root_nodes.append(n)
+    else:
+        external_root_nodes = root_nodes
+
+    for n in external_root_nodes:
+        if g.graph_direction == "LR":
+            mc = g.reserve_spot_in_grid(g.nodes[n.index],
+                                        Coord(0, highest_position_per_level.get(0, 0)))
+        else:
+            mc = g.reserve_spot_in_grid(g.nodes[n.index],
+                                        Coord(highest_position_per_level.get(0, 0), 0))
+        g.nodes[n.index].grid_coord = mc
+        highest_position_per_level[0] = highest_position_per_level.get(0, 0) + 4
+
+    if should_separate and len(subgraph_root_nodes) > 0:
+        subgraph_level = 4
+        for n in subgraph_root_nodes:
+            hp = highest_position_per_level.get(subgraph_level, 0)
+            if g.graph_direction == "LR":
+                mc = g.reserve_spot_in_grid(g.nodes[n.index], Coord(subgraph_level, hp))
+            else:
+                mc = g.reserve_spot_in_grid(g.nodes[n.index], Coord(hp, subgraph_level))
+            g.nodes[n.index].grid_coord = mc
+            highest_position_per_level[subgraph_level] = hp + 4
+
+    for n in g.nodes:
+        if g.graph_direction == "LR":
+            child_level = n.grid_coord.x + 4
+        else:
+            child_level = n.grid_coord.y + 4
+        for child in g.get_children(n):
+            if child.grid_coord is not None:
+                continue
+            # Re-read the level's cursor for every child so each sibling gets
+            # its own slot and the cursor advances by 4 per placed child. (The
+            # Go original captured this value once before the loop, so multiple
+            # children requested the same coord and the cursor under-advanced;
+            # reserveSpotInGrid papered over the collisions with squirmier
+            # layouts.)
+            highest_position = highest_position_per_level.get(child_level, 0)
+            if g.graph_direction == "LR":
+                mc = g.reserve_spot_in_grid(g.nodes[child.index],
+                                            Coord(child_level, highest_position))
+            else:
+                mc = g.reserve_spot_in_grid(g.nodes[child.index],
+                                            Coord(highest_position, child_level))
+            g.nodes[child.index].grid_coord = mc
+            highest_position_per_level[child_level] = highest_position + 4
+
+    for n in g.nodes:
+        g.set_column_width(n)
+
+    for e in g.edges:
+        _determine_path(g, e)
+        g.increase_grid_size_for_path(e.path)
+        _determine_label_line(g, e)
+
+    for n in g.nodes:
+        dc = g.grid_to_drawing_coord(n.grid_coord, None)
+        g.nodes[n.index].drawing_coord = dc
+        g.nodes[n.index].drawing = _draw_box(g.nodes[n.index], g)
+
+    g.set_drawing_size_to_grid_constraints()
+
+    _calculate_subgraph_bounding_boxes(g)
+    _offset_drawing_for_subgraphs(g)
+
+
+def _calculate_subgraph_bounding_boxes(g):
+    for sg in g.subgraphs:
+        _calculate_subgraph_bounding_box(g, sg)
+    _ensure_subgraph_spacing(g)
+
+
+def _calculate_subgraph_bounding_box(g, sg):
+    if len(sg.nodes) == 0:
+        return
+    min_x = 1000000
+    min_y = 1000000
+    max_x = -1000000
+    max_y = -1000000
+
+    for child in sg.children:
+        _calculate_subgraph_bounding_box(g, child)
+        if len(child.nodes) > 0:
+            min_x = _min(min_x, child.min_x)
+            min_y = _min(min_y, child.min_y)
+            max_x = _max(max_x, child.max_x)
+            max_y = _max(max_y, child.max_y)
+
+    for node in sg.nodes:
+        if node.drawing_coord is None or node.drawing is None:
+            continue
+        node_min_x = node.drawing_coord.x
+        node_min_y = node.drawing_coord.y
+        node_max_x = node_min_x + len(node.drawing.cols) - 1
+        node_max_y = node_min_y + len(node.drawing.cols[0]) - 1
+        min_x = _min(min_x, node_min_x)
+        min_y = _min(min_y, node_min_y)
+        max_x = _max(max_x, node_max_x)
+        max_y = _max(max_y, node_max_y)
+
+    current_width = max_x - min_x
+    current_inner_width = current_width + 3
+    if current_inner_width < sg.label.width:
+        extra_width = sg.label.width - current_inner_width
+        min_x -= extra_width // 2
+        max_x += extra_width - (extra_width // 2)
+
+    subgraph_padding = 2
+    subgraph_label_space = sg.label.content_height() + 1
+    sg.min_x = min_x - subgraph_padding
+    sg.min_y = min_y - subgraph_padding - subgraph_label_space
+    sg.max_x = max_x + subgraph_padding
+    sg.max_y = max_y + subgraph_padding
+
+
+def _ensure_subgraph_spacing(g):
+    min_spacing = 1
+    root_subgraphs = [sg for sg in g.subgraphs if sg.parent is None and len(sg.nodes) > 0]
+    for i in range(len(root_subgraphs)):
+        for j in range(i + 1, len(root_subgraphs)):
+            sg1 = root_subgraphs[i]
+            sg2 = root_subgraphs[j]
+            if sg1.min_x < sg2.max_x and sg1.max_x > sg2.min_x:
+                if sg1.max_y >= sg2.min_y - min_spacing and sg1.min_y < sg2.min_y:
+                    sg2.min_y = sg1.max_y + min_spacing + 1
+                elif sg2.max_y >= sg1.min_y - min_spacing and sg2.min_y < sg1.min_y:
+                    sg1.min_y = sg2.max_y + min_spacing + 1
+            if sg1.min_y < sg2.max_y and sg1.max_y > sg2.min_y:
+                if sg1.max_x >= sg2.min_x - min_spacing and sg1.min_x < sg2.min_x:
+                    sg2.min_x = sg1.max_x + min_spacing + 1
+                elif sg2.max_x >= sg1.min_x - min_spacing and sg2.min_x < sg1.min_x:
+                    sg1.min_x = sg2.max_x + min_spacing + 1
+
+
+def _offset_drawing_for_subgraphs(g):
+    if len(g.subgraphs) == 0:
+        return
+    min_x = 0
+    min_y = 0
+    for sg in g.subgraphs:
+        min_x = _min(min_x, sg.min_x)
+        min_y = _min(min_y, sg.min_y)
+    offset_x = -min_x
+    offset_y = -min_y
+    if offset_x == 0 and offset_y == 0:
+        return
+    g.offset_x = offset_x
+    g.offset_y = offset_y
+    for sg in g.subgraphs:
+        sg.min_x += offset_x
+        sg.min_y += offset_y
+        sg.max_x += offset_x
+        sg.max_y += offset_y
+    for n in g.nodes:
+        if n.drawing_coord is not None:
+            n.drawing_coord.x += offset_x
+            n.drawing_coord.y += offset_y
+
+
+# --- box / subgraph drawing (cmd/draw.go) ----------------------------------
+
+def _draw_rect(d, to, use_ascii):
+    """Draw a rectangle from (0,0) to `to` on drawing `d` (in place)."""
+    h_, v_, tl, tr, bl, br = ("-", "|", "+", "+", "+", "+") if use_ascii \
+        else ("─", "│", "┌", "┐", "└", "┘")
+    for x in range(1, to.x):
+        d.cols[x][0] = h_
+        d.cols[x][to.y] = h_
+    for y in range(1, to.y):
+        d.cols[0][y] = v_
+        d.cols[to.x][y] = v_
+    d.cols[0][0] = tl
+    d.cols[to.x][0] = tr
+    d.cols[0][to.y] = bl
+    d.cols[to.x][to.y] = br
+
+
+def _draw_box(n, g):
+    w = 0
+    for i in range(2):
+        w += g.column_width.get(n.grid_coord.x + i, 0)
+    h = 0
+    for i in range(2):
+        h += g.row_height.get(n.grid_coord.y + i, 0)
+
+    from_ = Coord(0, 0)
+    to = Coord(w, h)
+    box = mk_drawing(_max(from_.x, to.x), _max(from_.y, to.y))
+    _draw_rect(box, to, g.use_ascii)
+
+    inner_top = from_.y + 1
+    inner_height = h - 1
+    content_top = inner_top + (inner_height - n.label.content_height()) // 2
+    styles = n.style_class.styles if n.style_class is not None else {}
+    color = styles.get("color", "")
+    for line_idx, line in enumerate(n.label.lines):
+        text_y = content_top + line_idx * (GRAPH_LABEL_LINE_GAP + 1)
+        text_width = string_width(line)
+        text_x = from_.x + w // 2 - ceil_div(text_width, 2) + 1
+        for r in line:
+            rw = _max(rune_width(r), 1)
+            box.cols[text_x][text_y] = _wrap_text_in_color(r, color, g.style_type)
+            for offset in range(1, rw):
+                box.cols[text_x + offset][text_y] = ""
+            text_x += rw
+    return box
+
+
+def _draw_subgraph(sg, g):
+    width = sg.max_x - sg.min_x
+    height = sg.max_y - sg.min_y
+    if width <= 0 or height <= 0:
+        return mk_drawing(0, 0)
+    to = Coord(width, height)
+    d = mk_drawing(width, height)
+    _draw_rect(d, to, g.use_ascii)
+    return d
+
+
+def _draw_subgraph_label(sg, g):
+    width = sg.max_x - sg.min_x
+    height = sg.max_y - sg.min_y
+    if width <= 0 or height <= 0:
+        return mk_drawing(0, 0), Coord(0, 0)
+    from_ = Coord(0, 0)
+    to = Coord(width, height)
+    d = mk_drawing(width, height)
+    for line_idx, line in enumerate(sg.label.lines):
+        label_y = from_.y + 1 + line_idx * (GRAPH_LABEL_LINE_GAP + 1)
+        label_x = from_.x + width // 2 - string_width(line) // 2
+        if label_x < from_.x + 1:
+            label_x = from_.x + 1
+        for char in line:
+            rw = _max(rune_width(char), 1)
+            if label_x < to.x:
+                d.cols[label_x][label_y] = char
+            offset = 1
+            while offset < rw and label_x + offset < to.x:
+                d.cols[label_x + offset][label_y] = ""
+                offset += 1
+            label_x += rw
+    return d, Coord(sg.min_x, sg.min_y)
+
+
+# --- line drawing (cmd/draw.go) --------------------------------------------
+
+# Per-direction (step_x, step_y, glyph_key). The starting `offset_from` shift is
+# applied to y for any vertical movement, else to x — matching the original
+# per-branch start (diagonals began at x == from_.x, offsetting only y).
+_DRAW_LINE_DIRS = {
+    Up: (0, -1, "v"), Down: (0, 1, "v"), Left: (-1, 0, "h"), Right: (1, 0, "h"),
+    UpperLeft: (-1, -1, "ul"), UpperRight: (1, -1, "ur"),
+    LowerLeft: (-1, 1, "ll"), LowerRight: (1, 1, "lr"),
+}
+_DRAW_LINE_CHARS = {
+    False: {"v": "│", "h": "─", "ul": "╲", "ur": "╱", "ll": "╱", "lr": "╲"},
+    True: {"v": "|", "h": "-", "ul": "\\", "ur": "/", "ll": "/", "lr": "\\"},
+}
+
+
+def _draw_line(g, d, from_, to, offset_from, offset_to):
+    direction = _determine_direction(from_, to)
+    drawn = []
+    spec = _DRAW_LINE_DIRS.get(direction)
+    if spec is None:
+        return drawn
+    sdx, sdy, key = spec
+    glyph = _DRAW_LINE_CHARS[g.use_ascii][key]
+
+    # A cell is still in range while it hasn't passed `to` shifted by offset_to
+    # in the step's direction (offset_to may be negative to pull the end in).
+    def in_range(cur, target, step):
+        limit = target + step * offset_to
+        return cur <= limit if step > 0 else cur >= limit
+
+    if sdy != 0:
+        x, y = from_.x, from_.y + sdy * offset_from
+    else:
+        x, y = from_.x + sdx * offset_from, from_.y
+    while (sdx == 0 or in_range(x, to.x, sdx)) and (sdy == 0 or in_range(y, to.y, sdy)):
+        drawn.append(Coord(x, y))
+        d.cols[x][y] = glyph
+        x += sdx
+        y += sdy
+    return drawn
+
+
+# --- arrow drawing (cmd/arrow.go) ------------------------------------------
+
+def _reverse_drawing_line(line):
+    return list(reversed(line))
+
+
+def _draw_path(g, path):
+    d = _copy_canvas(g.drawing)
+    previous_coord = path[0]
+    lines_drawn = []
+    line_dirs = []
+    for next_coord in path[1:]:
+        previous_dc = g.grid_to_drawing_coord(previous_coord, None)
+        next_dc = g.grid_to_drawing_coord(next_coord, None)
+        if previous_dc == next_dc:
+            continue
+        dir_ = _determine_direction(previous_coord, next_coord)
+        s = _draw_line(g, d, previous_dc, next_dc, 1, -1)
+        if len(s) == 0:
+            s = [previous_dc]
+        lines_drawn.append(s)
+        line_dirs.append(dir_)
+        previous_coord = next_coord
+    return d, lines_drawn, line_dirs
+
+
+# dir -> (dx, dy, glyph) for the tee where an edge leaves its source box.
+_BOX_START_TEES = {
+    Up: (0, 1, "┴"), Down: (0, -1, "┬"), Left: (1, 0, "┤"), Right: (-1, 0, "├"),
+}
+
+
+def _draw_box_start(g, path, first_line):
+    d = _copy_canvas(g.drawing)
+    from_ = first_line[0]
+    if g.use_ascii:
+        return d
+    spec = _BOX_START_TEES.get(_determine_direction(path[0], path[1]))
+    if spec is not None:
+        dx, dy, glyph = spec
+        d.cols[from_.x + dx][from_.y + dy] = glyph
+    return d
+
+
+_ARROW_HEAD_UNICODE = {
+    Up: "▲", Down: "▼", Left: "◄", Right: "►",
+    UpperRight: "◥", UpperLeft: "◤", LowerRight: "◢", LowerLeft: "◣",
+}
+_ARROW_HEAD_ASCII = {Up: "^", Down: "v", Left: "<", Right: ">"}
+
+
+def _draw_arrow_head(g, line, fallback):
+    d = _copy_canvas(g.drawing)
+    if len(line) == 0:
+        return d
+    from_ = line[0]
+    last_pos = line[-1]
+    dir_ = _determine_direction(from_, last_pos)
+    if len(line) == 1 or dir_ == Middle:
+        dir_ = fallback
+
+    if not g.use_ascii:
+        char = _ARROW_HEAD_UNICODE.get(dir_)
+        if char is None:
+            char = _ARROW_HEAD_UNICODE.get(fallback, "●")
+    else:
+        char = _ARROW_HEAD_ASCII.get(dir_)
+        if char is None:
+            char = _ARROW_HEAD_ASCII.get(fallback, "*")
+
+    d.cols[last_pos.x][last_pos.y] = char
+    return d
+
+
+def _draw_corners(g, path):
+    d = _copy_canvas(g.drawing)
+    for idx, coord in enumerate(path):
+        if idx == 0 or idx == len(path) - 1:
+            continue
+        dc = g.grid_to_drawing_coord(coord, None)
+        prev_dir = _determine_direction(path[idx - 1], coord)
+        next_dir = _determine_direction(coord, path[idx + 1])
+        if g.use_ascii:
+            corner = "+"
+        else:
+            corner = _CORNER_GLYPHS.get((prev_dir, next_dir), "+")
+        d.cols[dc.x][dc.y] = corner
+    return d
+
+
+_CORNER_GLYPHS = {
+    (Right, Down): "┐", (Up, Left): "┐",
+    (Right, Up): "┘", (Down, Left): "┘",
+    (Left, Down): "┌", (Up, Right): "┌",
+    (Left, Up): "└", (Down, Right): "└",
+}
+
+
+def _inset_line(line, inset_start, inset_end):
+    if len(line) < 2 or (inset_start == 0 and inset_end == 0):
+        return line
+    end_inset = inset_end
+    if inset_end > 0:
+        end_inset = inset_end - 1
+    dir_ = _determine_direction(line[0], line[1])
+    # (axis, sign): move start by sign*inset_start and end by -sign*end_inset.
+    spec = {Right: ("x", 1), Left: ("x", -1), Down: ("y", 1), Up: ("y", -1)}.get(dir_)
+    if spec is None:
+        return line
+    axis, sign = spec
+    a = Coord(line[0].x, line[0].y)
+    b = Coord(line[1].x, line[1].y)
+    setattr(a, axis, getattr(a, axis) + sign * inset_start)
+    setattr(b, axis, getattr(b, axis) - sign * end_inset)
+    return [a, b]
+
+
+def _draw_text_on_line(d, line, label):
+    if line[0].x > line[1].x:
+        min_x, max_x = line[1].x, line[0].x
+    else:
+        min_x, max_x = line[0].x, line[1].x
+    if line[0].y > line[1].y:
+        min_y, max_y = line[1].y, line[0].y
+    else:
+        min_y, max_y = line[0].y, line[1].y
+    middle_x = min_x + (max_x - min_x) // 2
+    middle_y = min_y + (max_y - min_y) // 2
+    start = Coord(middle_x - len(label) // 2, middle_y)
+    _draw_text_on_drawing(d, start, label)
+
+
+def _draw_arrow_label(g, e):
+    d = _copy_canvas(g.drawing)
+    if len(e.text) == 0:
+        return d
+    line = g.line_to_drawing(e.label_line)
+    if e.is_bidirectional:
+        line = _inset_line(line, 2, 2)
+    else:
+        line = _inset_line(line, 1, 2)
+    _draw_text_on_line(d, line, e.text)
+    return d
+
+
+def _draw_arrow(g, from_, to, e):
+    if len(e.path) == 0:
+        return None, None, None, None, None
+    d_label = _draw_arrow_label(g, e)
+    d_path, lines_drawn, line_dirs = _draw_path(g, e.path)
+    d_box_start = _draw_box_start(g, e.path, lines_drawn[0])
+    d_arrow_head = _draw_arrow_head(g, lines_drawn[-1], line_dirs[-1])
+    if e.is_bidirectional and len(lines_drawn) > 0:
+        d_start = _draw_arrow_head(g, _reverse_drawing_line(lines_drawn[0]),
+                                   _dir_opposite(line_dirs[0]))
+        d_arrow_head = _merge_drawings(g, d_arrow_head, Coord(0, 0), [d_start])
+    d_corners = _draw_corners(g, e.path)
+    return d_path, d_box_start, d_arrow_head, d_corners, d_label
+
+
+# --- merge & draw (cmd/draw.go, cmd/graph.go) ------------------------------
+
+def _merge_drawings(g, base, merge_coord, drawings):
+    max_x, max_y = _get_drawing_size(base)
+    for d in drawings:
+        dx, dy = _get_drawing_size(d)
+        max_x = _max(max_x, dx + merge_coord.x)
+        max_y = _max(max_y, dy + merge_coord.y)
+    merged = mk_drawing(max_x, max_y)
+    for x in range(max_x + 1):
+        for y in range(max_y + 1):
+            if x < len(base.cols) and y < len(base.cols[0]):
+                merged.cols[x][y] = base.cols[x][y]
+    for d in drawings:
+        for x in range(len(d.cols)):
+            for y in range(len(d.cols[0])):
+                c = d.cols[x][y]
+                if c != " ":
+                    current = merged.cols[x + merge_coord.x][y + merge_coord.y]
+                    if (not g.use_ascii) and _is_junction_char(c) and _is_junction_char(current):
+                        merged.cols[x + merge_coord.x][y + merge_coord.y] = _merge_junctions(current, c)
+                    else:
+                        merged.cols[x + merge_coord.x][y + merge_coord.y] = c
+    return merged
+
+
+def _draw_node(g, n):
+    m = _merge_drawings(g, g.drawing, n.drawing_coord, [n.drawing])
+    g.drawing = m
+
+
+def _draw_edge(g, e):
+    from_ = _coord_direction(e.from_.grid_coord, e.start_dir)
+    to = _coord_direction(e.to.grid_coord, e.end_dir)
+    return _draw_arrow(g, from_, to, e)
+
+
+def _get_subgraph_depth(g, sg):
+    if sg.parent is None:
+        return 0
+    return 1 + _get_subgraph_depth(g, sg.parent)
+
+
+def _sort_subgraphs_by_depth(g):
+    depths = {id(sg): _get_subgraph_depth(g, sg) for sg in g.subgraphs}
+    sorted_list = list(g.subgraphs)
+    for i in range(len(sorted_list)):
+        for j in range(i + 1, len(sorted_list)):
+            if depths[id(sorted_list[i])] > depths[id(sorted_list[j])]:
+                sorted_list[i], sorted_list[j] = sorted_list[j], sorted_list[i]
+    return sorted_list
+
+
+def _draw_subgraphs(g):
+    for sg in _sort_subgraphs_by_depth(g):
+        sg_drawing = _draw_subgraph(sg, g)
+        g.drawing = _merge_drawings(g, g.drawing, Coord(sg.min_x, sg.min_y), [sg_drawing])
+
+
+def _draw_subgraph_labels(g):
+    for sg in g.subgraphs:
+        if len(sg.nodes) == 0:
+            continue
+        label_drawing, offset = _draw_subgraph_label(sg, g)
+        g.drawing = _merge_drawings(g, g.drawing, offset, [label_drawing])
+
+
+def _draw(g):
+    _draw_subgraphs(g)
+    for node in g.nodes:
+        if not node.drawn:
+            _draw_node(g, node)
+    # Layers are merged in this order; each edge contributes one drawing per
+    # layer (or None when the edge was dropped).
+    layers = [[], [], [], [], []]  # line, corner, arrow_head, box_start, label
+    for edge in g.edges:
+        try:
+            line, box_start, arrow_head, corners, label = _draw_edge(g, edge)
+            parts = [line, corners, arrow_head, box_start, label]
+        except IndexError:
+            # A routed path can reach a cell outside the sized canvas on dense
+            # graphs (the upstream Go tool panics outright here). Rather than
+            # abort the whole diagram, drop just this edge and warn — the rest
+            # of the graph still renders.
+            sys.stderr.write(
+                "warning: could not route edge %s -> %s; skipping it\n"
+                % (edge.from_.name, edge.to.name))
+            parts = [None] * 5
+        for layer, part in zip(layers, parts):
+            layer.append(part)
+
+    for layer in layers:
+        g.drawing = _merge_drawings(g, g.drawing, Coord(0, 0),
+                                    [x for x in layer if x is not None])
+
+    _draw_subgraph_labels(g)
+    return g.drawing
+
+
+# --- mkGraph & drawMap (cmd/graph.go, cmd/draw.go) -------------------------
+
+def _mk_graph(data, node_specs):
+    g = Graph()
+    index = 0
+    for node_name in data.keys():
+        children = data[node_name]
+        spec = node_specs.get(node_name, GraphNodeSpec())
+        parent_node = g.get_node(node_name)
+        if parent_node is None:
+            parent_node = Node(node_name, spec.label, index, spec.style_class)
+            g.append_node(parent_node)
+            index += 1
+        for text_edge in children:
+            child_spec = node_specs.get(text_edge.child.name, GraphNodeSpec())
+            child_node = g.get_node(text_edge.child.name)
+            if child_node is None:
+                child_node = Node(text_edge.child.name, child_spec.label, index,
+                                  child_spec.style_class)
+                g.append_node(child_node)
+                index += 1
+            e = Edge(parent_node, child_node, text_edge.label, text_edge.is_bidirectional)
+            g.edges.append(e)
+    return g
+
+
+def _debug_drawing_wrapper(d):
+    max_x, max_y = _get_drawing_size(d)
+    debug = mk_drawing(max_x + 2, max_y + 1)
+    for x in range(max_x + 1):
+        debug.cols[x + 2][0] = str(x % 10)
+    for y in range(max_y + 1):
+        debug.cols[0][y + 1] = "%2d" % y
+    for x in range(len(debug.cols)):
+        for y in range(len(debug.cols[0])):
+            if x >= 2 and y >= 1 and x - 2 < len(d.cols) and y - 1 < len(d.cols[0]):
+                debug.cols[x][y] = d.cols[x - 2][y - 1]
+    return debug
+
+
+def _debug_coord_wrapper(d, g):
+    max_x, max_y = _get_drawing_size(d)
+    debug = mk_drawing(max_x + 2, max_y + 1)
+    # Walk the grid columns/rows in order, labelling each. A zero-width column
+    # (created by subgraph offsets) advances the cursor by 0, so guard against
+    # non-progress: stop once we run past the last known column/row instead of
+    # spinning forever (the Go original looped indefinitely here).
+    last_col = max(g.column_width) if g.column_width else -1
+    curr_x = 3
+    x = 0
+    while curr_x <= max_x + g.column_width.get(x, 0):
+        w = g.column_width.get(x, 0)
+        debug.cols[curr_x][0] = str(x % 10)
+        curr_x += w
+        x += 1
+        if w == 0 and x > last_col:
+            break
+    last_row = max(g.row_height) if g.row_height else -1
+    curr_y = 2
+    y = 0
+    while curr_y <= max_y + g.row_height.get(y, 0):
+        h = g.row_height.get(y, 0)
+        debug_pos = curr_y + h // 2
+        debug.cols[0][debug_pos] = str(y % 10)
+        curr_y += h
+        y += 1
+        if h == 0 and y > last_row:
+            break
+    return _merge_drawings(g, debug, Coord(1, 1), [d])
+
+
+def draw_map(properties, show_coords=False):
+    g = _mk_graph(properties.data, properties.node_specs)
+    g.set_style_classes(properties)
+    g.padding_x = properties.padding_x
+    g.padding_y = properties.padding_y
+    g.use_ascii = properties.use_ascii
+    g.set_subgraphs(properties.subgraphs)
+    _create_mapping(g)
+    d = _draw(g)
+    if show_coords:
+        d = _debug_drawing_wrapper(d)
+        d = _debug_coord_wrapper(d, g)
+    return _drawing_to_string(d)
+
+
+# ===========================================================================
+# Diagram factory + top-level render (cmd/diagram.go, cmd/render.go, root.go)
+# ===========================================================================
+
+def graph_render(properties, config):
+    if config is None:
+        config = default_config()
+    style_type = config.style_type or "cli"
+    properties.box_border_padding = config.box_border_padding
+    properties.padding_x = config.padding_between_x
+    properties.padding_y = config.padding_between_y
+    properties.style_type = style_type
+    properties.use_ascii = config.use_ascii
+    return draw_map(properties, show_coords=config.show_coords)
+
+
+def render_diagram(input_text, config):
+    if config is None:
+        config = default_config()
+
+    stripped = input_text.strip()
+
+    if is_sequence_diagram(stripped):
+        sd = sequence_parse(input_text)
+        return sequence_render(sd, config)
+
+    if is_er_diagram(stripped):
+        d = er_parse(input_text)
+        return er_render(d, config.use_ascii)
+
+    # Otherwise treat as a graph/flowchart.
+    properties = mermaid_file_to_map(input_text, "cli")
+    return graph_render(properties, config)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="mermaid-ascii",
+        description="Generate ASCII diagrams from mermaid code.",
+        add_help=True,
+    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    parser.add_argument("-a", "--ascii", action="store_true",
+                        help="Don't use extended character set")
+    parser.add_argument("-c", "--coords", action="store_true", help="Show coordinates")
+    parser.add_argument("-x", "--paddingX", type=int, default=5,
+                        help="Horizontal space between nodes")
+    parser.add_argument("-y", "--paddingY", type=int, default=5,
+                        help="Vertical space between nodes")
+    parser.add_argument("-p", "--borderPadding", type=int, default=1,
+                        help="Padding between text and border")
+    parser.add_argument("-f", "--file", default="",
+                        help="Mermaid file to parse (use '-' for stdin)")
+    args = parser.parse_args(argv)
+
+    if args.file == "" or args.file == "-":
+        mermaid = sys.stdin.read()
+    else:
+        try:
+            with open(args.file, "r", encoding="utf-8") as fh:
+                mermaid = fh.read()
+        except OSError as e:
+            sys.stderr.write("Failed to read mermaid file: %s\n" % e)
+            return 1
+
+    try:
+        config = Config(
+            use_ascii=args.ascii,
+            show_coords=args.coords,
+            verbose=args.verbose,
+            box_border_padding=args.borderPadding,
+            padding_between_x=args.paddingX,
+            padding_between_y=args.paddingY,
+            graph_direction="LR",
+            style_type="cli",
+        ).validate()
+    except ConfigError as e:
+        sys.stderr.write("Invalid configuration: %s\n" % e)
+        return 1
+
+    try:
+        output = render_diagram(mermaid, config)
+    except (ParseError, Exception) as e:
+        sys.stderr.write("%s\n" % e)
+        return 1
+
+    sys.stdout.write(output)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
