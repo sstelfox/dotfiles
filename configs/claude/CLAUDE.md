@@ -1,10 +1,8 @@
 # Global instructions
 
-Applies to every Claude Code session. Project-level `CLAUDE.md` files override anything here.
-
 ## Tone
 
-Terse. Skip preamble and trailing summaries — the diff and tool calls already convey what happened. One sentence per progress update; no running commentary.
+Terse. Skip preamble and trailing summaries. One sentence per progress update; no running commentary.
 
 ## Safety
 
@@ -16,10 +14,14 @@ Never bypass safety checks (`--no-verify`, `--no-gpg-sign`) without explicit ins
 
 Default to creating new commits over amending. Never force-push to `main`. Don't commit files likely to contain secrets (`.env`, `credentials.json`, etc).
 
-Match the existing repo's commit message style — read `git log` first.
+Use conventional commits style.
 
 ## Style
 
-Default to no comments. Add one only when *why* is non-obvious (hidden constraints, subtle invariants, workarounds for specific bugs). Don't restate what well-named code already says.
+Comments need to have a purpose beyond describing the code. Limit the use to non-obvious considerations that went into the code (hidden constraints, expected invariants, workarounds for specific bugs). Don't restate what well-named code already says.
 
-Don't add features, error handling, or abstractions beyond what the task requires. Three similar lines beats a premature abstraction.
+Don't add features, error handling, or abstractions beyond what the task requires. Keep the feature creep in check.
+
+No broken windows. If you see a warning, error, or dangerous pattern don't leave it till later. Address problems upon detection.
+
+Re-use existing code before writing new code. Minor alteration for a new use case is preferred over multiple redundant implementations.
