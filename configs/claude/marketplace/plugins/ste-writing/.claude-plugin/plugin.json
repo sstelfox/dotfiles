@@ -1,0 +1,8 @@
+{
+  "name": "ste-writing",
+  "version": "0.1.0",
+  "description": "Rewrite prose into ASD-STE100 Simplified Technical English",
+  "author": {
+    "name": "Sam Stelfox"
+  }
+}

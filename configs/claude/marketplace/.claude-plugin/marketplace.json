@@ -36,6 +36,7 @@
     { "name": "skill-improver",                 "source": "./plugins/skill-improver" },
     { "name": "spec-to-code-compliance",        "source": "./plugins/spec-to-code-compliance" },
     { "name": "static-analysis",                "source": "./plugins/static-analysis" },
+    { "name": "ste-writing",                    "source": "./plugins/ste-writing" },
     { "name": "supply-chain-risk-auditor",      "source": "./plugins/supply-chain-risk-auditor" },
     { "name": "testing-handbook-skills",        "source": "./plugins/testing-handbook-skills" },
     { "name": "trailmark",                      "source": "./plugins/trailmark" },
