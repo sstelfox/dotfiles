@@ -76,15 +76,6 @@ EOF
   fi
 fi
 
-if which -q sccache &>/dev/null; then
-  # Use `cargo install sccache` to speed up compilation
-  export RUSTC_WRAPPER=sccache
-fi
-
-# This is a bugfix for wayload that doesn't allow clipboard interactions for some reason
-# might not be needed or might be even more broken now as I haven't been having great luck with wayland's clipboard
-#export QT_QPA_PLATFORM=xcb
-
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/sstelfox/.miniconda3/bin/conda' 'shell.bash' 'hook' 2>/dev/null)"
@@ -105,6 +96,5 @@ if which conda &>/dev/null; then
   conda activate default
 fi
 
-#export OLLAMA_HOST="172.16.50.3:11434"
 #export PAISA_CONFIG="${HOME}/documentation/data/finances/paisa.yaml"
 export PATH="${PATH}:${HOME}/.local/bin"
